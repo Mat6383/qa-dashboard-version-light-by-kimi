@@ -1,0 +1,642 @@
+openapi: 3.0.3
+info:
+  title: QA Dashboard API
+  description: |
+    API backend du QA Dashboard by Kimi 2.0.
+    Gestion des métriques Testmo, synchronisation GitLab, exports, auth OAuth, et monitoring.
+  version: 2.0.0
+  contact:
+    name: Neo-Logix QA Team
+servers:
+  - url: /api
+    description: Serveur local (proxy Vite)
+  - url: http://localhost:3001/api
+    description: Serveur backend direct
+
+tags:
+  - name: Auth
+    description: Authentification OAuth GitLab + JWT
+  - name: Dashboard
+    description: Métriques, tendances, comparaison multi-projets
+  - name: Runs
+    description: Runs et résultats Testmo
+  - name: Projects
+    description: Projets Testmo (runs, jalons, automation)
+  - name: Crosstest
+    description: CrossTest Dashboard 7 (issues GitLab + commentaires)
+  - name: Sync
+    description: Synchronisation GitLab ↔ Testmo
+  - name: Export
+    description: Export CSV / Excel / PDF
+  - name: Reports
+    description: Génération de rapports HTML / PPTX
+  - name: Notifications
+    description: Alertes email + webhooks Slack/Teams
+  - name: Admin
+    description: Feature flags, cache, health détaillé
+  - name: Monitoring
+    description: Métriques Prometheus et healthchecks
+
+security:
+  - bearerAuth: []
+  - adminToken: []
+
+paths:
+  /auth/gitlab:
+    get:
+      tags: [Auth]
+      summary: Lancer l'authentification OAuth GitLab
+      responses:
+        302:
+          description: Redirection vers GitLab OAuth
+        501:
+          description: OAuth non configuré
+
+  /auth/gitlab/callback:
+    get:
+      tags: [Auth]
+      summary: Callback OAuth GitLab
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+      responses:
+        302:
+          description: Redirection vers le frontend avec token
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rafraîchir le token d'accès
+      responses:
+        200:
+          description: Nouveau token généré
+        401:
+          description: Refresh token invalide
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion
+      responses:
+        200:
+          description: Déconnexion réussie
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Profil utilisateur connecté
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Profil utilisateur
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Métriques d'un projet
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Métriques du projet
+
+  /dashboard/multi:
+    post:
+      tags: [Dashboard]
+      summary: Synthèse multi-projets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        200:
+          description: Synthèse agrégée
+
+  /dashboard/trends:
+    get:
+      tags: [Dashboard]
+      summary: Tendances historiques
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        200:
+          description: Historique des métriques
+
+  /dashboard/compare:
+    post:
+      tags: [Dashboard]
+      summary: Comparer plusieurs projets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        200:
+          description: Comparaison radar + table
+
+  /runs/{runId}:
+    get:
+      tags: [Runs]
+      summary: Détails d'un run Testmo
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Détails du run
+        400:
+          description: runId invalide
+
+  /runs/{runId}/results:
+    get:
+      tags: [Runs]
+      summary: Résultats d'un run
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Résultats du run
+
+  /projects/{projectId}/runs:
+    get:
+      tags: [Projects]
+      summary: Liste des runs d'un projet
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Liste des runs
+
+  /projects/{projectId}/milestones:
+    get:
+      tags: [Projects]
+      summary: Jalons d'un projet
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Liste des jalons
+
+  /crosstest/iterations:
+    get:
+      tags: [Crosstest]
+      summary: Itérations GitLab CrossTest
+      responses:
+        200:
+          description: Liste des itérations
+
+  /crosstest/issues/{iterationId}:
+    get:
+      tags: [Crosstest]
+      summary: Issues d'une itération
+      parameters:
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Liste des issues
+        400:
+          description: iterationId invalide
+
+  /crosstest/comments/{iid}:
+    put:
+      tags: [Crosstest]
+      summary: Ajouter / modifier un commentaire
+      parameters:
+        - name: iid
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                milestone_context:
+                  type: string
+      responses:
+        200:
+          description: Commentaire mis à jour
+    delete:
+      tags: [Crosstest]
+      summary: Supprimer un commentaire
+      parameters:
+        - name: iid
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Commentaire supprimé
+
+  /sync/projects:
+    get:
+      tags: [Sync]
+      summary: Projets configurés pour la sync
+      responses:
+        200:
+          description: Liste des projets
+
+  /sync/{projectId}/iterations:
+    get:
+      tags: [Sync]
+      summary: Rechercher des itérations GitLab
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Itérations trouvées
+        404:
+          description: Projet inconnu
+
+  /sync/preview:
+    post:
+      tags: [Sync]
+      summary: Prévisualiser une synchronisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                iterationName:
+                  type: string
+      responses:
+        200:
+          description: Résultat du preview
+
+  /sync/execute:
+    post:
+      tags: [Sync]
+      summary: Exécuter une synchronisation (SSE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                iterationName:
+                  type: string
+      responses:
+        200:
+          description: Stream SSE de progression
+
+  /sync/status-to-gitlab:
+    post:
+      tags: [Sync]
+      summary: Synchroniser les statuts Testmo vers GitLab (SSE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                runId:
+                  type: integer
+                iterationName:
+                  type: string
+                gitlabProjectId:
+                  type: integer
+                dryRun:
+                  type: boolean
+      responses:
+        200:
+          description: Stream SSE de progression
+
+  /sync/history:
+    get:
+      tags: [Sync]
+      summary: Historique des synchronisations
+      responses:
+        200:
+          description: Liste des runs historiques
+
+  /sync/auto-config:
+    get:
+      tags: [Sync]
+      summary: Configuration auto-sync
+      responses:
+        200:
+          description: Configuration courante
+    put:
+      tags: [Sync]
+      summary: Mettre à jour la config auto-sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                runId:
+                  type: integer
+                iterationName:
+                  type: string
+                gitlabProjectId:
+                  type: string
+      responses:
+        200:
+          description: Config mise à jour
+
+  /export/csv:
+    post:
+      tags: [Export]
+      summary: Exporter les métriques en CSV
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: integer
+                milestones:
+                  type: object
+      responses:
+        200:
+          description: Fichier CSV
+
+  /export/excel:
+    post:
+      tags: [Export]
+      summary: Exporter les métriques en Excel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: integer
+                milestones:
+                  type: object
+      responses:
+        200:
+          description: Fichier Excel (.xlsx)
+
+  /pdf/generate:
+    post:
+      tags: [Export]
+      summary: Générer un PDF des métriques
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: integer
+                runIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        200:
+          description: Fichier PDF
+
+  /reports/generate:
+    post:
+      tags: [Reports]
+      summary: Générer un rapport HTML / PPTX
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: integer
+                runIds:
+                  type: array
+                  items:
+                    type: integer
+                formats:
+                  type: object
+      responses:
+        200:
+          description: Rapport généré
+
+  /notifications/settings:
+    get:
+      tags: [Notifications]
+      summary: Paramètres de notification
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Paramètres courants
+    put:
+      tags: [Notifications]
+      summary: Mettre à jour les paramètres
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: Paramètres mis à jour
+
+  /notifications/test-webhook:
+    post:
+      tags: [Notifications]
+      summary: Tester le webhook
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Résultat du test
+
+  /feature-flags:
+    get:
+      tags: [Admin]
+      summary: Liste des feature flags
+      security:
+        - adminToken: []
+      responses:
+        200:
+          description: Feature flags
+
+  /cache/clear:
+    post:
+      tags: [Admin]
+      summary: Vider le cache Testmo
+      security:
+        - adminToken: []
+      responses:
+        200:
+          description: Cache vidé
+
+  /health:
+    get:
+      tags: [Monitoring]
+      summary: Healthcheck simple
+      responses:
+        200:
+          description: OK
+
+  /health/ready:
+    get:
+      tags: [Monitoring]
+      summary: Readiness probe (DB + APIs externes)
+      responses:
+        200:
+          description: Service prêt
+        503:
+          description: Service dégradé
+
+  /health/detailed:
+    get:
+      tags: [Monitoring]
+      summary: Healthcheck détaillé (DB, APIs externes, disque, mémoire)
+      responses:
+        200:
+          description: État complet des dépendances
+        503:
+          description: Service dégradé
+
+  /metrics:
+    get:
+      tags: [Monitoring]
+      summary: Métriques Prometheus
+      responses:
+        200:
+          description: Métriques au format Prometheus (text/plain)
+
+  /audit:
+    get:
+      tags: [Admin]
+      summary: Journal d'audit (admin uniquement)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          schema: { type: string }
+          description: Filtrer par action
+        - name: actorId
+          in: query
+          schema: { type: integer }
+          description: Filtrer par ID utilisateur
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+          description: Date de début (YYYY-MM-DD)
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+          description: Date de fin (YYYY-MM-DD)
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+          description: Nombre d'entrées par page
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+          description: Offset de pagination
+      responses:
+        200:
+          description: Liste paginée des entrées d'audit
+        401:
+          description: Non authentifié
+        403:
+          description: Accès interdit (admin requis)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    adminToken:
+      type: apiKey
+      in: header
+      name: X-Admin-Token

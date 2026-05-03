@@ -1,0 +1,41 @@
+# ==========================================
+# SÉCURITÉ - Ne jamais versionner ces fichiers
+# ==========================================
+
+# Variables d'environnement (CRITIQUE!)
+.env
+.env.local
+.env.production
+
+# Dépendances
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs ITIL
+logs/
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+
+# Runtime data (config dynamique auto-sync, DB SQLite)
+data/*.json
+data/*.db

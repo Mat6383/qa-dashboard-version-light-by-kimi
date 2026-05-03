@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport de Clôture de Tests — R06</title>
+<style>
+  @page {
+    size: A4;
+    margin: 15mm 18mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1e293b;
+    line-height: 1.5;
+    background: #fff;
+  }
+  .page {
+    page-break-after: always;
+    min-height: 100vh;
+    padding: 0;
+    position: relative;
+  }
+  .page:last-child { page-break-after: avoid; }
+
+  /* ===== COVER ===== */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    color: #fff;
+    padding: 40px;
+  }
+  .cover-badge {
+    display: inline-block;
+    padding: 6px 22px;
+    border: 2px solid #38bdf8;
+    border-radius: 20px;
+    font-size: 10pt;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #38bdf8;
+    margin-bottom: 30px;
+  }
+  .cover h1 {
+    font-size: 32pt;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .cover h2 {
+    font-size: 16pt;
+    font-weight: 300;
+    color: #94a3b8;
+    margin-bottom: 40px;
+  }
+  .cover-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 40px;
+    text-align: left;
+    font-size: 10pt;
+    color: #cbd5e1;
+    border-top: 1px solid #334155;
+    padding-top: 24px;
+    margin-top: 20px;
+  }
+  .cover-meta dt { color: #64748b; font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; }
+  .cover-meta dd { color: #e2e8f0; font-weight: 500; margin-bottom: 10px; }
+  .cover-ref {
+    margin-top: 50px;
+    font-size: 8pt;
+    color: #475569;
+  }
+
+  /* ===== SECTIONS ===== */
+  h2.section-title {
+    font-size: 16pt;
+    color: #0f172a;
+    border-bottom: 3px solid #3b82f6;
+    padding-bottom: 6px;
+    margin: 0 0 16px 0;
+  }
+  h3.sub-title {
+    font-size: 12pt;
+    color: #1e40af;
+    margin: 18px 0 8px 0;
+  }
+  h4 { font-size: 10pt; color: #334155; margin: 12px 0 6px 0; }
+  p, li { font-size: 10.5pt; }
+  .section-content { padding: 24px 0; }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 9.5pt;
+  }
+  th {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 9pt;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr:hover td { background: #eff6ff; }
+  .num { text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .kpi-card {
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+  }
+  .kpi-card .kpi-value {
+    font-size: 26pt;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .kpi-card .kpi-label {
+    font-size: 8.5pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+  .kpi-card .kpi-target {
+    font-size: 8pt;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+  }
+
+  /* ===== STATUS BADGES ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-orange { background: #fef3c7; color: #92400e; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+
+  /* ===== BAR CHARTS (CSS) ===== */
+  .bar-chart {
+    margin: 12px 0;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .bar-label {
+    width: 120px;
+    font-size: 8.5pt;
+    color: #475569;
+    text-align: right;
+    padding-right: 10px;
+    flex-shrink: 0;
+  }
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6px;
+    font-size: 8pt;
+    font-weight: 600;
+    color: #fff;
+    min-width: 28px;
+    transition: width 0.5s;
+  }
+  .bar-threshold {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: #ef4444;
+    z-index: 2;
+  }
+  .bar-threshold::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -14px;
+    left: -12px;
+    font-size: 7pt;
+    color: #ef4444;
+    white-space: nowrap;
+  }
+
+  /* ===== CHECKLIST ===== */
+  .checklist {
+    list-style: none;
+    padding: 0;
+  }
+  .checklist li {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10pt;
+  }
+  .check-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12pt;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .check-ok { background: #dcfce7; color: #166534; }
+  .check-ko { background: #fee2e2; color: #991b1b; }
+
+  /* ===== DECISION BOX ===== */
+  .decision-box {
+    border: 3px solid;
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+    margin: 20px 0;
+  }
+  .decision-box.go-reserve {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+  .decision-box h3 {
+    font-size: 18pt;
+    margin-bottom: 8px;
+  }
+  .decision-box.go-reserve h3 { color: #92400e; }
+
+  /* ===== INCIDENT CARDS ===== */
+  .incident-card {
+    border-left: 4px solid;
+    padding: 12px 16px;
+    margin: 10px 0;
+    border-radius: 0 8px 8px 0;
+    background: #fafafa;
+  }
+  .incident-card.severity-high { border-color: #ef4444; }
+  .incident-card.severity-medium { border-color: #f59e0b; }
+  .incident-card.severity-low { border-color: #3b82f6; }
+  .incident-card h4 { margin: 0 0 4px 0; font-size: 10pt; }
+  .incident-card p { font-size: 9.5pt; color: #475569; margin: 0; }
+
+  /* ===== RISK MATRIX ===== */
+  .risk-matrix {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr 1fr;
+    gap: 2px;
+    margin: 12px 0;
+    font-size: 9pt;
+  }
+  .risk-cell {
+    padding: 8px;
+    text-align: center;
+    border-radius: 4px;
+  }
+  .risk-header { background: #1e3a5f; color: #fff; font-weight: 600; }
+  .risk-low { background: #dcfce7; }
+  .risk-medium { background: #fef3c7; }
+  .risk-high { background: #fee2e2; }
+
+  /* ===== GLOSSARY ===== */
+  .glossary {
+    columns: 2;
+    column-gap: 30px;
+    font-size: 8.5pt;
+  }
+  .glossary dt {
+    font-weight: 700;
+    color: #1e40af;
+    break-inside: avoid;
+  }
+  .glossary dd {
+    margin: 0 0 8px 0;
+    color: #475569;
+    break-inside: avoid;
+  }
+
+  /* ===== FOOTER ===== */
+  .page-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    font-size: 7.5pt;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 6px;
+  }
+
+  /* ===== STACKED BAR ===== */
+  .stacked-bar {
+    display: flex;
+    height: 30px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .stacked-bar .seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8pt;
+    font-weight: 600;
+    color: #fff;
+    min-width: 20px;
+  }
+
+  /* ===== TIMELINE ===== */
+  .timeline {
+    position: relative;
+    padding-left: 24px;
+    margin: 12px 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: #cbd5e1;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 12px;
+    padding-left: 16px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3b82f6;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+  .timeline-date {
+    font-size: 8pt;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .timeline-text {
+    font-size: 9.5pt;
+  }
+
+  /* ===== PRINT FIXES ===== */
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { page-break-after: always; min-height: auto; }
+    .cover { min-height: 100vh; }
+    .no-break { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====================== PAGE 1: COUVERTURE ====================== -->
+<div class="page cover">
+  <div class="cover-badge">ISTQB &bull; LEAN &bull; ITIL</div>
+  <h1>Rapport de Clôture de Tests</h1>
+  <h2>Release R06 — Test Closure Report</h2>
+
+  <div style="margin: 30px 0;">
+    <div style="font-size: 52pt; font-weight: 800; color: #f59e0b; letter-spacing: -2px;">GO SOUS RÉSERVE</div>
+    <div style="font-size: 11pt; color: #94a3b8; margin-top: 6px;">Décision conditionnelle — Critères partiellement atteints</div>
+  </div>
+
+  <dl class="cover-meta">
+    <dt>Projet</dt>
+    <dd>Neo-Logix — QA Préprod</dd>
+    <dt>Version</dt>
+    <dd>R06</dd>
+    <dt>Période de test</dt>
+    <dd>09 février 2026 → 27 mars 2026 (46 jours)</dd>
+    <dt>Jalon Testmo</dt>
+    <dd>Milestone #61 — R06</dd>
+    <dt>Périmètre</dt>
+    <dd>12 runs + 3 sessions exploratoires</dd>
+    <dt>Document</dt>
+    <dd>Rapport de clôture ISTQB §5.4.2</dd>
+    <dt>Destinataires</dt>
+    <dd>Product Owner, Chef du Support, Responsable Projet, CTO</dd>
+    <dt>Date d'édition</dt>
+    <dd>27 mars 2026</dd>
+  </dl>
+
+  <div class="cover-ref">
+    Réf. : RC-R06-2026-03-27 — Normes : ISTQB CTFL v4.0 §5.4.2 | LEAN Six Sigma | ITIL v4 CSI<br>
+    Généré depuis QA Dashboard — Neo-Logix
+  </div>
+</div>
+
+<!-- ====================== PAGE 2: RÉSUMÉ EXÉCUTIF ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">1. Résumé exécutif <span style="font-size:9pt;color:#64748b;">(Executive Summary)</span></h2>
+
+    <div class="decision-box go-reserve">
+      <h3>DÉCISION : GO SOUS RÉSERVE</h3>
+      <p style="font-size:10pt;color:#78350f;">
+        Le taux d'exécution (Test Execution Rate) est excellent à <strong>98,8%</strong>, dépassant le seuil cible de 90%.
+        Cependant, le <strong>taux de succès (Test Pass Rate)</strong> de <strong>83,3%</strong> reste en dessous du seuil d'alerte de 90%,
+        et le <strong>taux d'échec (Test Failure Rate)</strong> à <strong>15,4%</strong> dépasse le seuil critique de 10%.
+        La mise en production est conditionnée à la correction des anomalies bloquantes identifiées.
+      </p>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="border-left: 4px solid #10b981;">
+        <div class="kpi-value" style="color:#10b981;">98,8%</div>
+        <div class="kpi-label">Taux d'exécution<br><em>(Completion Rate)</em></div>
+        <div class="kpi-target badge-green">Cible ≥ 90% ✓</div>
+      </div>
+      <div class="kpi-card" style="border-left: 4px solid #ef4444;">
+        <div class="kpi-value" style="color:#ef4444;">83,3%</div>
+        <div class="kpi-label">Taux de succès<br><em>(Pass Rate)</em></div>
+        <div class="kpi-target badge-red">Cible ≥ 95% ✗</div>
+      </div>
+      <div class="kpi-card" style="border-left: 4px solid #ef4444;">
+        <div class="kpi-value" style="color:#ef4444;">15,4%</div>
+        <div class="kpi-label">Taux d'échec<br><em>(Failure Rate)</em></div>
+        <div class="kpi-target badge-red">Cible ≤ 5% ✗</div>
+      </div>
+      <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
+        <div class="kpi-value" style="color:#f59e0b;">84,4%</div>
+        <div class="kpi-label">Efficacité<br><em>(Test Efficiency)</em></div>
+        <div class="kpi-target badge-orange">Cible ≥ 95% ✗</div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">Vue d'ensemble de la campagne <em>(Test Campaign Overview)</em></h3>
+    <table>
+      <tr><th style="width:50%">Indicateur</th><th class="num">Valeur</th><th class="num">Seuil</th><th class="num">Statut</th></tr>
+      <tr><td>Cas de test totaux <em>(Total Test Cases)</em></td><td class="num"><strong>164</strong></td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Tests exécutés <em>(Executed)</em></td><td class="num">162</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Tests réussis <em>(Passed)</em></td><td class="num" style="color:#10b981;font-weight:700;">135</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Tests échoués <em>(Failed)</em></td><td class="num" style="color:#ef4444;font-weight:700;">25</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Tests ignorés <em>(Skipped)</em></td><td class="num">2</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Tests en cours <em>(WIP — Work In Progress)</em></td><td class="num" style="color:#f59e0b;">2</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Sessions exploratoires <em>(Exploratory Sessions)</em></td><td class="num">3</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Nombre de runs</td><td class="num">12</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Durée de la campagne</td><td class="num">46 jours</td><td class="num">—</td><td class="num">—</td></tr>
+    </table>
+
+    <h3 class="sub-title">Répartition globale des statuts</h3>
+    <div class="stacked-bar">
+      <div class="seg" style="width:82.3%;background:#10b981;" title="Passed: 135">Réussis 135</div>
+      <div class="seg" style="width:15.2%;background:#ef4444;" title="Failed: 25">Échoués 25</div>
+      <div class="seg" style="width:1.2%;background:#94a3b8;" title="Skipped: 2"></div>
+      <div class="seg" style="width:1.2%;background:#f59e0b;" title="WIP: 2"></div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:8pt;color:#64748b;margin-top:4px;">
+      <span>🟢 Réussis (Passed): 135</span>
+      <span>🔴 Échoués (Failed): 25</span>
+      <span>⚪ Ignorés (Skipped): 2</span>
+      <span>🟡 En cours (WIP): 2</span>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 2</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 3: PÉRIMÈTRE & PLANNING ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">2. Périmètre de test <span style="font-size:9pt;color:#64748b;">(Test Scope — ISTQB §5.2)</span></h2>
+
+    <h3 class="sub-title">2.1 Objet testé <em>(Test Object)</em></h3>
+    <p>La campagne R06 couvre la validation fonctionnelle de l'itération R06 du projet Neo-Logix, incluant :</p>
+    <ul style="margin:8px 0 12px 20px;">
+      <li><strong>93 cas de test</strong> (Test Cases) liés au jalon (Milestone) R06 dans Testmo</li>
+      <li><strong>Tests de validation fonctionnelle</strong> : 9 runs (run 1 à run 9)</li>
+      <li><strong>Tests de non-régression (TNR)</strong> : 3 runs spécialisés (Flux de prod, Tableaux de bord, Analyseurs)</li>
+      <li><strong>Tests exploratoires</strong> (Exploratory Testing — ISTQB §4.4.2) : 3 sessions</li>
+    </ul>
+
+    <h3 class="sub-title">2.2 Environnement de test <em>(Test Environment)</em></h3>
+    <p>Environnement de préprod (Staging). Plateforme Testmo pour le suivi et la traçabilité des cas de test.</p>
+
+    <h3 class="sub-title">2.3 Chronologie de la campagne <em>(Test Campaign Timeline)</em></h3>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-date">09 février 2026</div>
+        <div class="timeline-text"><strong>Démarrage</strong> — Création du run 1 (92 cas de test)</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">25 février 2026</div>
+        <div class="timeline-text">Run 2 — 8 cas de test additionnels</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">04 mars 2026</div>
+        <div class="timeline-text">Run 3 — 14 cas de test (dont 3 échecs)</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">06 mars 2026</div>
+        <div class="timeline-text">Run 4 — 11 cas de test (dont 3 échecs)</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">11 mars 2026</div>
+        <div class="timeline-text">Run 5 — 5 cas de test (2 encore en cours WIP)</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">12 mars 2026</div>
+        <div class="timeline-text"><strong>TNR</strong> — Lancement des 3 runs de non-régression</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">13 mars 2026</div>
+        <div class="timeline-text">Run 6 + Session exploratoire Sophie (4 anomalies détectées)</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">16–17 mars 2026</div>
+        <div class="timeline-text">Runs 7 & 8 + Session exploratoire GWELL GAB</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">27 mars 2026</div>
+        <div class="timeline-text"><strong>Clôture</strong> — Run 9 (4 cas, 100% réussis) + Session exploratoire Pauline</div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">2.4 Éléments hors périmètre <em>(Out of Scope)</em></h3>
+    <ul style="margin:8px 0 0 20px;">
+      <li>Tests de performance et de charge (Performance Testing)</li>
+      <li>Tests de sécurité (Security Testing)</li>
+      <li>Tests d'accessibilité</li>
+      <li>Tests d'intégration end-to-end</li>
+    </ul>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 3</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 4: RÉSULTATS TESTS ISSUES ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">3. Résultats détaillés <span style="font-size:9pt;color:#64748b;">(Detailed Test Results — ISTQB §5.4)</span></h2>
+
+    <h3 class="sub-title">3.1 Runs de validation fonctionnelle <em>(Functional Test Runs)</em></h3>
+    <table>
+      <tr>
+        <th>Run</th>
+        <th class="num">Total</th>
+        <th class="num">Réussis<br><em>(Passed)</em></th>
+        <th class="num">Échoués<br><em>(Failed)</em></th>
+        <th class="num">Ignorés<br><em>(Skipped)</em></th>
+        <th class="num">WIP</th>
+        <th class="num">Taux d'exéc.<br><em>(Completion)</em></th>
+        <th class="num">Taux de succès<br><em>(Pass Rate)</em></th>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 1</strong></td>
+        <td class="num">92</td>
+        <td class="num" style="color:#10b981;">77</td>
+        <td class="num" style="color:#ef4444;">14</td>
+        <td class="num">1</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-red">83,7%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 2</strong></td>
+        <td class="num">8</td>
+        <td class="num" style="color:#10b981;">7</td>
+        <td class="num">0</td>
+        <td class="num">1</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-orange">87,5%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 3</strong></td>
+        <td class="num">14</td>
+        <td class="num" style="color:#10b981;">11</td>
+        <td class="num" style="color:#ef4444;">3</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-red">78,6%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 4</strong></td>
+        <td class="num">11</td>
+        <td class="num" style="color:#10b981;">8</td>
+        <td class="num" style="color:#ef4444;">3</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-red">72,7%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 5</strong></td>
+        <td class="num">5</td>
+        <td class="num" style="color:#10b981;">3</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num" style="color:#f59e0b;">2</td>
+        <td class="num"><span class="badge badge-red">60%</span></td>
+        <td class="num"><span class="badge badge-green">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 6</strong></td>
+        <td class="num">2</td>
+        <td class="num" style="color:#10b981;">2</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-green">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 7</strong></td>
+        <td class="num">2</td>
+        <td class="num" style="color:#10b981;">2</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-green">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 8</strong></td>
+        <td class="num">6</td>
+        <td class="num" style="color:#10b981;">5</td>
+        <td class="num" style="color:#ef4444;">1</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-red">83,3%</span></td>
+      </tr>
+      <tr>
+        <td><strong>R06 — run 9</strong></td>
+        <td class="num">4</td>
+        <td class="num" style="color:#10b981;">4</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">100%</td>
+        <td class="num"><span class="badge badge-green">100%</span></td>
+      </tr>
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td>TOTAL RUNS FONCTIONNELS</td>
+        <td class="num">144</td>
+        <td class="num" style="color:#10b981;">119</td>
+        <td class="num" style="color:#ef4444;">21</td>
+        <td class="num">2</td>
+        <td class="num" style="color:#f59e0b;">2</td>
+        <td class="num">98,6%</td>
+        <td class="num">83,8%</td>
+      </tr>
+    </table>
+
+    <h3 class="sub-title">3.2 Tests de non-régression — TNR <em>(Regression Testing)</em></h3>
+    <p style="margin-bottom:8px;">Les TNR valident que les fonctionnalités existantes n'ont pas été impactées par les développements R06.</p>
+    <table>
+      <tr>
+        <th>Run TNR</th>
+        <th class="num">Total</th>
+        <th class="num">Réussis</th>
+        <th class="num">Échoués</th>
+        <th class="num">Taux de succès</th>
+        <th class="num">Statut</th>
+      </tr>
+      <tr>
+        <td><strong>TNR — Flux de production</strong></td>
+        <td class="num">18</td>
+        <td class="num" style="color:#10b981;">15</td>
+        <td class="num" style="color:#ef4444;">3</td>
+        <td class="num"><span class="badge badge-red">83,3%</span></td>
+        <td class="num"><span class="badge badge-orange">Attention</span></td>
+      </tr>
+      <tr>
+        <td><strong>TNR — Tableaux de bord</strong></td>
+        <td class="num">1</td>
+        <td class="num">0</td>
+        <td class="num" style="color:#ef4444;">1</td>
+        <td class="num"><span class="badge badge-red">0%</span></td>
+        <td class="num"><span class="badge badge-red">Critique</span></td>
+      </tr>
+      <tr>
+        <td><strong>TNR — Analyseur</strong></td>
+        <td class="num">1</td>
+        <td class="num" style="color:#10b981;">1</td>
+        <td class="num">0</td>
+        <td class="num"><span class="badge badge-green">100%</span></td>
+        <td class="num"><span class="badge badge-green">OK</span></td>
+      </tr>
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td>TOTAL TNR</td>
+        <td class="num">20</td>
+        <td class="num" style="color:#10b981;">16</td>
+        <td class="num" style="color:#ef4444;">4</td>
+        <td class="num">80%</td>
+        <td class="num"><span class="badge badge-orange">Alerte</span></td>
+      </tr>
+    </table>
+
+    <h3 class="sub-title">3.3 Sessions exploratoires <em>(Exploratory Test Sessions — ISTQB §4.4.2)</em></h3>
+    <p style="margin-bottom:8px;">Les sessions exploratoires complètent les tests scriptés par une approche basée sur l'expérience <em>(Experience-based Testing)</em>.</p>
+    <table>
+      <tr>
+        <th>Session</th>
+        <th class="num">Anomalies détectées</th>
+        <th class="num">Résultat</th>
+        <th class="num">Date</th>
+      </tr>
+      <tr>
+        <td><strong>TEST Exploratoire Sophie</strong></td>
+        <td class="num" style="color:#ef4444;">4 anomalies</td>
+        <td class="num"><span class="badge badge-red">Échec</span></td>
+        <td class="num">13/03/2026</td>
+      </tr>
+      <tr>
+        <td><strong>TEST Exploratoire GWELL GAB</strong></td>
+        <td class="num" style="color:#f59e0b;">1 réussi / 1 échoué</td>
+        <td class="num"><span class="badge badge-orange">Mixte</span></td>
+        <td class="num">17/03/2026</td>
+      </tr>
+      <tr>
+        <td><strong>TEST Exploratoire Pauline</strong></td>
+        <td class="num" style="color:#64748b;">En cours</td>
+        <td class="num"><span class="badge badge-gray">En cours</span></td>
+        <td class="num">27/03/2026</td>
+      </tr>
+    </table>
+    <p style="font-size:9pt;color:#64748b;margin-top:6px;">
+      <strong>Bilan exploratoire :</strong> 5 anomalies détectées sur 3 sessions. La session Sophie a identifié un cluster significatif d'anomalies nécessitant une investigation approfondie.
+    </p>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 4</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 5: TRAÇABILITÉ TICKETS GITLAB ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">4. Traçabilité des tickets GitLab <span style="font-size:9pt;color:#64748b;">(Defect Traceability — ISTQB §5.3)</span></h2>
+
+    <h3 class="sub-title">4.1 Tests échoués et tickets de correction <em>(Failed Tests &amp; Correction Tickets)</em></h3>
+    <p style="margin-bottom:8px;">Chaque test échoué (Failed) est listé avec le ticket de correction GitLab créé suite à l'anomalie détectée.</p>
+    <table style="font-size:9pt;">
+      <tr>
+        <th>Run</th>
+        <th>Cas de test <em>(Test Case)</em></th>
+        <th class="num">Statut</th>
+        <th class="num">Ticket correction<br><em>(Correction Issue)</em></th>
+      </tr>
+      <tr><td>run 1</td><td>[STOCK] Modifier la série après entrée interne</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7802</strong></td></tr>
+      <tr><td>run 1</td><td>[ODF] Faire redescendre la date de livraison de l'OF père sur les OFs fils</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7792</strong></td></tr>
+      <tr><td>run 1</td><td>[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>run 1</td><td>[EDI] Import stock : optimisation des traitements</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7787</strong></td></tr>
+      <tr><td>run 1</td><td>[FACTURE][CONFIE] Ajout des frais de port à la facture</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7786</strong></td></tr>
+      <tr><td>run 1</td><td>[GENERAL] Numérique au format US 1,000.00</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7781</strong></td></tr>
+      <tr><td>run 1</td><td>[EDI][COMMANDE CLIENT] Ajouter la taille de métrique sur 3 caractères</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>run 1</td><td>[ARTICLE] Le filtre: Article créé depuis le ne fonctionne pas</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7784</strong></td></tr>
+      <tr><td>run 3</td><td>[ERC] Nouveau document CJI</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7806</strong></td></tr>
+      <tr><td>run 3</td><td>[APPRO] Prix mal calculé en calculprixcarat</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>run 3</td><td>[CRON] Deport des fonctionnalités du Cron Boucheron vers Pilote</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7794</strong></td></tr>
+      <tr><td>run 4</td><td>[EDI][STOCK] Ajout des valeurs douanières dans l'import appro tous fournisseurs</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7831</strong></td></tr>
+      <tr><td>run 4</td><td>[GENERAL] Numérique au format US 1,000.00 — Retours 2</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7807</strong></td></tr>
+      <tr><td>run 4</td><td>[CDEACHAT] Mouvement prévisionnel non supprimé au solde</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>TNR Flux</td><td>09 — Édition : Avoir / Livre de police</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7821</strong></td></tr>
+      <tr><td>TNR Flux</td><td>08 — Édition : Bon de livraison / Facture</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>TNR Flux</td><td>07 — Transformations</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7811</strong></td></tr>
+      <tr><td>TNR TdB</td><td>Tableaux de bord</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">—</td></tr>
+      <tr><td>run 8</td><td>[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC KO</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num"><strong>#7834</strong></td></tr>
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td colspan="2">TOTAL TESTS ÉCHOUÉS</td>
+        <td class="num">19</td>
+        <td class="num">13 tickets créés</td>
+      </tr>
+    </table>
+
+    <h3 class="sub-title">4.2 Tests réussis avec ticket de suivi <em>(Passed Tests with Follow-up Tickets)</em></h3>
+    <p style="margin-bottom:8px;">Certains tests réussis ont généré un ticket de suivi pour des améliorations ou correctifs mineurs détectés pendant l'exécution.</p>
+    <table style="font-size:9pt;">
+      <tr>
+        <th>Run</th>
+        <th>Cas de test <em>(Test Case)</em></th>
+        <th class="num">Statut</th>
+        <th class="num">Ticket suivi<br><em>(Follow-up Issue)</em></th>
+      </tr>
+      <tr><td>run 1</td><td>[CONFIE] Ajout des frais de port dans l'état standard</td><td class="num"><span class="badge badge-green">Passed</span></td><td class="num"><strong>#7774</strong></td></tr>
+      <tr><td>run 2</td><td>[ARIBA][COMMANDE CLIENT] Ajouter la possibilité d'avoir des articles avec prix à 0</td><td class="num"><span class="badge badge-green">Passed</span></td><td class="num"><strong>#7796</strong></td></tr>
+      <tr><td>run 5</td><td>[COMMANDE ACHAT][CP] Le solde de la ligne de commande d'achat ne supprime pas le mouvement prévisionnel</td><td class="num"><span class="badge badge-green">Passed</span></td><td class="num"><strong>#7824</strong></td></tr>
+    </table>
+
+    <h3 class="sub-title">4.3 Tickets GitLab testés par run <em>(GitLab Issues Tested per Run)</em></h3>
+    <p style="margin-bottom:8px;">Tickets GitLab originaux (Issues case) associés à chaque run de validation.</p>
+    <table style="font-size:8.5pt;">
+      <tr><th style="width:18%;">Run</th><th>Tickets GitLab testés <em>(Issues case)</em></th><th class="num">Nb</th></tr>
+      <tr><td><strong>run 1</strong></td><td style="word-break:break-all;">#2853, #3351, #4968, #5615, #5769, #6265, #6529, #6880, #7027, #7059, #7066, #7141, #7180, #7241, #7286, #7360, #7374, #7426, #7427, #7459, #7500, #7577, #7581, #7585, #7594, #7598, #7600, #7604, #7605, #7606, #7612, #7613, #7617, #7619, #7621, #7623, #7627, #7628, #7630, #7631, #7633, #7634, #7635, #7636, #7638, #7639, #7641, #7642, #7643, #7645, #7646, #7648, #7649, #7655, #7656, #7657, #7660, #7662, #7663, #7670, #7672, #7674, #7675, #7676, #7678, #7682, #7684, #7685, #7688, #7690, #7691, #7693, #7698, #7699, #7700, #7701, #7702, #7703, #7704, #7705, #7707, #7710, #7712, #7713, #7714, #7716, #7720, #7723, #7727, #7740, #7741, #7742</td><td class="num">92</td></tr>
+      <tr><td><strong>run 2</strong></td><td style="word-break:break-all;">#5523, #7719, #7725, #7728, #7730, #7752, #7756, #7761</td><td class="num">8</td></tr>
+      <tr><td><strong>run 3</strong></td><td style="word-break:break-all;">#7290, #7667, #7708, #7718, #7726, #7739, #7757, #7762, #7763, #7766, #7770, #7774, #77776</td><td class="num">13</td></tr>
+      <tr><td><strong>run 4</strong></td><td style="word-break:break-all;">#7359, #7732, #7771, #7779, #7780, #7781, #7782, #7785, #7786, #7787, #7789</td><td class="num">11</td></tr>
+      <tr><td><strong>run 5</strong></td><td style="word-break:break-all;">#7793, #7794, #7800, #7802, #7806</td><td class="num">5</td></tr>
+      <tr><td><strong>run 6</strong></td><td style="word-break:break-all;">#7803, #7810</td><td class="num">2</td></tr>
+      <tr><td><strong>run 7</strong></td><td style="word-break:break-all;">#7801, #7818</td><td class="num">2</td></tr>
+      <tr><td><strong>run 8</strong></td><td style="word-break:break-all;">#6529, #7374, #7708, #7788, #7790, #7801</td><td class="num">6</td></tr>
+      <tr><td><strong>run 9</strong></td><td style="word-break:break-all;">#7834, #7835, #7843, #7846</td><td class="num">4</td></tr>
+      <tr><td><strong>TNR Flux / TdB / Analyseur</strong></td><td style="color:#64748b;">Pas de tickets GitLab liés (cas de test internes)</td><td class="num">0</td></tr>
+      <tr style="background:#f1f5f9;font-weight:700;">
+        <td>TOTAL UNIQUE</td>
+        <td>Tickets GitLab distincts testés sur l'ensemble de la campagne R06</td>
+        <td class="num">~130</td>
+      </tr>
+    </table>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 5</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 6: INDICATEURS ISTQB & CRITÈRES ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">5. Indicateurs qualité <span style="font-size:9pt;color:#64748b;">(Quality Indicators — ISTQB §5.3)</span></h2>
+
+    <h3 class="sub-title">5.1 Taux d'exécution par run <em>(Execution Rate per Run)</em></h3>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Run 1</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div><div class="bar-threshold" style="left:90%;" data-label="90%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 2</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 3</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 4</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 5</div>
+        <div class="bar-track"><div class="bar-fill" style="width:60%;background:#ef4444;">60%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 6</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 7</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 8</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 9</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR Flux</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR TdB</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR Analyseur</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">5.2 Taux de succès par run <em>(Pass Rate per Run)</em></h3>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Run 1 (92)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:83.7%;background:#ef4444;">83,7%</div><div class="bar-threshold" style="left:95%;" data-label="95%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 2 (8)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:87.5%;background:#f59e0b;">87,5%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 3 (14)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:78.6%;background:#ef4444;">78,6%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 4 (11)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:72.7%;background:#ef4444;">72,7%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 5 (5)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 6 (2)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 7 (2)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 8 (6)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:83.3%;background:#ef4444;">83,3%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 9 (4)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR Flux (18)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:83.3%;background:#ef4444;">83,3%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR TdB (1)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:5%;background:#ef4444;">0%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR Analyseur (1)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981;">100%</div></div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">5.3 Évaluation des critères de sortie <em>(Exit Criteria Assessment — ISTQB §5.2.3)</em></h3>
+    <ul class="checklist">
+      <li class="no-break">
+        <div class="check-icon check-ok">✓</div>
+        <div><strong>Taux d'exécution ≥ 90%</strong> — Atteint : <strong>98,8%</strong>. Quasi-totalité des cas de test exécutés.</div>
+      </li>
+      <li class="no-break">
+        <div class="check-icon check-ko">✗</div>
+        <div><strong>Taux de succès ≥ 95%</strong> — Non atteint : <strong>83,3%</strong>. Écart de 11,7 points. Run 1 (14 échecs) et TNR Flux (3 échecs) concentrent la majorité des anomalies.</div>
+      </li>
+      <li class="no-break">
+        <div class="check-icon check-ko">✗</div>
+        <div><strong>Taux d'échec ≤ 5%</strong> — Non atteint : <strong>15,4%</strong>. 25 tests en échec sur 162 exécutés. Nécessite une analyse de cause racine (Root Cause Analysis).</div>
+      </li>
+      <li class="no-break">
+        <div class="check-icon check-ko">✗</div>
+        <div><strong>Efficacité des tests ≥ 95%</strong> — Non atteint : <strong>84,4%</strong>. Ratio de tests « first-pass » insuffisant.</div>
+      </li>
+      <li class="no-break">
+        <div class="check-icon check-ok">✓</div>
+        <div><strong>Taux de blocage ≤ 5%</strong> — Atteint : <strong>0%</strong>. Aucun test bloqué (Blocked), ce qui indique un environnement de test stable.</div>
+      </li>
+    </ul>
+
+    <div style="margin-top:16px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:9.5pt;">
+      <strong style="color:#92400e;">Bilan ISTQB :</strong> 2 critères sur 5 atteints. Selon la norme ISTQB §5.2.3, les critères de sortie non satisfaits doivent être documentés et acceptés formellement par les parties prenantes avant la mise en production.
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 6</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 7: INCIDENTS & ANOMALIES ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">6. Incidents et anomalies <span style="font-size:9pt;color:#64748b;">(Defect Report — ISTQB §5.3 / ITIL Incident Management)</span></h2>
+
+    <h3 class="sub-title">6.1 Incidents notables <em>(Notable Incidents)</em></h3>
+
+    <div class="incident-card severity-high">
+      <h4>INC-01 : Cas de test incomplets <span class="badge badge-red">Impact élevé</span></h4>
+      <p>
+        Plusieurs cas de test n'étaient pas suffisamment détaillés dans leurs étapes d'exécution, entraînant une <strong>perte de temps significative</strong> lors de l'exécution.
+        Les testeurs ont dû interpréter les attendus, ce qui a allongé le délai d'exécution et introduit un risque d'incohérence dans les résultats.
+      </p>
+      <p style="margin-top:6px;"><strong>Analyse LEAN :</strong> Ce phénomène constitue un <strong>Muda</strong> (gaspillage) de type « attente » et « surtraitement ».
+        Le temps perdu à clarifier les cas de test est un gaspillage qui aurait pu être évité par une revue de testabilité en amont <em>(Testability Review)</em>.</p>
+      <p style="margin-top:6px;"><strong>Référence ITIL :</strong> Gestion des problèmes (Problem Management) — Cause racine identifiée : processus de rédaction des cas de test insuffisant.</p>
+    </div>
+
+    <div class="incident-card severity-high">
+      <h4>INC-02 : Tickets cron Boucheron — Instabilité des processus <span class="badge badge-red">Impact élevé</span></h4>
+      <p>
+        Plusieurs tickets se sont succédés sur le cron Boucheron avec des <strong>changements de processus répétés</strong>, causés par des modifications provenant de différentes sources.
+        Cette instabilité a généré des anomalies en cascade et complexifié le suivi des régressions.
+      </p>
+      <p style="margin-top:6px;"><strong>Analyse LEAN :</strong> Constitue un <strong>Mura</strong> (irrégularité) dans le flux de travail. Les changements non coordonnés ont créé de la variabilité dans les résultats de test.</p>
+      <p style="margin-top:6px;"><strong>Référence ITIL :</strong> Gestion des changements (Change Management) — Les modifications du cron auraient dû suivre un processus de Change Advisory Board (CAB) pour évaluer l'impact avant déploiement.</p>
+    </div>
+
+    <div class="incident-card severity-medium">
+      <h4>INC-03 : Fin du test exploratoire Sophie — Cluster d'anomalies <span class="badge badge-orange">Impact moyen</span></h4>
+      <p>
+        La session exploratoire de Sophie a révélé <strong>4 anomalies</strong> en une seule session, suggérant une zone fonctionnelle fragile.
+        La densité d'anomalies par session est significativement au-dessus de la moyenne attendue.
+      </p>
+      <p style="margin-top:6px;"><strong>Référence ISTQB :</strong> Principe de regroupement des défauts (Defect Clustering — ISTQB §1.3) : un petit nombre de modules contient la majorité des défauts.</p>
+    </div>
+
+    <h3 class="sub-title">6.2 Distribution des anomalies par run <em>(Defect Distribution)</em></h3>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Run 1</div>
+        <div class="bar-track"><div class="bar-fill" style="width:56%;background:#ef4444;">14</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 3</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12%;background:#ef4444;">3</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 4</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12%;background:#ef4444;">3</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Run 8</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4%;background:#f59e0b;">1</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR Flux</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12%;background:#ef4444;">3</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">TNR TdB</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4%;background:#ef4444;">1</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Exploratoire</div>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:#8b5cf6;">5</div></div>
+      </div>
+    </div>
+    <p style="font-size:9pt;color:#64748b;">
+      <strong>Constat :</strong> Le run 1 concentre <strong>56%</strong> des échecs (14/25), confirmant le principe ISTQB de regroupement des défauts.
+      Les runs tardifs (6, 7, 10) sont exempts d'échecs, suggérant une stabilisation progressive du produit.
+    </p>
+
+    <h3 class="sub-title">6.3 Tendance de résolution <em>(Defect Trend)</em></h3>
+    <table>
+      <tr><th>Période</th><th class="num">Runs</th><th class="num">Échecs</th><th class="num">Taux d'échec</th><th class="num">Tendance</th></tr>
+      <tr><td>Semaine 1-2 (09–25 fév.)</td><td class="num">Run 1</td><td class="num">14</td><td class="num">15,2%</td><td class="num"><span class="badge badge-red">Élevé</span></td></tr>
+      <tr><td>Semaine 3-4 (25 fév.–06 mars)</td><td class="num">Runs 2-4</td><td class="num">6</td><td class="num">18,2%</td><td class="num"><span class="badge badge-red">Élevé</span></td></tr>
+      <tr><td>Semaine 5-6 (11–17 mars)</td><td class="num">Runs 5-8 + TNR</td><td class="num">5</td><td class="num">14,7%</td><td class="num"><span class="badge badge-orange">Modéré</span></td></tr>
+      <tr><td>Semaine 7 (27 mars)</td><td class="num">Run 9</td><td class="num">0</td><td class="num">0%</td><td class="num"><span class="badge badge-green">Stable</span></td></tr>
+    </table>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 7</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 8: RISQUES RÉSIDUELS ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">7. Risques résiduels <span style="font-size:9pt;color:#64748b;">(Residual Risks — ISTQB §5.4.2)</span></h2>
+
+    <p>Les risques résiduels identifiés doivent être acceptés formellement par les parties prenantes avant la mise en production.</p>
+
+    <table>
+      <tr>
+        <th style="width:5%">#</th>
+        <th style="width:25%">Risque</th>
+        <th style="width:30%">Description</th>
+        <th class="num" style="width:10%">Probabilité</th>
+        <th class="num" style="width:10%">Impact</th>
+        <th class="num" style="width:10%">Niveau</th>
+        <th style="width:10%">Mitigation</th>
+      </tr>
+      <tr>
+        <td class="num">R1</td>
+        <td><strong>Échecs non résolus dans le run 1</strong></td>
+        <td>14 tests échoués sur le run principal. Les correctifs n'ont pas tous été validés par re-test.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num"><span class="badge badge-red">Élevé</span></td>
+        <td class="num"><span class="badge badge-red">Critique</span></td>
+        <td>Re-test ciblé avant MEP</td>
+      </tr>
+      <tr>
+        <td class="num">R2</td>
+        <td><strong>TNR Tableaux de bord en échec</strong></td>
+        <td>1 test de non-régression échoué à 100%. Régression potentielle sur les tableaux de bord.</td>
+        <td class="num"><span class="badge badge-red">Élevée</span></td>
+        <td class="num"><span class="badge badge-orange">Moyen</span></td>
+        <td class="num"><span class="badge badge-red">Critique</span></td>
+        <td>Investigation & correction</td>
+      </tr>
+      <tr>
+        <td class="num">R3</td>
+        <td><strong>2 tests WIP dans le run 5</strong></td>
+        <td>2 cas de test restés en statut « Work In Progress ». Couverture incomplète.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num"><span class="badge badge-orange">Moyen</span></td>
+        <td class="num"><span class="badge badge-orange">Modéré</span></td>
+        <td>Finaliser avant MEP</td>
+      </tr>
+      <tr>
+        <td class="num">R4</td>
+        <td><strong>Session exploratoire Pauline en cours</strong></td>
+        <td>Session démarrée le jour de la clôture, sans résultats. Zone testée non couverte.</td>
+        <td class="num"><span class="badge badge-blue">Faible</span></td>
+        <td class="num"><span class="badge badge-blue">Faible</span></td>
+        <td class="num"><span class="badge badge-blue">Faible</span></td>
+        <td>Attendre les résultats</td>
+      </tr>
+      <tr>
+        <td class="num">R5</td>
+        <td><strong>Instabilité cron Boucheron</strong></td>
+        <td>Changements de processus successifs. Risque de régression post-déploiement.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num"><span class="badge badge-red">Élevé</span></td>
+        <td class="num"><span class="badge badge-red">Critique</span></td>
+        <td>Monitoring renforcé post-MEP</td>
+      </tr>
+      <tr>
+        <td class="num">R6</td>
+        <td><strong>Cluster d'anomalies (session Sophie)</strong></td>
+        <td>4 anomalies concentrées dans une même zone fonctionnelle.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num"><span class="badge badge-orange">Moyen</span></td>
+        <td class="num"><span class="badge badge-orange">Modéré</span></td>
+        <td>Analyse de cause racine</td>
+      </tr>
+    </table>
+
+    <h2 class="section-title" style="margin-top:30px;">8. Recommandations <span style="font-size:9pt;color:#64748b;">(Lessons Learned — LEAN Kaizen / ITIL CSI)</span></h2>
+
+    <h3 class="sub-title">8.1 Axes d'amélioration LEAN <em>(Continuous Improvement — Kaizen)</em></h3>
+
+    <table>
+      <tr>
+        <th style="width:15%">Principe LEAN</th>
+        <th style="width:25%">Constat</th>
+        <th style="width:35%">Action corrective</th>
+        <th style="width:15%">Priorité</th>
+        <th style="width:10%">Porteur</th>
+      </tr>
+      <tr>
+        <td><strong>Muda</strong><br><em>(Gaspillage)</em></td>
+        <td>Cas de test incomplets causant des pertes de temps</td>
+        <td>Instaurer une <strong>revue de testabilité</strong> (Testability Review) avant chaque campagne. Critères d'acceptation des cas de test à formaliser.</td>
+        <td class="num"><span class="badge badge-red">Haute</span></td>
+        <td class="num">QA Lead</td>
+      </tr>
+      <tr>
+        <td><strong>Mura</strong><br><em>(Irrégularité)</em></td>
+        <td>Changements non coordonnés sur le cron Boucheron</td>
+        <td>Mettre en place un <strong>processus de Change Management</strong> (ITIL) pour les modifications de processus automatisés. Validation CAB obligatoire.</td>
+        <td class="num"><span class="badge badge-red">Haute</span></td>
+        <td class="num">Resp. Projet</td>
+      </tr>
+      <tr>
+        <td><strong>Jidoka</strong><br><em>(Qualité intégrée)</em></td>
+        <td>Anomalies détectées tardivement dans le cycle</td>
+        <td>Renforcer les <strong>tests shift-left</strong> : intégrer des revues de code et tests unitaires plus tôt dans le cycle de développement.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num">Dev Lead</td>
+      </tr>
+      <tr>
+        <td><strong>Heijunka</strong><br><em>(Lissage)</em></td>
+        <td>92 tests concentrés dans le run 1, disproportion avec les runs suivants</td>
+        <td>Répartir la charge de test plus équitablement entre les runs. Objectif : <strong>max 30 tests par run</strong> pour un suivi plus granulaire.</td>
+        <td class="num"><span class="badge badge-orange">Moyenne</span></td>
+        <td class="num">QA Lead</td>
+      </tr>
+    </table>
+
+    <h3 class="sub-title">8.2 Recommandations ITIL <em>(Continual Service Improvement)</em></h3>
+    <ul style="margin:8px 0 0 20px;font-size:10pt;">
+      <li><strong>Gestion des incidents :</strong> Formaliser les fiches d'incident pour les anomalies cron Boucheron (ITIL Incident Management)</li>
+      <li><strong>Gestion des problèmes :</strong> Lancer une analyse de cause racine (RCA) sur les 14 échecs du run 1 (ITIL Problem Management)</li>
+      <li><strong>Gestion des changements :</strong> Imposer un processus CAB pour les modifications des processus automatisés</li>
+      <li><strong>Gestion des connaissances :</strong> Documenter les leçons apprises de cette campagne dans la base de connaissances (ITIL Knowledge Management)</li>
+    </ul>
+
+    <h3 class="sub-title">8.3 Points positifs <em>(What Went Well)</em></h3>
+    <ul style="margin:8px 0 0 20px;font-size:10pt;">
+      <li>Taux d'exécution excellent (98,8%) — presque tous les tests ont été joués</li>
+      <li>0% de tests bloqués — environnement de test stable</li>
+      <li>Tendance positive : les runs tardifs (6, 7, 10) sont à 100% de succès</li>
+      <li>Les sessions exploratoires ont permis de détecter des anomalies non couvertes par les tests scriptés</li>
+      <li>Mise en place des TNR par domaine (Flux, TdB, Analyseur) — bonne granularité</li>
+    </ul>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 8</span>
+  </div>
+</div>
+
+<!-- ====================== PAGE 9: GLOSSAIRE & SIGNATURES ====================== -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">9. Glossaire ISTQB <span style="font-size:9pt;color:#64748b;">(Glossary)</span></h2>
+
+    <dl class="glossary">
+      <dt>Campagne de test (Test Campaign)</dt>
+      <dd>Ensemble structuré des activités de test couvrant une itération ou une release.</dd>
+
+      <dt>Cas de test (Test Case)</dt>
+      <dd>Ensemble de conditions de test, données d'entrée, actions et résultats attendus (ISTQB §4.3).</dd>
+
+      <dt>Critères de sortie (Exit Criteria)</dt>
+      <dd>Conditions à satisfaire pour considérer une phase de test comme terminée (ISTQB §5.2.3).</dd>
+
+      <dt>Taux d'exécution (Test Execution Rate / Completion Rate)</dt>
+      <dd>Ratio des cas de test exécutés sur le total planifié. Formule : (Exécutés / Total) × 100.</dd>
+
+      <dt>Taux de succès (Test Pass Rate)</dt>
+      <dd>Ratio des cas de test réussis sur les tests exécutés. Formule : (Réussis / Exécutés) × 100.</dd>
+
+      <dt>Taux d'échec (Test Failure Rate)</dt>
+      <dd>Ratio des cas de test échoués sur les tests exécutés. Formule : (Échoués / Exécutés) × 100.</dd>
+
+      <dt>Efficacité des tests (Test Efficiency)</dt>
+      <dd>Ratio de tests réussis du premier coup. Formule : Réussis / (Réussis + Échoués) × 100.</dd>
+
+      <dt>Test de non-régression — TNR (Regression Testing)</dt>
+      <dd>Vérification que les modifications n'ont pas introduit de défauts dans les fonctionnalités existantes (ISTQB §2.3).</dd>
+
+      <dt>Test exploratoire (Exploratory Testing)</dt>
+      <dd>Approche basée sur l'expérience où le testeur conçoit et exécute les tests simultanément (ISTQB §4.4.2).</dd>
+
+      <dt>Anomalie / Défaut (Defect)</dt>
+      <dd>Imperfection dans un composant ou système qui peut causer un dysfonctionnement (ISTQB §1.2).</dd>
+
+      <dt>Analyse de cause racine — RCA (Root Cause Analysis)</dt>
+      <dd>Technique d'investigation pour identifier la cause fondamentale d'un défaut.</dd>
+
+      <dt>Regroupement des défauts (Defect Clustering)</dt>
+      <dd>Principe ISTQB §1.3 : un petit nombre de modules contient la majorité des défauts.</dd>
+
+      <dt>Shift-left Testing</dt>
+      <dd>Approche consistant à déplacer les activités de test plus tôt dans le cycle de développement.</dd>
+
+      <dt>Muda (Gaspillage — LEAN)</dt>
+      <dd>Toute activité qui consomme des ressources sans créer de valeur pour le client.</dd>
+
+      <dt>Mura (Irrégularité — LEAN)</dt>
+      <dd>Variabilité dans le processus de travail qui crée de l'instabilité.</dd>
+
+      <dt>Kaizen (Amélioration continue — LEAN)</dt>
+      <dd>Philosophie d'amélioration continue par petits incréments réguliers.</dd>
+
+      <dt>WIP — Work In Progress (Travaux en cours)</dt>
+      <dd>Tests en cours d'exécution, ni terminés ni abandonnés.</dd>
+
+      <dt>MTTR — Mean Time To Resolution</dt>
+      <dd>Temps moyen de résolution d'un incident (ITIL Service Operation).</dd>
+
+      <dt>CSI — Continual Service Improvement</dt>
+      <dd>Processus ITIL d'amélioration continue des services IT.</dd>
+
+      <dt>CAB — Change Advisory Board</dt>
+      <dd>Comité consultatif évaluant les demandes de changement (ITIL Change Management).</dd>
+    </dl>
+
+    <h2 class="section-title" style="margin-top:30px;">9. Signatures <span style="font-size:9pt;color:#64748b;">(Sign-off)</span></h2>
+
+    <table>
+      <tr>
+        <th style="width:30%">Rôle</th>
+        <th style="width:30%">Nom</th>
+        <th style="width:20%">Date</th>
+        <th style="width:20%">Signature</th>
+      </tr>
+      <tr><td>Product Owner</td><td></td><td></td><td></td></tr>
+      <tr><td>Chef du Support</td><td></td><td></td><td></td></tr>
+      <tr><td>Responsable Projet</td><td></td><td></td><td></td></tr>
+      <tr><td>CTO</td><td></td><td></td><td></td></tr>
+      <tr><td>QA Lead</td><td></td><td></td><td></td></tr>
+    </table>
+
+    <div style="margin-top:30px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:8.5pt;color:#64748b;text-align:center;">
+      <strong>Document généré le 27 mars 2026</strong><br>
+      Réf. : RC-R06-2026-03-27<br>
+      Normes de référence : ISTQB CTFL v4.0 (§5.4.2 Test Closure Report) | LEAN Six Sigma | ITIL v4 (CSI, Change Management, Incident Management)<br>
+      Outil : QA Dashboard — Neo-Logix
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>RC-R06-2026-03-27 — Clôture de Tests R06</span>
+    <span>Page 9</span>
+  </div>
+</div>
+
+</body>
+</html>

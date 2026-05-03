@@ -1,0 +1,37 @@
+# ─── Global ───
+node_modules
+dist
+coverage
+.git
+.gitignore
+*.md
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# ─── Backend ───
+backend/node_modules
+backend/dist
+backend/coverage
+backend/logs
+backend/.env
+backend/.env.example
+backend/tests
+backend/scripts
+backend/**/*.test.js
+backend/**/*.test.ts
+
+# ─── Frontend ───
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.env
+frontend/.env.*
+
+# ─── Divers ───
+.e2e
+test-results
+reports
+.vscode
+.idea
+.DS_Store

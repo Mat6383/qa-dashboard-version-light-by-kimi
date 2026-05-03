@@ -1,0 +1,70 @@
+# ==========================================
+# SÉCURITÉ - Ne jamais versionner ces fichiers
+# ==========================================
+
+# Variables d'environnement (CRITIQUE - contient les tokens API)
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# Dépendances
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+
+# Runtime databases (SQLite — generated at startup)
+backend/db/*.db
+backend/db/*.db-journal
+backend/db/*.db-shm
+backend/db/*.db-wal
+backend_py/db-data/*.db
+backend_py/db-data/*.db-journal
+backend_py/db-data/*.db-shm
+backend_py/db-data/*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+
+# Coverage reports
+coverage/
+backend/coverage/
+frontend/coverage/
+.kimi/
+test-results/
+backend/backups/
+load-tests/.loadtest.env
+.claude/
+.superpowers/

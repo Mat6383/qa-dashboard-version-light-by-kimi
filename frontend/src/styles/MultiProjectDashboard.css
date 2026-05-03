@@ -1,0 +1,165 @@
+.mpd-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  color: var(--text-color);
+}
+
+.mpd-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.mpd-header svg {
+  color: var(--color-primary);
+}
+
+.mpd-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.mpd-state-error {
+  color: var(--text-danger);
+}
+
+.mpd-state-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  max-width: 360px;
+}
+
+.mpd-spinner {
+  animation: mpd-spin 1s linear infinite;
+}
+
+@keyframes mpd-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mpd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+
+.mpd-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--color-primary);
+}
+
+.mpd-table-wrapper {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: var(--shadow-card);
+}
+
+.mpd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.mpd-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.mpd-table th {
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mpd-table tbody tr {
+  border-bottom: 1px solid var(--divider-color);
+  transition: background 0.15s;
+}
+
+.mpd-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mpd-table tbody tr:hover {
+  background: var(--table-row-hover);
+}
+
+.mpd-table td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  color: var(--text-color);
+}
+
+.mpd-project-name {
+  font-weight: 600;
+}
+
+.rate-ok {
+  color: var(--text-success);
+  font-weight: 700;
+}
+
+.rate-warning {
+  color: var(--text-warning);
+  font-weight: 700;
+}
+
+.rate-critical {
+  color: var(--text-danger);
+  font-weight: 700;
+}
+
+.mpd-sla-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-success);
+  font-weight: 700;
+}
+
+.mpd-sla-ko {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-danger);
+  font-weight: 700;
+}

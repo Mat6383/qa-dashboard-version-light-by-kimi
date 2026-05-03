@@ -1,0 +1,89 @@
+/* ==========================================
+   Dashboard 4 — Vue Globale (refonte visuelle)
+   ========================================== */
+
+.dashboard4-root {
+  padding: 0.5rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.dashboard4-project-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard4-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.dashboard4-card {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--card-bg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard4-hidden-header {
+  display: none;
+}
+
+.dashboard4-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--status-info-bg-light);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--status-info-border);
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.dashboard4-banner--dark {
+  background-color: var(--status-info-bg-dark);
+}
+
+.dashboard4-project-name {
+  font-size: var(--font-h1);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.dashboard4-separator {
+  color: var(--text-muted);
+  font-size: 1.35rem;
+}
+
+.dashboard4-run-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.dashboard4-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+
+.dashboard4-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}

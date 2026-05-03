@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ./backend_py
+      dockerfile: Dockerfile.dev
+    container_name: qa-dashboard-backend-py-dev
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./backend_py/.env
+    environment:
+      - ENVIRONMENT=development
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - ./backend_py:/app
+      - ./backend_py/db-data:/app/db-data
+      - ./backend_py/backups:/app/backups
+      - ./backend_py/logs:/app/logs
+    networks:
+      - dashboard-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: qa-dashboard-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:3001
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - dashboard-net
+
+networks:
+  dashboard-net:
+    driver: bridge

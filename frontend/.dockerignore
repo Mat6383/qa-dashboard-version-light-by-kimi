@@ -1,0 +1,31 @@
+# ─── Frontend .dockerignore ───
+# Évite de copier les fichiers inutiles dans l'image Docker
+
+# Dépendances
+node_modules
+
+# Build outputs
+dist
+coverage
+
+# Environnement
+.env
+.env.*
+
+# Tests
+tests
+*.test.js
+*.test.ts
+*.test.jsx
+*.test.tsx
+jest.config.*
+vitest.config.*
+
+# Divers
+.DS_Store
+.vscode
+.idea
+*.md
+Dockerfile*
+docker-compose*
+.dockerignore

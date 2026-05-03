@@ -1,0 +1,74 @@
+# ───────────────────────────────────────────────────────────────────────────────
+# QA Dashboard by Kimi 2.0 — Docker Compose
+# Backend (Node + Chromium + SQLite) + Frontend (Nginx statique)
+# ───────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ═════════════════════════════════════════════════════════════════════════════
+  # Backend API
+  # ═════════════════════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qa-dashboard-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      # Le frontend est servi par Nginx sur le même domaine en production
+      - FRONTEND_URL=http://localhost:8080
+    volumes:
+      # Persistance SQLite (bases *.db dans /app/db-data)
+      - sqlite-data:/app/db-data
+      # Logs host-accessibles
+      - ./backend/logs:/app/logs
+    ports:
+      - "3001:3001"
+    networks:
+      - dashboard-net
+    # Healthcheck géré par le Dockerfile (start_period: 30s)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # Frontend — Nginx statique + reverse-proxy /api
+  # ═════════════════════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qa-dashboard-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - dashboard-net
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Volumes persistants
+# ═══════════════════════════════════════════════════════════════════════════════
+volumes:
+  sqlite-data:
+    driver: local
+
+networks:
+  dashboard-net:
+    driver: bridge

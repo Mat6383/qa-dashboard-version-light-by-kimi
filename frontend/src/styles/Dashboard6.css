@@ -1,0 +1,562 @@
+/**
+ * ================================================
+ * DASHBOARD 6 - Synchronisation GitLab → Testmo
+ * ================================================
+ * Styles modernes et cohérents avec le design system
+ *
+ * @author Matou - Neo-Logix QA Lead
+ * @version 1.0.0
+ */
+
+/* ==========================================
+   Conteneur principal
+   ========================================== */
+.d6-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  font-family: inherit;
+  color: var(--text-color);
+}
+
+.d6-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.d6-title svg {
+  color: var(--color-primary);
+}
+
+/* ==========================================
+   Sections
+   ========================================== */
+.d6-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.d6-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.d6-section-body {
+  padding: var(--spacing-lg);
+}
+
+/* ==========================================
+   Ligne de configuration
+   ========================================== */
+.d6-config-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.d6-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.d6-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.d6-select,
+.d6-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--surface-page);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  width: 100%;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.d6-select:focus,
+.d6-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.d6-select:disabled,
+.d6-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   Boutons
+   ========================================== */
+.d6-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    transform 0.1s,
+    box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.d6-btn:active {
+  transform: scale(0.97);
+}
+
+.d6-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.d6-btn-primary {
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
+  box-shadow: var(--shadow-button-primary);
+}
+
+.d6-btn-primary:hover:not(:disabled) {
+  background: var(--action-primary-bg-hover);
+}
+
+.d6-btn-success {
+  background: var(--action-success-bg);
+  color: var(--action-success-text);
+  box-shadow: var(--shadow-button-success);
+}
+
+.d6-btn-success:hover:not(:disabled) {
+  background: var(--action-success-bg-hover);
+}
+
+.d6-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.d6-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--color-primary);
+  color: var(--text-color);
+}
+
+.d6-btn-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-top: var(--spacing-md);
+}
+
+/* ==========================================
+   Badge de statut projet
+   ========================================== */
+.d6-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.d6-badge-configured {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+
+.d6-badge-unconfigured {
+  background: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
+  border: 1px solid var(--badge-warning-border);
+}
+
+/* ==========================================
+   Aperçu
+   ========================================== */
+.d6-preview-path {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.d6-preview-path-sep {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.d6-preview-summary {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.d6-summary-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.d6-chip-create {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+.d6-chip-update {
+  background: var(--badge-primary-bg);
+  color: var(--badge-primary-text);
+  border: 1px solid var(--badge-primary-border);
+}
+.d6-chip-skip {
+  background: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  border: 1px solid var(--badge-neutral-border);
+}
+.d6-chip-total {
+  background: var(--badge-primary-bg);
+  color: var(--badge-primary-text);
+  border: 1px solid var(--badge-primary-border);
+}
+
+/* ==========================================
+   Liste tickets (aperçu)
+   ========================================== */
+.d6-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.d6-issue-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--divider-color);
+  font-size: 0.82rem;
+  transition: background 0.1s;
+}
+
+.d6-issue-item:last-child {
+  border-bottom: none;
+}
+
+.d6-issue-item:hover {
+  background: var(--table-row-hover);
+}
+
+.d6-issue-iid {
+  color: var(--text-primary);
+  font-weight: 700;
+  min-width: 52px;
+  font-size: 0.78rem;
+}
+
+.d6-issue-title {
+  flex: 1;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d6-issue-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.d6-status-create {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+.d6-status-update {
+  background: var(--badge-primary-bg);
+  color: var(--badge-primary-text);
+  border: 1px solid var(--badge-primary-border);
+}
+.d6-status-skip {
+  background: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  border: 1px solid var(--badge-neutral-border);
+}
+
+/* ==========================================
+   Progression (SSE log)
+   ========================================== */
+.d6-log {
+  font-size: 0.8rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: var(--spacing-sm) 0;
+}
+
+.d6-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  padding: 4px var(--spacing-sm);
+  border-radius: 3px;
+  line-height: 1.5;
+}
+
+.d6-log-line:hover {
+  background: var(--table-row-hover);
+}
+
+.d6-log-icon {
+  font-size: 0.9rem;
+  min-width: 18px;
+  text-align: center;
+}
+
+.d6-log-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.d6-log-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.d6-log-link:hover {
+  text-decoration: underline;
+}
+
+.d6-log-created {
+  color: var(--text-success);
+}
+.d6-log-updated {
+  color: var(--text-primary);
+}
+.d6-log-skipped {
+  color: var(--text-muted);
+}
+.d6-log-error {
+  color: var(--text-danger);
+}
+.d6-log-info {
+  color: var(--text-muted);
+}
+.d6-log-done {
+  color: var(--text-success);
+  font-weight: 700;
+}
+
+/* ==========================================
+   Barre de progression
+   ========================================== */
+.d6-progress-bar-outer {
+  height: 6px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.d6-progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+/* ==========================================
+   Historique
+   ========================================== */
+.d6-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.d6-history-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.d6-history-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--divider-color);
+  color: var(--text-color);
+  vertical-align: middle;
+}
+
+.d6-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.d6-history-table tr:hover td {
+  background: var(--table-row-hover);
+}
+
+.d6-mode-execute {
+  color: var(--text-success);
+  font-weight: 600;
+}
+.d6-mode-preview {
+  color: var(--text-warning);
+  font-weight: 600;
+}
+
+/* ==========================================
+   Messages d'état
+   ========================================== */
+.d6-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.d6-alert-info {
+  background: var(--badge-info-bg);
+  color: var(--badge-info-text);
+  border: 1px solid var(--badge-info-border);
+}
+.d6-alert-warn {
+  background: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
+  border: 1px solid var(--badge-warning-border);
+}
+.d6-alert-success {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+.d6-alert-error {
+  background: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+  border: 1px solid var(--badge-danger-border);
+}
+
+/* ==========================================
+   Spinner
+   ========================================== */
+.d6-spinner {
+  animation: d6-spin 0.8s linear infinite;
+}
+
+@keyframes d6-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================
+   Stats finales (done)
+   ========================================== */
+.d6-stats-row {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md);
+}
+
+.d6-stat-card {
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--surface-page);
+  border: 1px solid var(--border-color);
+}
+
+.d6-stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.d6-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.d6-stat-created {
+  color: var(--text-success);
+}
+.d6-stat-updated {
+  color: var(--text-primary);
+}
+.d6-stat-skipped {
+  color: var(--text-muted);
+}
+.d6-stat-errors {
+  color: var(--text-danger);
+}

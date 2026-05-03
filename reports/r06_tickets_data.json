@@ -1,0 +1,1166 @@
+{
+  "results": [
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29332,
+      "case_name": "[FACT][AVOIR] Manque d'untié sur les articles",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49815,
+      "case_name": "[ETIQ] Impression étiquettes livraisons sur contrôle qualité",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29245,
+      "case_name": "[STOCK] Modifier la série après entrée interne",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7802"
+      ]
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29281,
+      "case_name": "[APPRO] Autoriser les déservis sur OF livré",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49817,
+      "case_name": "[TRANSFORMATION] recherche de caractères spé dans la désignation KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29243,
+      "case_name": "[ETIQUETTE] Etiquettes no reliées à la commande",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29177,
+      "case_name": "[ODF] Terminer un OF lorsque tous les CQ sont Ok",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49820,
+      "case_name": "[STOCK] Import de servi en masse - petits KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49819,
+      "case_name": "[STOCK] Modificaiton localisation stock",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49818,
+      "case_name": "[EDI][TRANSFORMATION] Amélioration V2 - Retours 2",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 49814,
+      "case_name": "[CLIENT] Mémorisation entre les menus - retour",
+      "status": "WIP",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29340,
+      "case_name": "[CDE ACHAT] Compte poids prévisionnels à 0",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29339,
+      "case_name": "[ODF] Colonne 'Urgent' manquante à l'export excel",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29338,
+      "case_name": "[ODF] Log de modification de quantité livrée",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29336,
+      "case_name": "[ERC] Manque de liaison avec la série sur affichage dans traça OF",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29333,
+      "case_name": "[ARIBA] Bloquer la modification des prix des commandes",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29262,
+      "case_name": "[STOCK] Ajout d'une confirmation a l'AFFECTATION de série de quantité nulle",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29298,
+      "case_name": "[FACT] Grosse lenteur",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29241,
+      "case_name": "[ODF] Faire redescendre la date de livraison de l'OF père sur les OFs fils",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7792"
+      ]
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29322,
+      "case_name": "[GENERAL] Trace des balances",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29289,
+      "case_name": "[GENERAL] Amélioration du cache",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29254,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC",
+      "status": "FAILED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29291,
+      "case_name": "[EDI][COMMANDE CLIENT] Ajouter la taille de métrique sur 3 caractères sur l'import de commande Hermes - retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29284,
+      "case_name": "[EDI][COMMANDE CLIENT]  Ajouter la taille de métrique sur 3 caractères sur l'import de commande Hermes",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29235,
+      "case_name": "[FACTURE][FOURNISSEUR] Table \"lignefactachat\"",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29236,
+      "case_name": "[GENERAL] FEN_Scanner",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29267,
+      "case_name": "[CONNEXION] SSO via OpenID",
+      "status": "Skipped",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29294,
+      "case_name": "[GENERAL] Idoperateur pour les trigger",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29318,
+      "case_name": "[DEVIS] Ne pas créer de devis vide",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29319,
+      "case_name": "[EDI] Import Inventaire : tuer la recherche sur numéro de série",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29321,
+      "case_name": "[CLIENT] La liste ne se refresh plus",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29328,
+      "case_name": "[CP] Compte poids client sur article libre cassé",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29342,
+      "case_name": "[GENERAL] Logger",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29325,
+      "case_name": "[EDI] Import stock : composant une seule unité de gestion/poids mal gérée",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29320,
+      "case_name": "[EDI] Import stock : optimisation des traitements",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7787"
+      ]
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29323,
+      "case_name": "[FACT][AVOIR] Iduom -1 pas prise pour les composants",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29331,
+      "case_name": "[CLIENT] Mémorisation entre les menus - retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29255,
+      "case_name": "[FACTURE][CONFIE] Ajout des frais de port à la facture",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7786"
+      ]
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29312,
+      "case_name": "[ARTICLE] Double séléction du client lors du couper coller",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29271,
+      "case_name": "[ARTICLE] Le filtre: Article créé depuis le ne fonctionne pas",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29283,
+      "case_name": "[ARTICLE] Problème d'enregistrement à la sortie de l'onglet",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29266,
+      "case_name": "[STOCK] Faute d'orthographe dans l'Etat du stock",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29250,
+      "case_name": "[EDI][COMMANDE CLIENT] Crash lors de l'import d'une ref commande inexistante EDI Chanel SARL",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29260,
+      "case_name": "[FACTURE] Plantage sur affichage de graphe",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29259,
+      "case_name": "[GENERAL] Numérique au format US 1,000.00",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7781"
+      ]
+    },
+    {
+      "run": "R06 - run 1",
+      "run_id": 266,
+      "case_id": 29256,
+      "case_name": "[CONFIE] Ajout des frais de port dans l'état standard",
+      "status": "PASSED",
+      "correction_tickets": [
+        "#7774"
+      ]
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49844,
+      "case_name": "[ARIBA][COMMANDE CLIENT] Ajouter la possibilité d'avoir des articles avec et sans gravure",
+      "status": "PASSED",
+      "correction_tickets": [
+        "#7796"
+      ]
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49840,
+      "case_name": "[ARTICLE] Impossible de supprimer la 4ème couleur",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49839,
+      "case_name": "[CONFIE] Mettre à null la valeur confié suite à l'import de confié en masse",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49838,
+      "case_name": "[FACT] Colonne encaissée ne s'exporte plus",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49841,
+      "case_name": "[APPRO] Problème au niveau de la récupération des appros d'OF",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49843,
+      "case_name": "[ARTICLE] Import colonnes décalées",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49842,
+      "case_name": "[STOCK] Supprimer le calcul automatique des PU et totaux d'achat",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 2",
+      "run_id": 268,
+      "case_id": 49821,
+      "case_name": "[APPRO] Modification et ajout d'informations",
+      "status": "Skipped",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49852,
+      "case_name": "[CONFIE] Crash sur ajout de négociation sous traitance",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49855,
+      "case_name": "[GENERAL] Évolutions G'well : partie 1 - Retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49845,
+      "case_name": "[OPERATION][NST] Ajouter une notion de numéro personnalisable",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49846,
+      "case_name": "[ERC] Nouveau document CJI",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7806"
+      ]
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49848,
+      "case_name": "[FACTURE] Plantage sur pesée sans ligne de facture",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49847,
+      "case_name": "[APPRO] Prix mal calculé en calculprixcarat",
+      "status": "FAILED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49851,
+      "case_name": "[BV] Permettre de visualiser l'état des lignes de BV KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49853,
+      "case_name": "[ODF] Impression sur ID 0",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49854,
+      "case_name": "[ODF] Impression du mauvais document",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49856,
+      "case_name": "[CONFIE] Ajouter les frais de port - Retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49857,
+      "case_name": "[ETI] Etat étiquette standard KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49858,
+      "case_name": "[STOCK] Afficher les séries à qté 0 et poids > 0",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49849,
+      "case_name": "[STOCK] Afficher les séries à qté 0 et poids > 0 - Retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 3",
+      "run_id": 269,
+      "case_id": 49850,
+      "case_name": "[CRON] Deport des fonctionnalités du Cron Boucheron vers Pilote",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7794"
+      ]
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49868,
+      "case_name": "[EDI][STOCK] Ajout des valeurs douanières dans l'import appro tous fournisseurs",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7831"
+      ]
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49867,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49866,
+      "case_name": "[EDI] Import stock : optimisation des traitements - retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49865,
+      "case_name": "[FACTURE][CONFIE] Ajout des frais de port à la facture - retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49864,
+      "case_name": "[FACT] Fact auto enregistre mal l'état standard",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49863,
+      "case_name": "[BC] Réception complète d'OF ne valide pas les lignes d'appros",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49859,
+      "case_name": "Problème de calcul de TVA dans les Devis",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49862,
+      "case_name": "[GENERAL] Numérique au format US 1,000.00 - Retours 2",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7807"
+      ]
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49869,
+      "case_name": "[CONFIE PIERRE] Filtre sur livré",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49861,
+      "case_name": "[CDEACHAT] Mouvement prévisionel non supprimé au solde",
+      "status": "FAILED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 4",
+      "run_id": 270,
+      "case_id": 49860,
+      "case_name": "[ODF] Asynchronisation",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 5",
+      "run_id": 271,
+      "case_id": 49870,
+      "case_name": "[NOTIFICATION] Ouverture de l'explorateur windows sur un dossier",
+      "status": "WIP",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 5",
+      "run_id": 271,
+      "case_id": 49871,
+      "case_name": "[CRON] Deport des fonctionnalités du Cron Boucheron vers Pilote",
+      "status": "WIP",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 5",
+      "run_id": 271,
+      "case_id": 49872,
+      "case_name": "[COMMANDE ACHAT][CP] Le solde de la ligne de commande d'achat ne supprime pas le prévisionnel",
+      "status": "PASSED",
+      "correction_tickets": [
+        "#7824"
+      ]
+    },
+    {
+      "run": "R06 - run 5",
+      "run_id": 271,
+      "case_id": 49873,
+      "case_name": "[STOCK] Modifier la série après entrée interne - Retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 5",
+      "run_id": 271,
+      "case_id": 49874,
+      "case_name": "[ERC] Nouveau document CJI - Retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1244,
+      "case_name": "09 - Edition : Avoir / Livre de police",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7821"
+      ]
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1243,
+      "case_name": "08 - Edition : Bon de livraison / Facture",
+      "status": "FAILED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1242,
+      "case_name": "07 - Transformations",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7811"
+      ]
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1241,
+      "case_name": "06 - Confiés",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1240,
+      "case_name": "05 - Mouvement de stock en attente / OF de produit semi fini",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1239,
+      "case_name": "04 - Proposition de commande / commande d'achat avec OF lié",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1238,
+      "case_name": "03 - Commande d'achat sur stock",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1237,
+      "case_name": "02 - OF / Facture d'acompte / Fournisseur",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1236,
+      "case_name": "01 - Article / Commande client",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1245,
+      "case_name": "00 - paramétrage en BDD",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1207,
+      "case_name": "Création / modification / archivage",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1205,
+      "case_name": "Coeff Prix de vente",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1204,
+      "case_name": "Création / modification de composants",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 13658,
+      "case_name": "04 - Vérification/Création des Tags",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 8289,
+      "case_name": "03 - Cours devise",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1215,
+      "case_name": "02 - Qualifications",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1214,
+      "case_name": "01 - Opération de gamme / Phase de production",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - FLUX DE PROD",
+      "run_id": 272,
+      "case_id": 1069,
+      "case_name": "00 - Couleurs / Loca / Opé de gam",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - TABLEAUX DE BORD",
+      "run_id": 273,
+      "case_id": 126,
+      "case_name": "Tableaux de bord",
+      "status": "FAILED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - TNR - ANALYSEUR",
+      "run_id": 274,
+      "case_id": 1212,
+      "case_name": "Analyseurs",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 6",
+      "run_id": 275,
+      "case_id": 49876,
+      "case_name": "[APPRO] Modification d'affectation recalcul les prix",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 6",
+      "run_id": 275,
+      "case_id": 49875,
+      "case_name": "[COMPOSANT] Duplication duplique plusieurs fois les produitlocalisation",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 7",
+      "run_id": 276,
+      "case_id": 49878,
+      "case_name": "[GENERAL] Gomme reset interface en pointeur",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 7",
+      "run_id": 276,
+      "case_id": 49877,
+      "case_name": "[APPRO] Prix mal calculé en calculprixcarat - retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 29254,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC",
+      "status": "FAILED",
+      "correction_tickets": [
+        "#7834"
+      ]
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 49879,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC KO",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 29242,
+      "case_name": "[STOCK] Afficher les séries à qté 0 et poids > 0",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 49923,
+      "case_name": "[APPRO] Prix mal calculé en calculprixcarat - retours 2",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 49877,
+      "case_name": "[APPRO] Prix mal calculé en calculprixcarat - retours",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 49924,
+      "case_name": "[ODF] Terminer un OF lorsque tous les CQ sont Ok - Retour",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 8",
+      "run_id": 277,
+      "case_id": 49880,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC Amélioration",
+      "status": "Skipped",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 9",
+      "run_id": 280,
+      "case_id": 49966,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC - Retour Valorisation métal & comptes-poids",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 9",
+      "run_id": 280,
+      "case_id": 49968,
+      "case_name": "[CONFIE] RDD vidage des gravures sur lignes compo - ALARM",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 9",
+      "run_id": 280,
+      "case_id": 49965,
+      "case_name": "[VALORISATION METAL] Ajout de la valorisation via COFITER / COFIPAC - Retours valeur total métal",
+      "status": "PASSED",
+      "correction_tickets": []
+    },
+    {
+      "run": "R06 - run 9",
+      "run_id": 280,
+      "case_id": 49967,
+      "case_name": "[POINCON] Problème de masque sur le choix de l'opérateur lors de l'impression + bonus",
+      "status": "PASSED",
+      "correction_tickets": []
+    }
+  ],
+  "run_issues": {
+    "266": {
+      "1292": "7577",
+      "1320": "7600",
+      "1324": "7594",
+      "1325": "7604",
+      "1340": "7617",
+      "1342": "7619",
+      "1351": "7621",
+      "1356": "7631",
+      "1357": "7634",
+      "1389": "7059",
+      "1399": "7612",
+      "1400": "7641",
+      "1401": "7639",
+      "1402": "7635",
+      "1403": "7638",
+      "1404": "7633",
+      "1405": "7636",
+      "1408": "7645",
+      "1409": "7643",
+      "1410": "7648",
+      "1414": "7646",
+      "1417": "7655",
+      "1418": "7657",
+      "1422": "7660",
+      "1423": "7662",
+      "1424": "7672",
+      "1425": "7674",
+      "1428": "7678",
+      "1430": "7684",
+      "1431": "7688",
+      "1433": "7690",
+      "1444": "7675",
+      "1445": "7693",
+      "1448": "7691",
+      "1449": "2853",
+      "1450": "7066",
+      "1454": "7703",
+      "1455": "7663",
+      "1456": "7605",
+      "1457": "7606",
+      "1458": "7623",
+      "1459": "7598",
+      "1460": "7682",
+      "1461": "6529",
+      "1462": "7710",
+      "1463": "6265",
+      "1464": "7180",
+      "1467": "7702",
+      "1468": "7676",
+      "1469": "5769",
+      "1470": "7581",
+      "1471": "7685",
+      "1472": "7649",
+      "1473": "3351",
+      "1474": "7656",
+      "1475": "7613",
+      "1476": "7360",
+      "1477": "7642",
+      "1479": "7426",
+      "1480": "7585",
+      "1481": "7630",
+      "1482": "7704",
+      "1483": "6880",
+      "1484": "4968",
+      "1485": "7241",
+      "1486": "7286",
+      "1487": "7670",
+      "1488": "7701",
+      "1490": "7628",
+      "1491": "7427",
+      "1492": "7141",
+      "1493": "5615",
+      "1494": "7027",
+      "1495": "7374",
+      "1496": "7627",
+      "1497": "7700",
+      "1498": "7705",
+      "1499": "7699",
+      "1500": "7698",
+      "1501": "7500",
+      "1502": "7713",
+      "1504": "7459",
+      "1505": "7716",
+      "1506": "7707",
+      "1509": "7712",
+      "1511": "7720",
+      "1514": "7740",
+      "1515": "7723",
+      "1516": "7714",
+      "1517": "7727",
+      "1518": "7742",
+      "1519": "7741"
+    },
+    "268": {
+      "1512": "7725",
+      "1525": "5523",
+      "1529": "7756",
+      "1536": "7730",
+      "1538": "7728",
+      "1539": "7719",
+      "1540": "7752",
+      "1542": "7761"
+    },
+    "269": {
+      "1393": "7290",
+      "1503": "7708",
+      "1507": "7667",
+      "1508": "7718",
+      "1520": "7757",
+      "1522": "7726",
+      "1523": "7770",
+      "1541": "7774",
+      "1549": "7739",
+      "1551": "7762",
+      "1552": "7766",
+      "1553": "7763",
+      "1554": "77776"
+    },
+    "270": {
+      "1524": "7771",
+      "1545": "7781",
+      "1547": "7786",
+      "1548": "7787",
+      "1558": "7782",
+      "1559": "7780",
+      "1560": "7785",
+      "1561": "7779",
+      "1562": "7789",
+      "1563": "7732",
+      "1567": "7359"
+    },
+    "271": {
+      "1556": "7794",
+      "1565": "7802",
+      "1566": "7806",
+      "1569": "7800",
+      "1570": "7793"
+    },
+    "272": {},
+    "273": {},
+    "274": {},
+    "275": {
+      "1572": "7803",
+      "1573": "7810"
+    },
+    "276": {
+      "1575": "7801",
+      "1576": "7818"
+    },
+    "277": {
+      "1461": "6529",
+      "1495": "7374",
+      "1503": "7708",
+      "1575": "7801",
+      "1580": "7790",
+      "1581": "7788"
+    },
+    "280": {
+      "1595": "7834",
+      "1596": "7843",
+      "1600": "7835",
+      "1601": "7846"
+    }
+  },
+  "run_names": {
+    "266": "R06 - run 1",
+    "268": "R06 - run 2",
+    "269": "R06 - run 3",
+    "270": "R06 - run 4",
+    "271": "R06 - run 5",
+    "272": "R06 - TNR - FLUX DE PROD",
+    "273": "R06 - TNR - TABLEAUX DE BORD",
+    "274": "R06 - TNR - ANALYSEUR",
+    "275": "R06 - run 6",
+    "276": "R06 - run 7",
+    "277": "R06 - run 8",
+    "280": "R06 - run 9"
+  }
+}

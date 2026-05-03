@@ -1,0 +1,386 @@
+/* ================================================
+   DASHBOARD 8 — Auto-Sync Control Panel
+   ================================================ */
+
+.d8-root {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: var(--font-family, 'Inter', sans-serif);
+  color: var(--text-color, #1e293b);
+}
+
+/* ── Header ─────────────────────────────────────── */
+.d8-header {
+  margin-bottom: 28px;
+}
+.d8-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.d8-header-title h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-color);
+  letter-spacing: -0.02em;
+}
+.d8-header-icon {
+  color: var(--text-primary);
+}
+.d8-header-sub {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ── Grid layout ─────────────────────────────────── */
+.d8-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.d8-card--run {
+  grid-column: 1 / -1;
+}
+
+/* ── Cards ───────────────────────────────────────── */
+.d8-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s var(--ease-out);
+}
+
+.d8-card:hover {
+  box-shadow: var(--shadow-elevated);
+}
+
+.d8-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+/* ── Status card ─────────────────────────────────── */
+.d8-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--divider-color);
+  color: var(--text-color);
+}
+.d8-status-row:last-of-type {
+  border-bottom: none;
+}
+.d8-value {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Badges */
+.d8-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.d8-badge--on {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border: 1px solid var(--badge-success-border);
+}
+.d8-badge--off {
+  background: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+  border: 1px solid var(--badge-danger-border);
+}
+
+/* Toggle button */
+.d8-btn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  justify-content: center;
+  transition: all 0.2s var(--ease-out);
+}
+.d8-btn-toggle--on {
+  background: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+}
+.d8-btn-toggle--on:hover {
+  filter: brightness(0.95);
+}
+.d8-btn-toggle--off {
+  background: var(--badge-success-bg);
+  color: var(--badge-success-text);
+}
+.d8-btn-toggle--off:hover {
+  filter: brightness(0.95);
+}
+
+/* ── Config card ─────────────────────────────────── */
+.d8-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.d8-form-group label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.d8-input {
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  background: var(--surface-page);
+  color: var(--text-color);
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.d8-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  background: var(--card-bg);
+}
+.d8-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* ── Boutons génériques ──────────────────────────── */
+.d8-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    opacity 0.2s;
+  box-shadow: var(--shadow-button-primary);
+}
+.d8-btn-primary:hover:not(:disabled) {
+  background: var(--action-primary-bg-hover);
+}
+.d8-btn-primary:disabled,
+.d8-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.d8-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.d8-btn-secondary:hover:not(:disabled) {
+  background: var(--badge-primary-bg);
+}
+.d8-btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.d8-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+  border: 1px solid var(--badge-danger-border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.d8-btn-danger:hover {
+  background: var(--badge-danger-bg);
+  filter: brightness(0.95);
+}
+
+.d8-btn-ghost {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+}
+.d8-btn-ghost:hover {
+  background: var(--surface-hover);
+}
+
+/* ── Config summary ──────────────────────────────── */
+.d8-config-summary {
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color);
+}
+.d8-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--divider-color);
+}
+.d8-summary-row:last-child {
+  border-bottom: none;
+}
+.d8-summary-row strong {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+/* ── Run card ─────────────────────────────────────── */
+.d8-run-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.d8-run-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+/* ── Log SSE ─────────────────────────────────────── */
+.d8-log-container {
+  background: var(--surface-page);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  max-height: 340px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+.d8-log-line {
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.d8-log-info {
+  color: var(--text-muted);
+}
+.d8-log-warn {
+  color: var(--text-warning);
+}
+.d8-log-error {
+  color: var(--text-danger);
+}
+.d8-log-updated {
+  color: var(--text-success);
+}
+.d8-log-would {
+  color: var(--text-primary);
+}
+.d8-log-skip {
+  color: var(--text-muted);
+}
+.d8-log-done {
+  color: var(--text-secondary-accent);
+  font-weight: bold;
+  border-top: 1px solid var(--divider-color);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+/* ── Erreur / Loading ────────────────────────────── */
+.d8-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+  border: 1px solid var(--badge-danger-border);
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+.d8-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  padding: 40px 0;
+  justify-content: center;
+}
+
+/* ── Spinner ─────────────────────────────────────── */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 700px) {
+  .d8-grid {
+    grid-template-columns: 1fr;
+  }
+  .d8-card--run {
+    grid-column: 1;
+  }
+}

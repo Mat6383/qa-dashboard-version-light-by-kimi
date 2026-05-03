@@ -1,0 +1,391 @@
+/**
+ * ================================================
+ * PREPROD SECTION — Styles modernes
+ * ================================================
+ */
+
+.pp-section {
+  margin-bottom: 0.75rem;
+}
+
+.pp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.pp-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.pp-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--divider-color);
+}
+
+/* Répartition des statuts */
+.pp-status-bar {
+  background: var(--card-bg);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.pp-status-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-right: 1rem;
+}
+
+.pp-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.875rem;
+  background: var(--surface-page);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: all 0.15s;
+}
+
+.pp-status-item:hover {
+  background: var(--surface-hover);
+}
+
+.pp-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pp-status-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pp-status-value {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+/* Campagnes */
+.pp-campaigns {
+  background: var(--card-bg);
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.pp-campaigns-header {
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.pp-campaigns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.pp-campaign-card {
+  padding: 1rem;
+  background: var(--surface-page);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  position: relative;
+  transition: all 0.2s var(--ease-out);
+}
+
+.pp-campaign-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.pp-campaign-card--exploratory {
+  background: var(--surface-muted);
+  border-color: var(--color-secondary);
+  border-left: 4px solid var(--color-secondary);
+}
+
+.pp-campaign-card--exploratory:hover {
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
+}
+
+.pp-campaign-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pp-campaign-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.pp-campaign-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-secondary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pp-campaign-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pp-campaign-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.pp-campaign-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.pp-campaign-metric-label {
+  color: var(--text-muted);
+}
+
+.pp-campaign-metric-value {
+  font-weight: 700;
+}
+
+.pp-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-muted);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pp-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.pp-show-more {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-style: italic;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+/* Toggle switch */
+.pp-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pp-toggle-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+
+.pp-toggle-label--active {
+  color: var(--text-success);
+}
+
+.pp-toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  background: var(--surface-muted);
+}
+
+.pp-toggle-track--on {
+  background: var(--action-success-bg);
+  border-color: var(--action-success-bg-hover);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
+.pp-toggle-knob {
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  transition: all 0.3s var(--ease-spring);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pp-toggle-knob--on {
+  left: 22px;
+}
+
+.pp-toggle-knob--off {
+  left: 2px;
+}
+
+/* Classes requested by refactor */
+.preprod-section {
+  margin-bottom: 0.75rem;
+}
+
+.preprod-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.preprod-title {
+  font-size: 1.35rem;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.preprod-header-line {
+  flex: 1;
+  height: 1px;
+  background: var(--divider-color);
+}
+
+.preprod-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-distribution {
+  background: var(--card-bg);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.campaigns-panel {
+  background: var(--card-bg);
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.campaign-card {
+  padding: 1rem;
+  background: var(--surface-page);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  position: relative;
+  transition: all 0.2s var(--ease-out);
+}
+
+.campaign-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.campaign-card--exploratory {
+  background: var(--surface-muted);
+  border-color: var(--color-secondary);
+  border-left: 4px solid var(--color-secondary);
+  cursor: help;
+}
+
+.campaign-card--exploratory:hover {
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
+}
+
+.exploratory-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-secondary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.custom-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}

@@ -1,0 +1,318 @@
+/**
+ * ================================================
+ * DESIGN TOKENS — QA Dashboard (GitHub Dark Theme)
+ * ================================================
+ * Palette tech / cyber inspirée de GitHub Primer & Linear.
+ * Support complet light / dark mode (WCAG AA).
+ */
+
+:root {
+  /* ==================================================
+     Base Surfaces (elevation hierarchy)
+     ================================================== */
+  --surface-page: #f6f8fa;
+  --surface-default: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #f3f4f6;
+  --surface-hover: #f3f4f6;
+  --surface-active: #e5e7eb;
+  --surface-inverse: #1f2328;
+
+  /* ==================================================
+     Semantic Text Colors
+     ================================================== */
+  --text-default: #1f2328;
+  --text-secondary: #57606a;
+  --text-muted: #5c6b7d;
+  --text-inverse: #ffffff;
+
+  --text-primary: #0e7490;
+  --text-success: #16a34a;
+  --text-warning: #d97706;
+  --text-danger: #dc2626;
+  --text-info: #2563eb;
+  --text-secondary-accent: #7c3aed;
+
+  /* ==================================================
+     Core Action Colors
+     ================================================== */
+  --action-primary-bg: #0e7490;
+  --action-primary-bg-hover: #155e75;
+  --action-primary-text: #ffffff;
+
+  --action-success-bg: #16a34a;
+  --action-success-bg-hover: #15803d;
+  --action-success-text: #ffffff;
+
+  --action-secondary-bg: #7c3aed;
+  --action-secondary-bg-hover: #6d28d9;
+  --action-secondary-text: #ffffff;
+
+  --action-warning-bg: #d97706;
+  --action-warning-bg-hover: #b45309;
+  --action-warning-text: #78350f;
+  --action-warning-surface: #fef3c7;
+  --action-warning-border: #fcd34d;
+
+  --action-danger-bg: #dc2626;
+  --action-danger-bg-hover: #b91c1c;
+  --action-danger-text: #ffffff;
+
+  --action-auth-bg: #ea580c;
+  --action-auth-text: #ffffff;
+
+  /* ==================================================
+     Borders & Dividers
+     ================================================== */
+  --border-color: #d0d7de;
+  --border-subtle: #e5e7eb;
+  --divider-color: #d0d7de;
+  --focus-ring: rgba(14, 116, 144, 0.35);
+
+  /* ==================================================
+     Status Surfaces (NEW semantic tokens)
+     ================================================== */
+  --status-success: #16a34a;
+  --status-success-bg: #dcfce7;
+  --status-success-border: #86efac;
+
+  --status-warning: #d97706;
+  --status-warning-bg: #fef3c7;
+  --status-warning-border: #fcd34d;
+
+  --status-danger: #dc2626;
+  --status-danger-bg: #fee2e2;
+  --status-danger-border: #fca5a5;
+
+  --status-info: #2563eb;
+  --status-info-bg: #dbeafe;
+  --status-info-border: #93c5fd;
+
+  --status-ok-bg: #dcfce7;
+  --status-ok-text: #14532d;
+
+  --status-info-bg-light: #eff6ff;
+  --status-info-bg-dark: #dbeafe;
+  --status-info-border: #bfdbfe;
+
+  /* ==================================================
+     Badge / Chip Colors (solid soft backgrounds)
+     ================================================== */
+  --badge-success-bg: #dcfce7;
+  --badge-success-text: #14532d;
+  --badge-success-border: #86efac;
+
+  --badge-warning-bg: #fef3c7;
+  --badge-warning-text: #78350f;
+  --badge-warning-border: #fcd34d;
+
+  --badge-danger-bg: #fee2e2;
+  --badge-danger-text: #7f1d1d;
+  --badge-danger-border: #fca5a5;
+
+  --badge-info-bg: #dbeafe;
+  --badge-info-text: #1e3a8a;
+  --badge-info-border: #93c5fd;
+
+  --badge-primary-bg: #dbeafe;
+  --badge-primary-text: #1e3a8a;
+  --badge-primary-border: #93c5fd;
+
+  --badge-neutral-bg: #f1f5f9;
+  --badge-neutral-text: #475569;
+  --badge-neutral-border: #e2e8f0;
+
+  /* ==================================================
+     Table Colors
+     ================================================== */
+  --table-header-bg: #f8fafc;
+  --table-header-text: #1f2328;
+  --table-row-alt: #f8fafc;
+  --table-row-hover: rgba(6, 182, 212, 0.04);
+
+  /* ==================================================
+     Toast Colors
+     ================================================== */
+  --toast-error-bg: #dc2626;
+  --toast-error-text: #ffffff;
+  --toast-success-bg: #16a34a;
+  --toast-success-text: #ffffff;
+  --toast-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+
+  /* ==================================================
+     Radius Scale
+     ================================================== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ==================================================
+     Typography Scale
+     ================================================== */
+  --font-display: 1.75rem;
+  --font-h1: 1.5rem;
+  --font-h2: 1.25rem;
+  --font-h3: 1.125rem;
+  --font-body: 1rem;
+  --font-small: 0.875rem;
+  --font-label: 0.75rem;
+  --font-caption: 0.625rem;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ==================================================
+     Easing Tokens
+     ================================================== */
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ==================================================
+     Shadows (modern, soft)
+     ================================================== */
+  --shadow-card: 0 1px 3px rgba(31, 35, 40, 0.04), 0 1px 2px rgba(31, 35, 40, 0.03);
+  --shadow-elevated: 0 4px 6px -1px rgba(31, 35, 40, 0.05), 0 2px 4px -2px rgba(31, 35, 40, 0.03);
+  --shadow-floating: 0 10px 15px -3px rgba(31, 35, 40, 0.08), 0 4px 6px -4px rgba(31, 35, 40, 0.03);
+  --shadow-modal: 0 20px 25px -5px rgba(31, 35, 40, 0.08), 0 8px 10px -6px rgba(31, 35, 40, 0.02);
+
+  --shadow-button-primary: 0 1px 2px rgba(6, 182, 212, 0.2);
+  --shadow-button-success: 0 1px 2px rgba(22, 163, 74, 0.2);
+  --shadow-button-secondary: 0 1px 2px rgba(124, 58, 237, 0.2);
+}
+
+/* ==================================================
+   Dark-theme token overrides — GitHub Dark
+   ================================================== */
+.app.dark-theme,
+.dark-theme {
+  /* Surfaces — deep blacks with subtle elevation */
+  --surface-page: #0a0a0a;
+  --surface-default: #111111;
+  --surface-elevated: #161b22;
+  --surface-muted: #0d1117;
+  --surface-hover: #1c2128;
+  --surface-active: #21262d;
+  --surface-inverse: #f6f8fa;
+
+  /* Text — cool off-whites for reduced halation */
+  --text-default: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #7d8590;
+  --text-inverse: #0a0a0a;
+
+  --text-primary: #22d3ee;
+  --text-success: #4ade80;
+  --text-warning: #fbbf24;
+  --text-danger: #f87171;
+  --text-info: #60a5fa;
+  --text-secondary-accent: #a78bfa;
+
+  /* Actions — neon accents */
+  --action-primary-bg: #22d3ee;
+  --action-primary-bg-hover: #67e8f9;
+  --action-primary-text: #0a0a0a;
+
+  --action-success-bg: #4ade80;
+  --action-success-bg-hover: #86efac;
+  --action-success-text: #0a0a0a;
+
+  --action-secondary-bg: #a78bfa;
+  --action-secondary-bg-hover: #c4b5fd;
+  --action-secondary-text: #0a0a0a;
+
+  --action-warning-bg: #fbbf24;
+  --action-warning-bg-hover: #fcd34d;
+  --action-warning-text: #0a0a0a;
+  --action-warning-surface: rgba(251, 191, 36, 0.12);
+  --action-warning-border: rgba(251, 191, 36, 0.25);
+
+  --action-danger-bg: #f87171;
+  --action-danger-bg-hover: #fca5a5;
+  --action-danger-text: #0a0a0a;
+
+  --action-auth-bg: #fb923c;
+  --action-auth-text: #0a0a0a;
+
+  /* Borders — subtle separations */
+  --border-color: #21262d;
+  --border-subtle: #30363d;
+  --divider-color: #21262d;
+  --focus-ring: rgba(34, 211, 238, 0.35);
+
+  /* Status Surfaces — dark neon backgrounds */
+  --status-success: #4ade80;
+  --status-success-bg: #14532d;
+  --status-success-border: #22c55e;
+
+  --status-warning: #fbbf24;
+  --status-warning-bg: #78350f;
+  --status-warning-border: #f59e0b;
+
+  --status-danger: #f87171;
+  --status-danger-bg: #7f1d1d;
+  --status-danger-border: #ef4444;
+
+  --status-info: #60a5fa;
+  --status-info-bg: #1e3a8a;
+  --status-info-border: #3b82f6;
+
+  --status-ok-bg: rgba(74, 222, 128, 0.12);
+  --status-ok-text: #4ade80;
+
+  --status-info-bg-light: rgba(96, 165, 250, 0.08);
+  --status-info-bg-dark: rgba(96, 165, 250, 0.12);
+  --status-info-border: rgba(96, 165, 250, 0.2);
+
+  /* Badges — dark mode needs higher opacity */
+  --badge-success-bg: rgba(74, 222, 128, 0.12);
+  --badge-success-text: #4ade80;
+  --badge-success-border: rgba(74, 222, 128, 0.25);
+
+  --badge-warning-bg: rgba(251, 191, 36, 0.12);
+  --badge-warning-text: #fbbf24;
+  --badge-warning-border: rgba(251, 191, 36, 0.25);
+
+  --badge-danger-bg: rgba(248, 113, 113, 0.12);
+  --badge-danger-text: #f87171;
+  --badge-danger-border: rgba(248, 113, 113, 0.25);
+
+  --badge-info-bg: rgba(96, 165, 250, 0.12);
+  --badge-info-text: #60a5fa;
+  --badge-info-border: rgba(96, 165, 250, 0.25);
+
+  --badge-primary-bg: rgba(96, 165, 250, 0.12);
+  --badge-primary-text: #60a5fa;
+  --badge-primary-border: rgba(96, 165, 250, 0.25);
+
+  --badge-neutral-bg: rgba(148, 163, 184, 0.1);
+  --badge-neutral-text: #94a3b8;
+  --badge-neutral-border: rgba(148, 163, 184, 0.2);
+
+  /* Tables */
+  --table-header-bg: #161b22;
+  --table-header-text: #e6edf3;
+  --table-row-alt: rgba(22, 27, 34, 0.5);
+  --table-row-hover: rgba(34, 211, 238, 0.06);
+
+  /* Toasts */
+  --toast-error-bg: #ef4444;
+  --toast-error-text: #ffffff;
+  --toast-success-bg: #22c55e;
+  --toast-success-text: #0a0a0a;
+  --toast-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+
+  /* Shadows — darker, more diffuse */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --shadow-floating: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+
+  --shadow-button-primary: 0 1px 2px rgba(34, 211, 238, 0.25);
+  --shadow-button-success: 0 1px 2px rgba(74, 222, 128, 0.25);
+  --shadow-button-secondary: 0 1px 2px rgba(167, 139, 250, 0.25);
+}

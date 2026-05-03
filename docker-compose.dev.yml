@@ -1,0 +1,65 @@
+# ───────────────────────────────────────────────────────────────────────────────
+# QA Dashboard by Kimi 2.0 — Docker Compose DEVELOPMENT
+# Hot-reload backend (tsx + nodemon) + frontend (Vite HMR)
+# ───────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ═════════════════════════════════════════════════════════════════════════════
+  # Backend API — Hot reload tsx + nodemon legacy-watch (polling Docker)
+  # ═════════════════════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: qa-dashboard-backend-dev
+    restart: "no"
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      # Bind mount du code source pour le hot-reload
+      - ./backend:/app
+      # Protection de node_modules (bindings natifs compilés dans l'image)
+      - /app/node_modules
+      # Persistance SQLite
+      - ./backend/db-data:/app/db-data
+      # Logs host-accessibles
+      - ./backend/logs:/app/logs
+    ports:
+      - "3001:3001"
+    networks:
+      - dashboard-net-dev
+    # Polling legacy-watch via nodemon (inotify non fiable sur Docker Desktop Mac)
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # Frontend — Vite dev server avec HMR
+  # ═════════════════════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: qa-dashboard-frontend-dev
+    restart: "no"
+    environment:
+      - NODE_ENV=development
+      # Proxy Vite vers le backend dans le réseau Docker
+      - BACKEND_URL=http://backend:3001
+      # Force le polling de chokidar pour le HMR sous Docker
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Bind mount du code source pour le hot-reload
+      - ./frontend:/app
+      # Protection de node_modules
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - dashboard-net-dev
+    depends_on:
+      - backend
+
+networks:
+  dashboard-net-dev:
+    driver: bridge
