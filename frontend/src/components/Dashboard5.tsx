@@ -24,6 +24,7 @@ import {
   Filler,
 } from 'chart.js';
 import apiService from '../services/api.service';
+import { getMetricColor, getMetricBgColor, getMetricLevel } from '../lib/colors';
 import type { ChartOptions } from 'chart.js';
 
 // Register Chart.js components

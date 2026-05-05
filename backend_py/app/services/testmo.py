@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from cachetools import TTLCache
@@ -69,6 +69,15 @@ class TestmoService:
                 return {}
             return resp.json() if resp.text else {}
 
+    @with_resilience(breaker=None, max_attempts=3, base_delay_ms=500)
+    async def _patch(self, path: str, json: dict[str, Any] | None = None) -> Any:
+        async with self.cb:
+            resp = await self.client.patch(path, json=json)
+            resp.raise_for_status()
+            if resp.status_code == 204:
+                return {}
+            return resp.json() if resp.text else {}
+
     async def get_projects(self) -> list[dict[str, Any]]:
         key = self._cache_key("projects")
 
@@ -76,7 +85,8 @@ class TestmoService:
             data = await self._get("/projects", {"per_page": 100})
             return data if isinstance(data, list) else data.get("result", [])
 
-        return await self._cached_request(key, _fetch)
+        result: list[dict[str, Any]] = await self._cached_request(key, _fetch)
+        return result
 
     async def get_project_runs(self, project_id: int, active_only: bool = False) -> list[dict[str, Any]]:
         key = self._cache_key("runs", project_id, "active" if active_only else "all")
@@ -88,7 +98,8 @@ class TestmoService:
             data = await self._get(f"/projects/{project_id}/runs", params)
             return data if isinstance(data, list) else data.get("result", [])
 
-        return await self._cached_request(key, _fetch)
+        result: list[dict[str, Any]] = await self._cached_request(key, _fetch)
+        return result
 
     async def get_project_milestones(self, project_id: int) -> list[dict[str, Any]]:
         key = self._cache_key("milestones", project_id)
@@ -97,7 +108,8 @@ class TestmoService:
             data = await self._get(f"/projects/{project_id}/milestones", {"per_page": 100})
             return data if isinstance(data, list) else data.get("result", [])
 
-        return await self._cached_request(key, _fetch)
+        result: list[dict[str, Any]] = await self._cached_request(key, _fetch)
+        return result
 
     async def get_automation_runs(self, project_id: int) -> dict[str, Any]:
         key = self._cache_key("automation", project_id)
@@ -105,15 +117,54 @@ class TestmoService:
         async def _fetch() -> Any:
             return await self._get(f"/projects/{project_id}/automation/runs", {"per_page": 100})
 
-        return await self._cached_request(key, _fetch)
+        result: dict[str, Any] = await self._cached_request(key, _fetch)
+        return result
 
     async def get_run_details(self, run_id: int) -> dict[str, Any]:
         key = self._cache_key("run", run_id)
-        return await self._cached_request(key, lambda: self._get(f"/runs/{run_id}"))
+        result: dict[str, Any] = await self._cached_request(key, lambda: self._get(f"/runs/{run_id}"))
+        return result
 
     async def get_automation_run_details(self, run_id: int) -> dict[str, Any]:
         key = self._cache_key("automation_run", run_id)
-        return await self._cached_request(key, lambda: self._get(f"/automation/runs/{run_id}"))
+        result: dict[str, Any] = await self._cached_request(key, lambda: self._get(f"/automation/runs/{run_id}"))
+        return result
+
+    async def get_run_results_paginated(self, run_id: int) -> list[dict[str, Any]]:
+        """Paginate through /runs/{run_id}/results and return only is_latest items."""
+        all_results: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            data = cast(dict[str, Any], await self._get(f"/runs/{run_id}/results", {"page": page}))
+            batch = data.get("result", []) if isinstance(data, dict) else data
+            if not batch:
+                break
+            all_results.extend(batch)
+            next_page = data.get("next_page") if isinstance(data, dict) else None
+            if not next_page:
+                break
+            page = next_page
+        return [r for r in all_results if r.get("is_latest") is True]
+
+    async def get_case_names(self, project_id: int, needed_ids: list[int]) -> dict[int, str]:
+        """Resolve case names by paginating /projects/{project_id}/cases."""
+        names: dict[int, str] = {}
+        remaining = set(needed_ids)
+        page = 1
+        while remaining:
+            data = cast(dict[str, Any], await self._get(f"/projects/{project_id}/cases", {"page": page}))
+            batch = data.get("result", []) if isinstance(data, dict) else data
+            pages = data.get("last_page", 1) if isinstance(data, dict) else 1
+            for case in batch:
+                if case.get("id") in remaining:
+                    names[case["id"]] = case.get("name", "")
+                    remaining.discard(case["id"])
+            if page >= pages or not remaining:
+                break
+            page += 1
+        if remaining:
+            logger.warning("[StatusSync] %s case_id(s) introuvable(s): %s", len(remaining), ", ".join(str(x) for x in remaining))
+        return names
 
     async def get_run_results(self, run_id: int, status_filter: str | None = None) -> dict[str, Any]:
         key = self._cache_key("results", run_id, status_filter or "all")
@@ -124,7 +175,8 @@ class TestmoService:
         async def _fetch() -> Any:
             return await self._get(f"/runs/{run_id}/results", params)
 
-        return await self._cached_request(key, _fetch)
+        result: dict[str, Any] = await self._cached_request(key, _fetch)
+        return result
 
     async def get_project_metrics(self, project_id: int) -> dict[str, Any]:
         """Aggregate ISTQB/ITIL/LEAN KPIs from runs + sessions."""
@@ -405,7 +457,8 @@ class TestmoService:
             payload["fields"] = fields
         if links:
             payload["links"] = links
-        return await self._post(f"/projects/{project_id}/automation/runs", payload)
+        result: dict[str, Any] = await self._post(f"/projects/{project_id}/automation/runs", payload)
+        return result
 
     async def find_automation_run(
         self,
@@ -415,11 +468,11 @@ class TestmoService:
     ) -> dict[str, Any] | None:
         """Search for an existing automation run by name (and optionally source)."""
         data = await self.get_automation_runs(project_id)
-        runs = data.get("result", []) if isinstance(data, dict) else data
+        runs: list[dict[str, Any]] = data.get("result", []) if isinstance(data, dict) else data
         for run in runs:
             if run.get("name") == name:
                 if source is None or run.get("source") == source:
-                    return run
+                    return cast(dict[str, Any], run)
         return None
 
     async def append_to_automation_run(
@@ -437,7 +490,8 @@ class TestmoService:
             payload["links"] = links
         if artifacts:
             payload["artifacts"] = artifacts
-        return await self._post(f"/automation/runs/{run_id}/append", payload)
+        result: dict[str, Any] = await self._post(f"/automation/runs/{run_id}/append", payload)
+        return result
 
     async def create_automation_thread(
         self,
@@ -454,7 +508,8 @@ class TestmoService:
             payload["artifacts"] = artifacts
         if fields:
             payload["fields"] = fields
-        return await self._post(f"/automation/runs/{run_id}/threads", payload)
+        result: dict[str, Any] = await self._post(f"/automation/runs/{run_id}/threads", payload)
+        return result
 
     async def append_test_results(
         self,
@@ -472,7 +527,8 @@ class TestmoService:
             payload["artifacts"] = artifacts
         if fields:
             payload["fields"] = fields
-        return await self._post(f"/automation/runs/threads/{thread_id}/append", payload)
+        result: dict[str, Any] = await self._post(f"/automation/runs/threads/{thread_id}/append", payload)
+        return result
 
     async def complete_automation_run(
         self,
@@ -480,10 +536,143 @@ class TestmoService:
         measure_elapsed: bool = True,
     ) -> dict[str, Any]:
         """Mark an automation run as complete."""
-        return await self._post(
+        result: dict[str, Any] = await self._post(
             f"/automation/runs/{run_id}/complete",
             {"measure_elapsed": measure_elapsed},
         )
+        return result
+
+    # ------------------------------------------------------------------
+    # Case repository (read + write)
+    # ------------------------------------------------------------------
+
+    async def get_cases(
+        self,
+        project_id: int,
+        folder_id: int | None = None,
+        per_page: int = 100,
+        expands: str | None = "tags",
+    ) -> list[dict[str, Any]]:
+        """List all cases in a project, optionally filtered by folder.
+        Paginates until exhaustion."""
+        all_cases: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            params: dict[str, Any] = {"per_page": per_page, "page": page}
+            if folder_id is not None:
+                params["folder_id"] = folder_id
+            if expands:
+                params["expands"] = expands
+            data = cast(dict[str, Any], await self._get(f"/projects/{project_id}/cases", params))
+            batch = data.get("result", []) if isinstance(data, dict) else data
+            if not batch:
+                break
+            all_cases.extend(batch)
+            next_page = data.get("next_page") if isinstance(data, dict) else None
+            if not next_page:
+                break
+            page += 1
+        return all_cases
+
+    async def find_case_by_name(
+        self,
+        project_id: int,
+        name: str,
+        folder_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Find a case by exact name match within a project/folder."""
+        cases = await self.get_cases(project_id, folder_id)
+        for case in cases:
+            if case.get("name") == name:
+                return cast(dict[str, Any], case)
+        return None
+
+    async def create_cases(
+        self,
+        project_id: int,
+        cases: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Create one or more cases in a project. Returns created cases."""
+        if not cases:
+            return []
+        data = cast(dict[str, Any], await self._post(f"/projects/{project_id}/cases", {"cases": cases}))
+        result = data.get("result") if isinstance(data, dict) else data
+        return result if isinstance(result, list) else [result] if result else []
+
+    async def update_case(
+        self,
+        project_id: int,
+        case_id: int,
+        case_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing case. Uses PATCH with ids array."""
+        payload = {**case_data, "ids": [case_id]}
+        return cast(dict[str, Any], await self._patch(f"/projects/{project_id}/cases", payload))
+
+    # ------------------------------------------------------------------
+    # Folder repository (read + write)
+    # ------------------------------------------------------------------
+
+    async def get_folders(
+        self,
+        project_id: int,
+        parent_id: int | None = None,
+        repo_id: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """List folders in a project, optionally filtered by parent."""
+        params: dict[str, Any] = {"per_page": 100}
+        if parent_id is not None:
+            params["parent_id"] = parent_id
+        if repo_id is not None:
+            params["repo_id"] = repo_id
+        data = cast(dict[str, Any], await self._get(f"/projects/{project_id}/folders", params))
+        result: list[dict[str, Any]] = data.get("result", []) if isinstance(data, dict) else data
+        return result
+
+    async def create_folder(
+        self,
+        project_id: int,
+        name: str,
+        parent_id: int | None = None,
+        repo_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Create a folder in a project. Returns the created folder."""
+        payload: dict[str, Any] = {"folders": [{"name": name}]}
+        if parent_id is not None:
+            payload["folders"][0]["parent_id"] = parent_id
+        data = cast(dict[str, Any], await self._post(f"/projects/{project_id}/folders", payload))
+        result = data.get("result") if isinstance(data, dict) else data
+        created = cast(dict[str, Any], result[0] if isinstance(result, list) and result else data)
+        logger.info("Testmo: Folder créé — %r (id=%s, parent=%s)", name, created.get("id"), parent_id)
+        return created
+
+    async def get_or_create_folder(
+        self,
+        project_id: int,
+        name: str,
+        parent_id: int | None = None,
+        repo_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Idempotent folder retrieval or creation."""
+        existing = await self._find_folder_by_name(project_id, name, parent_id, repo_id)
+        if existing:
+            logger.info("Testmo: Folder existant — %r (id=%s)", name, existing.get("id"))
+            return existing
+        return await self.create_folder(project_id, name, parent_id, repo_id)
+
+    async def _find_folder_by_name(
+        self,
+        project_id: int,
+        name: str,
+        parent_id: int | None = None,
+        repo_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Internal helper to find a folder by exact name."""
+        folders = await self.get_folders(project_id, parent_id, repo_id)
+        for folder in folders:
+            if folder.get("name") == name:
+                return cast(dict[str, Any], folder)
+        return None
 
     def clear_cache(self) -> None:
         self.cache.clear()

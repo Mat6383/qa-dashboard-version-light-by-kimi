@@ -40,6 +40,7 @@ from app.routers import (
     retention,
     runs,
     sync,
+    testmo_browser,
     trpc,
     webhooks,
     websocket,
@@ -72,6 +73,15 @@ HTTP_ERRORS = Counter(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_databases()
+    # Seed test-flag for E2E compatibility (Node.js persistent DB assumption)
+    from app.database import get_main_db
+    from app.models.feature_flags import FeatureFlag
+    from sqlalchemy import select
+    async with get_main_db() as db:
+        result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == "test-flag"))
+        if not result.scalar_one_or_none():
+            db.add(FeatureFlag(key="test-flag", enabled=False, description="E2E test flag"))
+            await db.commit()
     start_scheduler()
     yield
     stop_scheduler()
@@ -142,4 +152,5 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"]
 app.include_router(retention.router, prefix="/api/retention", tags=["retention"])
 app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(trpc.router, prefix="/trpc", tags=["trpc"])
+app.include_router(testmo_browser.router, prefix="/api/testmo-browser", tags=["testmo-browser"])
 app.include_router(websocket.router, prefix="/ws", tags=["websocket"])

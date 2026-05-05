@@ -31,18 +31,9 @@ import ExportFAB from './ExportFAB';
 
 function getDashboardRoutes(isAdmin, t) {
   const routes = [
-    { path: '/', label: t('dashboard.standard') },
-    { path: '/tv', label: t('dashboard.tv') },
-    { path: '/quality-rates', label: t('dashboard.qualityRates') },
     { path: '/global-view', label: t('dashboard.globalView') },
-    { path: '/annual-trends', label: t('dashboard.annualTrends') },
     { path: '/multi-project', label: t('dashboard.multiProject') },
-    { path: '/historical-trends', label: t('dashboard.historicalTrends') },
-    { path: '/compare', label: t('dashboard.compare') },
-    { path: '/sync-gitlab-to-testmo', label: t('dashboard.syncGitlabToTestmo') },
-    { path: '/configuration', label: t('dashboard.configuration') },
-    { path: '/crosstest', label: t('dashboard.crosstest') },
-    { path: '/auto-sync', label: t('dashboard.autoSync') },
+    { path: '/tools', label: t('dashboard.tools') },
   ];
   if (isAdmin) {
     routes.push({ path: '/notifications', label: t('dashboard.notifications') });

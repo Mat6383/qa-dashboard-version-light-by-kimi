@@ -47,7 +47,7 @@ export default function Breadcrumb() {
     <nav aria-label="Breadcrumb" className="breadcrumb-nav">
       <ol className="breadcrumb-list">
         <li className="breadcrumb-item">
-          <Link to="/" className="breadcrumb-link">
+          <Link to="/global-view" className="breadcrumb-link">
             <Home size={14} />
             <span className="sr-only">{t('nav.home')}</span>
           </Link>

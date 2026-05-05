@@ -26,11 +26,11 @@ module.exports = defineConfig({
 
   webServer: [
     {
-      command: 'npm run start -w backend',
+      command: 'cd backend_py && .venv/bin/python -m uvicorn app.main:app --port 3001',
       url: 'http://localhost:3001/api/health',
       reuseExistingServer: !process.env.CI,
       env: {
-        NODE_ENV: 'development',
+        ENVIRONMENT: 'development',
         PORT: '3001',
         TESTMO_URL: 'http://localhost',
         TESTMO_TOKEN: 'test',

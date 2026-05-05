@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import httpx
@@ -101,14 +102,146 @@ class GitLabService:
                 page = int(next_page)
         return all_items
 
-    async def find_iteration(self, project_id: str | int, title: str) -> dict[str, Any] | None:
-        iterations = await self._get_paginated(f"/projects/{project_id}/iterations")
-        normalized = title.lower().replace(" ", "-").replace("_", "-")
+    def _format_iteration_date(self, d: str | None) -> str:
+        if not d:
+            return "?"
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(d.replace("Z", "+00:00"))
+            return dt.strftime("%d/%m")
+        except ValueError:
+            return "?"
+
+    def _iteration_fallback_title(self, it: dict[str, Any]) -> str:
+        """Generate a display title for GitLab auto-cadence iterations (title=null)."""
+        iid = it.get("iid") or it.get("sequence") or it.get("id")
+        return f"Itération #{iid} ({self._format_iteration_date(it.get('start_date'))} → {self._format_iteration_date(it.get('due_date'))})"
+
+    async def find_iteration_for_project(self, project_id: str | int, iteration_name: str) -> dict[str, Any] | None:
+        """Find iteration by iid (generated iterations) or normalized title (including fallback titles)."""
+        iterations = await self._get_paginated(f"/projects/{project_id}/iterations", {"state": "all"})
+        generated_match = re.search(r"#(\d+)", iteration_name)
+        if generated_match and re.search(r"it.ration", iteration_name, re.IGNORECASE):
+            target_iid = int(generated_match.group(1))
+            for it in iterations:
+                if it.get("iid") == target_iid:
+                    logger.info("GitLab: Itération trouvée par iid=%s (project %s, id=%s)", target_iid, project_id, it.get("id"))
+                    return it
+        normalize = lambda s: re.sub(r"[-\s]+", "", s.lower())
+        normalized_search = normalize(iteration_name)
         for it in iterations:
-            it_title = (it.get("title") or "").lower().replace(" ", "-").replace("_", "-")
-            if it_title == normalized or normalized in it_title:
+            it_title = it.get("title") or self._iteration_fallback_title(it)
+            if normalize(it_title) == normalized_search:
+                logger.info('GitLab: Itération trouvée (project %s) - "%s" (id=%s)', project_id, it_title, it.get("id"))
                 return it
+        logger.warn('GitLab: Itération "%s" non trouvée dans project %s', iteration_name, project_id)
         return None
+
+    async def get_issues_for_iteration(
+        self, project_id: str | int, iteration_id: str | int, state: str = "all"
+    ) -> list[dict[str, Any]]:
+        return await self._get_paginated(
+            f"/projects/{project_id}/issues",
+            {"iteration_id": iteration_id, "state": state, "scope": "all"},
+        )
+
+    async def get_issues_by_version_and_iteration(
+        self, project_id: str | int, version: str, iteration_id: str | int
+    ) -> list[dict[str, Any]]:
+        all_issues = await self.get_issues_for_iteration(project_id, iteration_id)
+        if not all_issues:
+            return []
+        ids = [f"gid://gitlab/WorkItem/{issue['id']}" for issue in all_issues]
+        query = """
+        query GetVersions($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on WorkItem {
+              id
+              widgets {
+                ... on WorkItemWidgetCustomFields {
+                  customFieldValues {
+                    customField { id name }
+                    ... on WorkItemSelectFieldValue { selectedOptions { value } }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        data = await self._graphql(query, {"ids": ids})
+        version_by_gid: dict[str, str | None] = {}
+        for node in data.get("nodes", []):
+            cf_widget = next(
+                (w for w in node.get("widgets", []) if isinstance(w.get("customFieldValues"), list)), None
+            )
+            version_prod = None
+            if cf_widget:
+                for cf in cf_widget.get("customFieldValues", []):
+                    if cf.get("customField", {}).get("name") == "Version Prod":
+                        version_prod = cf.get("selectedOptions", [{}])[0].get("value")
+                        break
+            version_by_gid[node["id"]] = version_prod
+        filtered = [
+            issue for issue in all_issues
+            if version_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}") == version
+        ]
+        logger.info(
+            'GitLab: %s/%s issue(s) avec Version Prod="%s" (project=%s)',
+            len(filtered), len(all_issues), version, project_id,
+        )
+        return filtered
+
+    async def get_issues_by_version_only(self, project_id: str | int, version: str) -> list[dict[str, Any]]:
+        todo_status_gid = getattr(settings, "gitlab_status_todo", None) or "gid://gitlab/WorkItems::Statuses::Custom::Status/15"
+        all_issues = await self._get_paginated(f"/projects/{project_id}/issues", {"state": "opened", "scope": "all"})
+        if not all_issues:
+            return []
+        ids = [f"gid://gitlab/WorkItem/{issue['id']}" for issue in all_issues]
+        query = """
+        query GetVersionsAndStatus($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on WorkItem {
+              id
+              widgets {
+                type
+                ... on WorkItemWidgetCustomFields {
+                  customFieldValues {
+                    customField { id name }
+                    ... on WorkItemSelectFieldValue { selectedOptions { value } }
+                  }
+                }
+                ... on WorkItemWidgetStatus {
+                  status { id name }
+                }
+              }
+            }
+          }
+        }
+        """
+        data = await self._graphql(query, {"ids": ids})
+        info_by_gid: dict[str, dict[str, Any]] = {}
+        for node in data.get("nodes", []):
+            version_val = None
+            status_gid = None
+            for widget in node.get("widgets", []):
+                if widget.get("type") == "STATUS" and widget.get("status"):
+                    status_gid = widget["status"]["id"]
+                if isinstance(widget.get("customFieldValues"), list):
+                    for cf in widget.get("customFieldValues", []):
+                        if cf.get("customField", {}).get("name") == "Version Prod":
+                            version_val = cf.get("selectedOptions", [{}])[0].get("value")
+            info_by_gid[node["id"]] = {"version": version_val, "status_gid": status_gid}
+        filtered = [
+            issue for issue in all_issues
+            if info_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}", {}).get("version") == version
+            and info_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}", {}).get("status_gid") == todo_status_gid
+        ]
+        logger.info(
+            'GitLab: %s/%s issue(s) avec Version Prod="%s" + status TODO (project=%s)',
+            len(filtered), len(all_issues), version, project_id,
+        )
+        return filtered
 
     async def get_issues_by_label_and_iteration(
         self, project_id: str | int, label: str, iteration_id: str | int
@@ -134,16 +267,52 @@ class GitLabService:
         )
 
     async def update_work_item_status(self, work_item_global_id: str, status_global_id: str) -> dict[str, Any]:
+        """Update a Work Item status via GraphQL (status widget)."""
         query = """
-        mutation($id: WorkItemID!, $statusId: WorkItemStateID!) {
-          workItemUpdate(input: {id: $id, stateId: $statusId}) {
-            workItem { id title state { name } }
+        mutation UpdateWorkItemStatus($id: WorkItemID!, $statusId: WorkItemsStatusesStatusID!) {
+          workItemUpdate(input: {id: $id, statusWidget: {status: $statusId}}) {
+            workItem {
+              id
+              widgets {
+                type
+                ... on WorkItemWidgetStatus {
+                  status { id name }
+                }
+              }
+            }
             errors
           }
         }
         """
-        data = await self._graphql(query, {"id": work_item_global_id, "statusId": status_global_id})
-        return data["workItemUpdate"]["workItem"]
+        async with self.cb_graphql:
+            resp = await self.graphql.post(
+                "/api/graphql",
+                json={"query": query, "variables": {"id": work_item_global_id, "statusId": status_global_id}},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get("errors"):
+                raise httpx.HTTPStatusError(
+                    f"GraphQL errors: {result['errors']}",
+                    request=resp.request,
+                    response=resp,
+                )
+            work_item_update = result.get("data", {}).get("workItemUpdate", {})
+            errors = work_item_update.get("errors", [])
+            if errors:
+                raise httpx.HTTPStatusError(
+                    f"GraphQL errors: {errors}",
+                    request=resp.request,
+                    response=resp,
+                )
+            work_item = work_item_update.get("workItem", {})
+            status_name = None
+            for widget in work_item.get("widgets", []):
+                if widget.get("type") == "STATUS" and widget.get("status"):
+                    status_name = widget["status"]["name"]
+                    break
+            logger.info("GitLab: Work item %s → status \"%s\"", work_item_global_id, status_name)
+            return work_item
 
     async def health_check(self) -> bool:
         try:

@@ -33,12 +33,11 @@ describe('Circuit Breakers Health', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data.length).toBe(3);
+    expect(res.body.data.length).toBe(2);
 
     const names = res.body.data.map((b) => b.name);
     expect(names).toContain('testmo');
     expect(names).toContain('gitlab');
-    expect(names).toContain('statusSync');
 
     res.body.data.forEach((b) => {
       expect(b).toHaveProperty('state');

@@ -6,7 +6,6 @@ import syncHistoryService from '../services/syncHistory.service';
 import commentsService from '../services/comments.service';
 import testmoService, { testmoBreaker } from '../services/testmo.service';
 import gitlabService, { gitlabBreaker } from '../services/gitlab.service';
-import { statusSyncBreaker } from '../services/status-sync.service';
 import { getStats } from '../services/apiTimer.service';
 
 // Cache pour health checks externes (évite de bombarder Testmo/GitLab sous charge)
@@ -189,7 +188,7 @@ router.get('/detailed', async (_req, res) => {
 router.get('/circuit-breakers', (_req, res) => {
   res.json({
     success: true,
-    data: [testmoBreaker.getStatus(), gitlabBreaker.getStatus(), statusSyncBreaker.getStatus()],
+    data: [testmoBreaker.getStatus(), gitlabBreaker.getStatus()],
     timestamp: new Date().toISOString(),
   });
 });

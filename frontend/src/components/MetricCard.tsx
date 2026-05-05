@@ -76,6 +76,7 @@ interface MetricCardProps {
   alert?: MetricAlert | null;
   useBusiness?: boolean;
   trend?: Trend | null;
+  progress?: { value: number; label: string } | null;
 }
 
 export default function MetricCard({
@@ -90,6 +91,7 @@ export default function MetricCard({
   alert,
   useBusiness,
   trend,
+  progress,
 }: MetricCardProps) {
   return (
     <div
@@ -145,6 +147,20 @@ export default function MetricCard({
       {description && (
         <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
           {description}
+        </div>
+      )}
+      {progress && (
+        <div className="metric-card-progress">
+          <div className="metric-card-progress-header">
+            <span style={{ fontWeight: 500 }}>{progress.label}</span>
+            <span>{progress.value}%</span>
+          </div>
+          <div className="metric-card-progress-bar">
+            <div
+              className="metric-card-progress-fill"
+              style={{ width: `${Math.min(100, Math.max(0, progress.value))}%`, backgroundColor: color }}
+            />
+          </div>
         </div>
       )}
       <AlertItem alert={alert} useBusiness={useBusiness} />

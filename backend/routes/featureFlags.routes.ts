@@ -20,8 +20,8 @@ import {
  * @query {string} [userId] - ID utilisateur pour rollout progressif sticky.
  */
 router.get('/', (req, res) => {
-  const { userId } = req.query;
-  const flags = featureFlagsService.getAll(userId || null);
+  const userId = typeof req.query.userId === 'string' ? req.query.userId : null;
+  const flags = featureFlagsService.getAll(userId);
   res.json({ success: true, data: flags, timestamp: new Date().toISOString() });
 });
 
@@ -93,7 +93,7 @@ router.put(
   validateBody(featureFlagUpdateBody),
   auditAction('feature-flag.update', { captureParams: true, captureBody: true }),
   (req, res) => {
-    const { key } = req.params;
+    const key = req.params.key as string;
     const { enabled, description, rolloutPercentage } = req.body;
     try {
       const existing = featureFlagsService.getByKey(key);
@@ -133,7 +133,7 @@ router.delete(
   validateParams(featureFlagKeyParam),
   auditAction('feature-flag.delete', { captureParams: true }),
   (req, res) => {
-    const { key } = req.params;
+    const key = req.params.key as string;
     try {
       const existing = featureFlagsService.getByKey(key);
       if (!existing) {
@@ -165,9 +165,9 @@ router.delete(
  * @query {string} [userId] - ID utilisateur pour rollout progressif sticky.
  */
 router.get('/:key', (req, res) => {
-  const { key } = req.params;
-  const { userId } = req.query;
-  const enabled = featureFlagsService.isEnabled(key, false, (userId as any) || null);
+  const key = req.params.key as string;
+  const userId = typeof req.query.userId === 'string' ? req.query.userId : null;
+  const enabled = featureFlagsService.isEnabled(key, false, userId);
   const details = featureFlagsService.getByKey(key);
   const rolloutPercentage = details ? details.rolloutPercentage : 100;
   res.json({ success: true, data: { key, enabled, rolloutPercentage }, timestamp: new Date().toISOString() });

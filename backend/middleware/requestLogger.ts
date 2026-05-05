@@ -1,6 +1,7 @@
 import logger from '../services/logger.service';
+import type { Request, Response, NextFunction } from 'express';
 
-function requestLogger(req: any, res: any, next: any) {
+function requestLogger(req: Request, res: Response, next: NextFunction) {
   logger.info(`${req.method} ${req.path}`, {
     requestId: req.requestId,
     ip: req.ip,

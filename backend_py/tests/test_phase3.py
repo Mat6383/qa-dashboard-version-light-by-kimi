@@ -52,36 +52,38 @@ async def test_feature_flags_crud(client: AsyncClient) -> None:
     admin = await _make_admin()
     headers = await _admin_headers(admin)
 
+    flag_key = f"test-flag-{uuid.uuid4().hex[:8]}"
+
     # create
     resp = await client.post("/api/feature-flags/admin", json={
-        "key": "test-flag-42",
+        "key": flag_key,
         "enabled": True,
         "description": "A test flag",
         "rollout_percentage": 50.0,
     }, headers=headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert data["flag"]["key"] == "test-flag-42"
+    assert data["data"]["key"] == flag_key
 
     # list
     resp = await client.get("/api/feature-flags/", headers=headers)
     assert resp.status_code == 200
-    assert any(f["key"] == "test-flag-42" for f in resp.json()["flags"])
+    assert flag_key in resp.json()["data"]
 
     # get single
-    resp = await client.get("/api/feature-flags/test-flag-42", headers=headers)
+    resp = await client.get(f"/api/feature-flags/{flag_key}", headers=headers)
     assert resp.status_code == 200
-    assert resp.json()["enabled"] is True
+    assert resp.json()["data"]["enabled"] is True
 
     # update
-    resp = await client.put("/api/feature-flags/admin/test-flag-42", json={
+    resp = await client.put(f"/api/feature-flags/admin/{flag_key}", json={
         "enabled": False,
     }, headers=headers)
     assert resp.status_code == 200
-    assert resp.json()["flag"]["enabled"] is False
+    assert resp.json()["data"]["enabled"] is False
 
     # delete
-    resp = await client.delete("/api/feature-flags/admin/test-flag-42", headers=headers)
+    resp = await client.delete(f"/api/feature-flags/admin/{flag_key}", headers=headers)
     assert resp.status_code == 200
 
     await _cleanup_user(admin.id)

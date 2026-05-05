@@ -7,6 +7,10 @@ type: À distance (serveurs Anthropic)
 
 # Routine B — Sync GitLab → Testmo (création cas de test)
 
+> **⚠️ Statut** : Cette routine externe est en cours de portage dans le backend Python natif (lot P31).  
+> Le script `/tmp/qa-gitlab-to-testmo.js` sera progressivement remplacé par `backend_py/app/services/case_sync.py`.  
+> Voir [`docs/plans/P31-sync-gitlab-to-testmo-cases.md`](../plans/P31-sync-gitlab-to-testmo-cases.md) pour le plan d'implémentation.
+
 > **Usage** : copier le prompt ci-dessous dans une nouvelle routine "À distance" dans l'app Claude Desktop.
 > Remplacer les 2 valeurs `[...]` par celles du fichier `backend/.env` avant de sauvegarder.
 > Créer 2 routines avec ce même prompt : une à 10h00, une à 13h30.

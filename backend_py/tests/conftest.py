@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
-from app.database import init_databases
+from app.database import async_session_main, init_databases
 from app.main import app
 
 
@@ -31,3 +31,11 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+
+
+@pytest_asyncio.fixture
+async def db_session() -> AsyncGenerator[Any, None]:
+    """Provide a transactional database session that rolls back after each test."""
+    async with async_session_main() as session:
+        yield session
+        await session.rollback()

@@ -72,3 +72,42 @@ async def require_admin_token(x_admin_token: Annotated[str | None, Header()] = N
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Missing admin token")
     if not hmac.compare_digest(x_admin_token, settings.admin_api_token):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin token")
+
+
+async def require_admin_or_token(
+    request: Request,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security_bearer)] = None,
+    x_admin_token: Annotated[str | None, Header()] = None,
+) -> User:
+    """Accept JWT admin auth OR X-Admin-Token (machine-to-machine / e2e)."""
+    # 1. Try JWT Bearer
+    token: str | None = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+
+    if token:
+        try:
+            payload = decode_jwt(token)
+            user_id = int(payload.get("sub", 0))
+            async with get_main_db() as db:
+                result = await db.execute(select(User).where(User.id == user_id))
+                user = result.scalar_one_or_none()
+                if user is not None and user.role == "admin":
+                    return user
+        except Exception:
+            pass
+
+    # 2. Fallback X-Admin-Token
+    if x_admin_token and hmac.compare_digest(x_admin_token, settings.admin_api_token):
+        return User(
+            id=0,
+            gitlab_id=0,
+            email="admin@system",
+            name="Admin",
+            role="admin",
+            avatar=None,
+        )
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentification requise")

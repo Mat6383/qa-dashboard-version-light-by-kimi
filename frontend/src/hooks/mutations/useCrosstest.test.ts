@@ -43,7 +43,7 @@ describe('useCrosstest mutations', () => {
   it('saveComment invalidates comments on success', async () => {
     mockMutateAsyncSave.mockResolvedValue({ success: true });
     const { result } = renderHook(() => useSaveCrosstestComment());
-    await result.current.mutateAsync({ iid: 1, comment: 'OK' });
+    await result.current.mutateAsync({ issue_iid: 1, comment: 'OK' });
     expect(mockInvalidateComments).toHaveBeenCalled();
   });
 

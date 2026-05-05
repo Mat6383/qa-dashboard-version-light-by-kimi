@@ -1,6 +1,7 @@
 import logger from '../services/logger.service';
+import type { Request, Response, NextFunction } from 'express';
 
-function requireAdminAuth(req: any, res: any, next: any) {
+function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
   const adminToken = process.env.ADMIN_API_TOKEN;
   if (!adminToken) {
     logger.warn('[AdminAuth] ADMIN_API_TOKEN non configuré — accès admin refusé');

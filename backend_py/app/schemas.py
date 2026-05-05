@@ -128,6 +128,23 @@ class SyncHistoryResponse(BaseModel):
     history: list[dict[str, Any]]
 
 
+class SyncCasesPreviewPayload(BaseModel):
+    project_id: int | str
+    iteration_name: str
+    label: str = "Test::TODO"
+    root_folder_id: int = 4514
+    testmo_project_id: int | None = None
+
+
+class SyncCasesExecutePayload(BaseModel):
+    project_id: int | str
+    iteration_name: str
+    label: str = "Test::TODO"
+    root_folder_id: int = 4514
+    testmo_project_id: int | None = None
+    dry_run: bool = False
+
+
 class AutoConfigResponse(BaseModel):
     config: dict[str, Any]
 
@@ -172,7 +189,15 @@ class CrossTestCommentsResponse(BaseModel):
 
 # ── Feature Flags ───────────────────────────────────────
 
+
+def _to_camel(snake_str: str) -> str:
+    components = snake_str.split("_")
+    return components[0] + "".join(x.title() for x in components[1:])
+
+
 class FeatureFlagOut(BaseModel):
+    model_config = {"from_attributes": True, "alias_generator": _to_camel, "populate_by_name": True}
+
     key: str
     enabled: bool
     description: str | None = None
@@ -180,10 +205,10 @@ class FeatureFlagOut(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
-    model_config = {"from_attributes": True}
-
 
 class FeatureFlagCreate(BaseModel):
+    model_config = {"alias_generator": _to_camel, "populate_by_name": True}
+
     key: str
     enabled: bool = False
     description: str | None = None
@@ -191,6 +216,8 @@ class FeatureFlagCreate(BaseModel):
 
 
 class FeatureFlagUpdate(BaseModel):
+    model_config = {"alias_generator": _to_camel, "populate_by_name": True}
+
     enabled: bool | None = None
     description: str | None = None
     rollout_percentage: float | None = None

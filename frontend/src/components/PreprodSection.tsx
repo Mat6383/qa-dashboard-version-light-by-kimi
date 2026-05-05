@@ -23,6 +23,13 @@ function getTrend(anomalies: AnomalyItem[], metricKey: string) {
   return anomalies?.find((a) => a.metric === metricKey) || null;
 }
 
+function getProgressColor(value: number): string {
+  if (value >= 80) return 'var(--status-success)';
+  if (value >= 50) return 'var(--status-info)';
+  if (value >= 25) return 'var(--status-warning)';
+  return 'var(--status-danger)';
+}
+
 interface PreprodSectionProps {
   metrics: DashboardMetrics;
   raw: RawMetrics;
@@ -75,6 +82,7 @@ export default function PreprodSection({
           alert={getAlertForMetric('Completion Rate')}
           useBusiness={useBusiness}
           trend={getTrend(anomalies, 'completion_rate')}
+          progress={{ value: d1.completionRate, label: `${raw.completed} / ${raw.total}` }}
         />
         <MetricCard
           title={useBusiness ? 'Taux de Succès' : 'Pass Rate'}
@@ -82,7 +90,7 @@ export default function PreprodSection({
           value={d1.passRate}
           color={getMetricColor('passRate', d1.passRate)}
           arrow={d1.passRate >= 95 ? '▲' : '▼'}
-          badge={raw.passed}
+          badge={`${raw.passed} / ${raw.total}`}
           label={useBusiness ? 'tests réussis (Cible: ≥ 95%)' : 'tests passed (Target: ≥ 95%)'}
           description={
             useBusiness
@@ -92,6 +100,7 @@ export default function PreprodSection({
           alert={getAlertForMetric('Pass Rate') || getAlertForMetric('Blocked Rate')}
           useBusiness={useBusiness}
           trend={getTrend(anomalies, 'pass_rate')}
+          progress={{ value: d1.passRate, label: `${raw.passed} / ${raw.total}` }}
         />
         <MetricCard
           title={useBusiness ? "Taux d'Échec" : 'Failure Rate'}
@@ -99,10 +108,11 @@ export default function PreprodSection({
           value={d1.failureRate}
           color={getMetricColor('failureRate', d1.failureRate)}
           arrow={d1.failureRate <= 5 ? '▼' : '▲'}
-          badge={raw.failed}
+          badge={`${raw.failed} / ${raw.total}`}
           label={useBusiness ? 'tests échoués (Cible: ≤ 5%)' : 'tests failed (Target: ≤ 5%)'}
           alert={getAlertForMetric('Failure Rate')}
           useBusiness={useBusiness}
+          progress={{ value: d1.failureRate, label: `${raw.failed} / ${raw.total}` }}
         />
         <MetricCard
           title={useBusiness ? 'Efficience des tests' : 'Test Efficiency'}
@@ -110,11 +120,12 @@ export default function PreprodSection({
           value={d1.testEfficiency}
           color={getMetricColor('testEfficiency', d1.testEfficiency)}
           arrow={d1.testEfficiency >= 95 ? '▲' : '▼'}
-          badge={useBusiness ? 'Objectif' : 'Target'}
+          badge={`${raw.passed} / ${raw.passed + raw.failed}`}
           label={useBusiness ? 'Approcher les 100% (≥ 95%)' : 'Approach 100% (≥ 95%)'}
           description={useBusiness ? '(Réussis / (Réussis + Échoués) purs)' : '(Passed / (Passed + Failed))'}
           alert={getAlertForMetric('Test Efficiency')}
           useBusiness={useBusiness}
+          progress={{ value: d1.testEfficiency, label: `${raw.passed} / ${raw.passed + raw.failed}` }}
         />
       </div>
 
@@ -233,7 +244,31 @@ export default function PreprodSection({
                 </div>
               )}
 
-              <div className="pp-campaign-metric" style={{ marginTop: run.isExploratory ? '0' : '0.4rem' }}>
+              {(() => {
+                const progressValue = run.total > 0 ? Math.round(((run.passed + run.failed) / run.total) * 100) : 0;
+                const progressColor = getProgressColor(progressValue);
+                return (
+                  <>
+                    <div className="pp-campaign-metric" style={{ marginTop: run.isExploratory ? '0' : '0.4rem' }}>
+                      <span className="pp-campaign-metric-label">{useBusiness ? 'Progression' : 'Progress'}</span>
+                      <span className="pp-campaign-metric-value" style={{ color: progressColor }}>
+                        {run.passed + run.failed} / {run.total}
+                      </span>
+                    </div>
+                    <div className="pp-progress-bar">
+                      <div
+                        className="pp-progress-fill"
+                        style={{
+                          width: `${progressValue}%`,
+                          backgroundColor: progressColor,
+                        }}
+                      ></div>
+                    </div>
+                  </>
+                );
+              })()}
+
+              <div className="pp-campaign-metric" style={{ marginTop: '0.4rem' }}>
                 <span className="pp-campaign-metric-label">{useBusiness ? 'Taux de succès' : 'Pass Rate'}</span>
                 <span className="pp-campaign-metric-value" style={{ color: getPassRateColor(run.passRate) }}>{run.passRate}%</span>
               </div>

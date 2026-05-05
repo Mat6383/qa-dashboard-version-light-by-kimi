@@ -7,8 +7,9 @@
  */
 
 import { createTRPCReact, httpBatchLink } from '@trpc/react-query';
-// TODO: générer un AppRouter côté frontend depuis le bridge Python
-// Pour l'instant on conserve le type Node.js (même shape de procédures)
+// Le type AppRouter est importé directement depuis le backend via le path alias
+// `~server/*` défini dans tsconfig.json. Cette approche monorepo garantit la
+// cohérence des types tRPC entre le frontend et le backend Node.js.
 import type { AppRouter } from '~server/trpc/router';
 
 export function getBaseUrl() {

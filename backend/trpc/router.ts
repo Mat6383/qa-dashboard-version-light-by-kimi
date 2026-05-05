@@ -16,11 +16,8 @@ import { auditRouter } from './routers/audit';
 import { cacheRouter } from './routers/cache';
 import { notificationsRouter } from './routers/notifications';
 import { reportsRouter } from './routers/reports';
-import { syncRouter } from './routers/sync';
-import { crosstestRouter } from './routers/crosstest';
 import { analyticsRouter } from './routers/analytics';
 import { retentionRouter } from './routers/retention';
-import { integrationsRouter } from './routers/integrations';
 
 export const appRouter = router({
   dashboard: dashboardRouter,
@@ -33,11 +30,8 @@ export const appRouter = router({
   cache: cacheRouter,
   notifications: notificationsRouter,
   reports: reportsRouter,
-  sync: syncRouter,
-  crosstest: crosstestRouter,
   analytics: analyticsRouter,
   retention: retentionRouter,
-  integrations: integrationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -146,40 +146,6 @@ describe('API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/sync/projects', () => {
-    it('returns configured sync projects', async () => {
-      const res = await request(app).get('/api/sync/projects');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-    });
-  });
-
-  describe('GET /api/crosstest/comments', () => {
-    it('returns comments (empty or array)', async () => {
-      const res = await request(app).get('/api/crosstest/comments');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-    });
-  });
-
-  describe('POST /api/crosstest/comments', () => {
-    it('creates a comment', async () => {
-      const res = await request(app)
-        .post('/api/crosstest/comments')
-        .send({ issue_iid: 1, comment: 'Test comment', milestone_context: 'R14' });
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty('issue_iid', 1);
-    });
-
-    it('returns 400 when missing required fields', async () => {
-      const res = await request(app).post('/api/crosstest/comments').send({ comment: 'Missing iid' });
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-    });
-  });
-
   describe('POST /api/reports/generate', () => {
     it('requires projectId', async () => {
       const res = await request(app)

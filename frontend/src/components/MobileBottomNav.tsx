@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, BarChart3, Globe, GitCompare, Settings } from 'lucide-react';
+import { Globe, Wrench, Settings } from 'lucide-react';
 
 interface NavItem {
   path: string;
@@ -11,11 +11,8 @@ interface NavItem {
 
 function getNavItems(isAdmin: boolean, t: (key: string) => string): NavItem[] {
   const items: NavItem[] = [
-    { path: '/', labelKey: 'nav.home', icon: <LayoutDashboard size={20} /> },
     { path: '/global-view', labelKey: 'nav.global', icon: <Globe size={20} /> },
-    { path: '/quality-rates', labelKey: 'nav.quality', icon: <BarChart3 size={20} /> },
-    { path: '/compare', labelKey: 'nav.compare', icon: <GitCompare size={20} /> },
-    { path: '/configuration', labelKey: 'nav.config', icon: <Settings size={20} /> },
+    { path: '/tools', labelKey: 'nav.tools', icon: <Wrench size={20} /> },
   ];
   if (isAdmin) {
     items.push({ path: '/admin/feature-flags', labelKey: 'nav.flags', icon: <Settings size={20} /> });

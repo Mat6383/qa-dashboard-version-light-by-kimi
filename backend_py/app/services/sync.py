@@ -7,8 +7,12 @@ from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from typing import Any
 
+from sqlalchemy import select
+
 from app.config import settings
-from app.models.sync_history import SyncRun
+from app.projects_config import SYNC_PROJECTS, resolve_gitlab_project_id
+from app.database import get_main_db
+from app.models.sync_history import AutoSyncConfig, SyncRun
 from app.services.gitlab import gitlab_service
 from app.services.sync_mapper import (
     build_run_name,
@@ -27,32 +31,55 @@ TESTMO_BATCH_SIZE = 50
 
 class SyncService:
     async def list_sync_projects(self) -> list[dict[str, Any]]:
-        """Return configured sync projects (GitLab)."""
-        projects = []
-        if settings.gitlab_project_id:
-            try:
-                proj = await gitlab_service.get_project(settings.gitlab_project_id)
-                projects.append({
-                    "id": proj.get("id"),
-                    "name": proj.get("name"),
-                    "path_with_namespace": proj.get("path_with_namespace"),
-                })
-            except Exception as exc:
-                logger.warning("Failed to fetch sync project", extra={"error": str(exc)})
-        return projects
-
-    async def list_iterations(self, project_id: str | int, search: str | None = None) -> list[dict[str, Any]]:
-        iterations = await gitlab_service.get_project_iterations(project_id, search)
+        """Return configured sync projects for Dashboard 6 frontend."""
         return [
             {
+                "id": p["id"],
+                "label": p["label"],
+                "configured": p["configured"],
+            }
+            for p in SYNC_PROJECTS
+        ]
+
+    async def list_iterations(self, project_id: str | int, search: str | None = None) -> list[dict[str, Any]]:
+        gl_project_id = resolve_gitlab_project_id(project_id)
+        if not gl_project_id:
+            return []
+        # Récupère toutes les itérations sans search (les cadences auto ont title=null)
+        iterations = await gitlab_service.get_project_iterations(gl_project_id, search=None)
+
+        def _fmt_date(d: str | None) -> str:
+            if not d:
+                return "?"
+            try:
+                dt = datetime.fromisoformat(d.replace("Z", "+00:00"))
+                return dt.strftime("%d/%m")
+            except ValueError:
+                return "?"
+
+        result: list[dict[str, Any]] = []
+        for it in iterations:
+            title = it.get("title")
+            if not title:
+                iid = it.get("iid") or it.get("sequence") or it.get("id")
+                title = f"Itération #{iid} ({_fmt_date(it.get('start_date'))} → {_fmt_date(it.get('due_date'))})"
+            result.append({
                 "id": it.get("id"),
-                "title": it.get("title"),
+                "title": title,
                 "start_date": it.get("start_date"),
                 "due_date": it.get("due_date"),
                 "state": it.get("state"),
-            }
-            for it in iterations
-        ]
+            })
+
+        # Trier par iid décroissant (plus récente en premier)
+        result.sort(key=lambda x: x.get("id") or 0, reverse=True)
+
+        # Filtrer localement par search si fourni
+        if search:
+            q = search.lower()
+            result = [it for it in result if q in (it.get("title") or "").lower()]
+
+        return result
 
     async def preview_sync(
         self,
@@ -66,12 +93,16 @@ class SyncService:
         """Dry-run sync: show what would be synchronized."""
         tmo_project = testmo_project_id or settings.testmo_project_id
 
-        iteration = await gitlab_service.find_iteration(project_id, iteration_name)
+        gl_project_id = resolve_gitlab_project_id(project_id)
+        if not gl_project_id:
+            return {"error": f"Project '{project_id}' not configured"}
+
+        iteration = await gitlab_service.find_iteration_for_project(gl_project_id, iteration_name)
         if not iteration:
             return {"error": f"Iteration '{iteration_name}' not found"}
 
         issues = await gitlab_service.get_issues_by_label_and_iteration(
-            project_id, "QA", iteration["id"]
+            gl_project_id, "QA", iteration["id"]
         )
 
         # Determine target run
@@ -164,7 +195,12 @@ class SyncService:
         yield {"level": "info", "message": f"Starting sync for iteration '{iteration_name}'"}
         await asyncio.sleep(0.2)
 
-        iteration = await gitlab_service.find_iteration(project_id, iteration_name)
+        gl_project_id = resolve_gitlab_project_id(project_id)
+        if not gl_project_id:
+            yield {"level": "error", "message": f"Project '{project_id}' not configured"}
+            return
+
+        iteration = await gitlab_service.find_iteration_for_project(gl_project_id, iteration_name)
         if not iteration:
             yield {"level": "error", "message": f"Iteration '{iteration_name}' not found"}
             return
@@ -172,7 +208,7 @@ class SyncService:
         yield {"level": "info", "message": f"Found iteration: {iteration['title']}"}
 
         issues = await gitlab_service.get_issues_by_label_and_iteration(
-            project_id, "QA", iteration["id"]
+            gl_project_id, "QA", iteration["id"]
         )
         yield {"level": "info", "message": f"Found {len(issues)} issues with label QA"}
 
@@ -318,34 +354,13 @@ class SyncService:
         run_id: int | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Sync Testmo run status back to GitLab issues."""
-        yield {"level": "info", "message": f"Starting status sync for iteration '{iteration_name}'"}
-        await asyncio.sleep(0.2)
-
-        iteration = await gitlab_service.find_iteration(project_id, iteration_name)
-        if not iteration:
-            yield {"level": "error", "message": f"Iteration '{iteration_name}' not found"}
-            return
-
-        issues = await gitlab_service.get_issues_by_label_and_iteration(
-            project_id, "QA", iteration["id"]
-        )
-        yield {"level": "info", "message": f"Found {len(issues)} issues"}
-
-        if run_id:
-            run = await testmo_service.get_run_details(run_id)
-            run_name = run.get("name", "Unknown")
-            for issue in issues:
-                iid = issue.get("iid")
-                try:
-                    body = f"Testmo run **{run_name}** status updated."
-                    await gitlab_service.add_issue_comment(project_id, iid, body)
-                    yield {"level": "debug", "message": f"Updated issue #{iid}"}
-                except Exception as exc:
-                    yield {"level": "error", "message": f"Failed issue #{iid}: {exc}"}
-                await asyncio.sleep(0.05)
-
-        yield {"level": "info", "message": "Status sync complete"}
-        yield {"level": "summary", "updated": len(issues)}
+        from app.services.status_sync import status_sync_service
+        async for event in status_sync_service.sync_run_status_to_gitlab(
+            run_id=run_id or 0,
+            iteration_name=iteration_name,
+            gitlab_project_id=project_id,
+        ):
+            yield event
 
     async def get_history(self, db_session: Any) -> list[dict[str, Any]]:
         from sqlalchemy import select
@@ -392,27 +407,59 @@ class SyncService:
         db_session.add(run)
         await db_session.commit()
 
-    def get_auto_config(self) -> dict[str, Any]:
+    async def get_auto_config(self) -> dict[str, Any]:
+        async with get_main_db() as db:
+            result = await db.execute(select(AutoSyncConfig))
+            config = result.scalar_one_or_none()
+            if config:
+                return {
+                    "enabled": config.enabled,
+                    "mode": config.mode,
+                    "timezone": config.timezone,
+                    "run_id": config.run_id,
+                    "iteration_name": config.iteration_name,
+                    "gitlab_project_id": config.gitlab_project_id,
+                    "testmo_project_id": config.testmo_project_id,
+                    "version": config.version,
+                }
+        # Fallback to settings if no DB row
         return {
             "enabled": settings.sync_auto_enabled,
+            "mode": "automation",
             "timezone": settings.sync_timezone,
             "run_id": settings.sync_auto_run_id,
             "iteration_name": settings.sync_auto_iteration_name,
             "gitlab_project_id": settings.sync_auto_gitlab_project_id,
+            "testmo_project_id": settings.testmo_project_id,
             "version": settings.sync_auto_version,
         }
 
     async def update_auto_config(self, payload: dict[str, Any]) -> dict[str, Any]:
-        # In-memory update only (env vars would need restart)
-        # We return the merged config; a real implementation might write to DB.
-        return {
-            "enabled": payload.get("enabled", settings.sync_auto_enabled),
-            "timezone": payload.get("timezone", settings.sync_timezone),
-            "run_id": payload.get("run_id", settings.sync_auto_run_id),
-            "iteration_name": payload.get("iteration_name", settings.sync_auto_iteration_name),
-            "gitlab_project_id": payload.get("gitlab_project_id", settings.sync_auto_gitlab_project_id),
-            "version": payload.get("version", settings.sync_auto_version),
-        }
+        async with get_main_db() as db:
+            result = await db.execute(select(AutoSyncConfig))
+            config = result.scalar_one_or_none()
+            if not config:
+                config = AutoSyncConfig()
+                db.add(config)
+            if "enabled" in payload:
+                config.enabled = bool(payload["enabled"])
+            if "mode" in payload:
+                config.mode = str(payload["mode"])
+            if "timezone" in payload:
+                config.timezone = str(payload["timezone"])
+            if "run_id" in payload:
+                config.run_id = int(payload["run_id"]) if payload["run_id"] is not None else None
+            if "iteration_name" in payload:
+                config.iteration_name = str(payload["iteration_name"]) if payload["iteration_name"] else None
+            if "gitlab_project_id" in payload:
+                config.gitlab_project_id = str(payload["gitlab_project_id"]) if payload["gitlab_project_id"] else None
+            if "testmo_project_id" in payload:
+                config.testmo_project_id = int(payload["testmo_project_id"]) if payload["testmo_project_id"] is not None else None
+            if "version" in payload:
+                config.version = str(payload["version"]) if payload["version"] else None
+            await db.commit()
+            await db.refresh(config)
+        return await self.get_auto_config()
 
 
 sync_service = SyncService()

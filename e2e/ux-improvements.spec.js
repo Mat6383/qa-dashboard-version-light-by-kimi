@@ -130,12 +130,32 @@ test.beforeEach(async ({ page }) => {
     })
   );
 
-  // Mock tRPC GET batch endpoint
+  // Mock tRPC batch endpoint (GET + POST)
   await page.route('**/trpc/**', async (route) => {
     const request = route.request();
     if (request.method() === 'GET') {
       const url = new URL(request.url());
       const responses = buildTrpcBatchResponse(url);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(responses),
+      });
+    }
+    if (request.method() === 'POST') {
+      const body = await request.postDataJSON();
+      const calls = Array.isArray(body) ? body : [body];
+      const responses = calls.map((call) => {
+        const path = call?.params?.path || call?.path || '';
+        const id = call?.id ?? 0;
+        let resp = makeGenericResponse();
+        if (path === 'projects.list') resp = makeProjectsListResponse();
+        if (path === 'dashboard.metrics') resp = makeDashboardMetricsResponse();
+        if (path === 'dashboard.qualityRates') resp = makeDashboardQualityRatesResponse();
+        if (path === 'anomalies.list') resp = makeAnomaliesListResponse();
+        if (path === 'anomalies.circuitBreakers') resp = makeCircuitBreakersResponse();
+        return { ...resp, id };
+      });
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

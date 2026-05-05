@@ -7,8 +7,8 @@
 ## Version actuelle
 
 **Branch :** `main`  
-**Commits récents :** P0→P28 livrés (avril 2026)  
-**Tests :** 694/694 backend ✅ | 275/275 frontend ✅ | 38/38 Python ✅ | Build ✅ | TypeCheck backend & frontend ✅ | Lint 0 ✅
+**Commits récents :** P0→P32 livrés (mai 2026)  
+**Tests :** 578/578 backend Node.js ✅ | 288/288 frontend ✅ | 206/206 Python ✅ | Build ✅ | TypeCheck backend & frontend ✅ | Lint 0 ✅
 
 ---
 
@@ -124,19 +124,28 @@
 
 ## 📊 Indicateurs de santé du projet
 
-| Métrique             | Actuel       | Cible |
-| -------------------- | ------------ | ----- |
-| Tests backend        | 694 / 694 ✅ | 700+  |
-| Tests frontend       | 275 / 275 ✅ | 280+  |
-| Tests Python         | 38 / 38 ✅   | 40+   |
-| Couverture backend   | 80 % ✅      | 70 %  |
-| Couverture frontend  | 87 % ✅      | 50 %  |
-| Vulnérabilités npm   | 0 ✅         | 0     |
-| Build frontend       | ✅ (< 3s)    | < 3s  |
-| Lignes `App.jsx`     | ~142 ✅      | < 150 |
-| Lignes `server.js`   | ~99 ✅       | < 100 |
-| Fichiers TS backend  | 66 ✅        | 20+   |
-| Fichiers TS frontend | 8 ✅         | 30+   |
+| Métrique              | Actuel        | Cible |
+| --------------------- | ------------- | ----- |
+| Métrique              | Actuel        | Cible |
+| --------------------  | ------------  | ----- |
+| Tests backend Node.js | 578 / 578 ✅  | 550+  |
+| Tests frontend        | 288 / 288 ✅  | 280+  |
+| Tests Python          | 206 / 206 ✅  | 200+  |
+| Couverture backend    | 80 % ✅       | 70 %  |
+| Couverture frontend   | 87 % ✅       | 50 %  |
+| Vulnérabilités npm    | 2 modérées ⚠️ | 0     |
+| Build frontend        | ✅ (< 3s)     | < 3s  |
+| Lignes `App.jsx`      | ~142 ✅       | < 150 |
+| Lignes `server.js`    | ~99 ✅        | < 100 |
+| Fichiers TS backend   | 66 ✅         | 20+   |
+| Fichiers TS frontend  | 8 ✅          | 30+   |
+| Erreurs TS frontend   | 0 ✅          | 0     |
+| Erreurs TS backend    | 0 ✅          | 0     |
+| Erreurs mypy Python   | 1 ⚠️          | 0     |
+| `any` backend         | ~600 ⚠️       | < 50  |
+| `any` frontend        | 47 ✅         | < 20  |
+| God files (>500 LOC)  | 3 ⚠️          | 0     |
+| Circular deps         | 0 ✅          | 0     |
 
 ---
 
@@ -393,20 +402,149 @@
 
 ---
 
-## 🚧 Sessions futures (P31+)
+## 🚀 P32 — Tech Debt Audit (Session actuelle)
 
-### 🟡 P31 — Sync GitLab → Testmo Cases (à planifier)
+> Basé sur l'audit complet disponible dans [`TECH_DEBT_AUDIT.md`](./TECH_DEBT_AUDIT.md).
+> **Date :** 2026-05-04 | **Scope :** Full-stack (Node, Python, React)
 
-> **Pivot après analyse P30.** L'API Testmo ne permet pas de créer des runs manuels (lecture seule).  
-> Seuls les **automation runs** sont créables via API, ce qui ne correspond pas au workflow de tests manuels de l'utilisateur.  
-> La nouvelle cible est d'intégrer la **Routine B** (script Node.js externe) dans le backend Python pour synchroniser les **cases** (référentiel de tests) depuis GitLab.
+### 🔴 P32#1 — Critical
 
-- [ ] Porter la logique Routine B dans `backend_py/app/services/case_sync.py`
-- [ ] Extraire les steps depuis les notes GitLab (`[TEST]`, `[PRÉREQUIS]`, `[IMPACT]`…)
-- [ ] API Testmo : `POST /projects/{id}/cases` (création) + `PUT /projects/{id}/cases/{id}` (mise à jour)
-- [ ] Matching case existant par nom exact (`case.name === issue.title`)
-- [ ] UI Dashboard6 : pivot du wording "Run" → "Cases"
-- [ ] Tests : mapping steps, création/mise à jour cases mockées
+- [x] **F001** — Split `testmo.service.ts` (1 537 LOC → 421 LOC facade) en `testmo/{helpers,cache,metrics,repository}.ts`
+- [x] **F005** — Corriger le type guard `ApiResponse` dans `Dashboard6.tsx:316` et `:362` (utiliser `isApiSuccess()`)
+
+### 🟠 P32#2 — High
+
+- [x] **F002** — Split `TestClosureModal.tsx` (922 LOC) : extraire logique PDF dans hook + sous-composants
+- [x] **F003** — Split `gitlab.service.ts` (920 LOC) en `GitlabRestClient`, `GitlabGraphQLClient`, `GitlabParser`
+- [x] **F004** — Typer les middlewares Express (`req: any` → `Request`, `res: any` → `Response`)
+- [x] **F006** — Réécrire le README.md (structure, lancement, déploiement, évolutions livrées)
+
+### 🟡 P32#3 — Medium
+
+- [x] **F007** — Forcer `uuid@^9` via `overrides` dans `backend/package.json` (vuln exceljs)
+- [x] **F008** — Ajouter types Jest dans `frontend/tsconfig.json` (96 → 0 erreurs TS)
+- [x] **F009** — Générer types API frontend depuis OpenAPI (`openapi-typescript` → `src/types/api.generated.ts`) ✅
+- [x] **F010** — Fix mypy `app/models/base.py` (`explicit_package_bases = true`)
+- [x] **F011/F012** — Remplacer `any` dans `Dashboard6.tsx`, `RetentionAdmin.tsx` par des interfaces
+- [x] **F013** — Corriger et activer les tests frontend en CI (`vitest run`)
+- [x] **F014** — Implémenter un `BrowserPool` pour Puppeteer (fuite mémoire potentielle)
+- [x] **F022** — Extraire `docxGenerator.ts` (652 LOC) vers un service backend Python ou ajouter des tests
+- [x] **F023** — Extraire un `ResilientHttpClient` commun (retry/circuit breaker dupliqués)
+- [x] **F027** — Migrer `routes.coverage.test.js` (742 LOC) vers tests d'intégration avec SQLite in-memory
+- [x] **F028** — Split `backup.service.ts` (429 LOC) en `BackupLocal`, `BackupS3`, `BackupRotation`, `BackupRestore`
+
+### 🟢 P32#4 — Low
+
+- [x] **F016** — Normaliser la gestion d'erreur frontend avec un hook `useApiError` ✅
+- [x] **F017** — Upgrader `lucide-react@0.263.1` → `^1.14.0` ✅
+- [x] **F018** — Migrer `reports/generate_R06_pptx.js` → `backend/scripts/` ✅
+- [x] **F019** — Ajouter validation Zod sur `runs.routes.ts:34` (`req.query.status` via `req.validatedQuery`) ✅
+- [x] **F020** — Split `calculations.test.ts` → 5 fichiers thématiques (`metrics`, `steps`, `enrichment`, `sync`, `version`) ✅
+- [x] **F021** — Documenter l'import `AppRouter` via path alias `~server` (monorepo) ✅
+- [x] **F024** — Fusionner `featureFlags.service.d.ts` dans `featureFlags.service.ts` + typer les `any` ✅
+- [x] **F025** — Ajouter graceful shutdown WebSocket (`wss.close()` + `clearInterval(heartbeat)`) ✅
+- [x] **F026** — Upgrader `marked@^4.3.0` → `^14.0.0` (compat CJS), remplacer `yamljs` par `js-yaml` ✅
+
+---
+
+## 🚀 P34 — Cutover Backend Node.js → Python (Session livrée)
+
+> **Date :** 2026-05-05 | **Scope :** Backend (Node cleanup + Python activation)
+> **Goal :** Rendre le backend Python (`backend_py/`) le seul backend actif pour toutes les routes `/api/sync/*`, `/api/testmo-browser/*`, `/api/crosstest/*`. Supprimer le code mort Node.js correspondant.
+
+### Phase 1 — Port config & résolution ID (Dashboard6)
+
+- [x] Porter `PROJECTS` config Node.js → `backend_py/app/projects_config.py` (5 projets)
+- [x] `resolve_gitlab_project_id()` : mapping `"workshop-web"` → `141` + fallback numérique
+- [x] Accepter `project_id: int | str` dans tous les schemas `SyncCasesPreviewPayload`, `SyncExecutePayload`, `SyncStatusPayload`
+
+### Phase 2 — Fix routes Python
+
+- [x] `GET /api/sync/projects` : retourne `SYNC_PROJECTS` statique au lieu de requête GitLab vide
+- [x] `GET /api/sync/:project_id/iterations` : utilise `resolve_gitlab_project_id()` pour accepter les IDs logiques
+- [x] `POST /api/sync/cases/preview` : résolution ID + mapping réponse frontend-compatible
+- [x] `POST /api/sync/cases/execute` : résolution ID + SSE stream
+- [x] `POST /api/sync/status-to-gitlab` : résolution ID avant appel service
+
+### Phase 3 — Suppression code mort Node.js
+
+- [x] Routes supprimées : `sync.routes.ts`, `testmoBrowser.routes.ts`, `crosstest.routes.ts`
+- [x] Services supprimés : `sync.service.ts`, `status-sync.service.ts`, `testmoBrowser.service.ts`, `auto-sync-config.service.ts`
+- [x] Jobs/scripts supprimés : `autoSyncJob.ts`, `run-sync.js`, `test-testmo-api.js`
+- [x] tRPC routers supprimés : `sync.ts`, `crosstest.ts`, `integrations.ts`
+- [x] Tests supprimés/adaptés : 11 fichiers de tests mis à jour
+- [x] Fichiers centraux nettoyés : `server.ts`, `trpc/router.ts`, `health.routes.ts`, `trpc/routers/anomalies.ts`
+
+### Phase 4 — Documentation & Validation
+
+- [x] OpenAPI régénérée depuis FastAPI (`backend/docs/openapi.yaml` — 2730 lignes)
+- [x] Tests Python : 206/206 ✅
+- [x] Tests Node.js restants : 578/578 ✅
+- [x] Compilation TypeScript Node.js : 0 erreur ✅
+- [x] Endpoints testés : `/sync/projects`, `/sync/cases/preview`, `/sync/cases/history`, `/sync/cases/execute`
+
+---
+
+## 🚧 Sessions futures (P35+)
+
+### 🔴 Haute valeur métier
+
+#### P33#1 — Tests E2E Playwright sur le flow Cases
+
+- [ ] Parcours complet : sélection projet → itération → preview → sync → vérification historique
+- [ ] Mock GitLab + Testmo ou environnement de staging
+
+#### P33#2 — Dashboard personnalisable par utilisateur
+
+- [ ] Widgets déplaçables (drag-and-drop)
+- [ ] Filtres sauvegardés par profil
+- [ ] Vues prédéfinies : "QA Lead", "Developer", "Manager"
+
+#### P33#3 — Alertes intelligentes (ML basique) ✅
+
+- [x] Détection de régression automatique entre 2 itérations
+- [x] Prédiction de date de fin basée sur vélocité des passes
+- [x] Seuil adaptatif (pas de valeur hardcodée 85 %)
+
+### 🟠 Tech & DX
+
+#### P33#4 — Types tRPC auto-générés (F021)
+
+- [ ] Générer `AppRouter` frontend depuis le bridge Python (`app/routers/trpc.py`)
+- [ ] Supprimer le TODO dans `frontend/src/trpc/client.ts`
+
+#### P33#5 — Migration SQLite → PostgreSQL
+
+- [ ] Adapter `database.py` pour supporter `postgresql+asyncpg`
+- [ ] Migrer les jobs lourds (analytics, retention) vers des requêtes SQL analytiques
+- [ ] Garder SQLite pour les tests et le dev local
+
+#### P33#6 — Cache distribué (Redis)
+
+- [ ] Remplacer `TTLCache` en mémoire par Redis
+- [ ] Permettre le scaling horizontal du backend Python
+
+#### P33#7 — Storybook + tests visuels
+
+- [ ] Catalogue de composants isolés
+- [ ] Regression visuelle automatique (Chromatic ou Playwright screenshots)
+
+### 🟡 Polish & Ops
+
+#### P33#8 — Mise à jour documentation
+
+- [x] `docs/ARCHITECTURE_PYTHON.md` : refléter l'architecture cases sync ✅ (mis à jour 2026-05-05)
+- [x] `docs/DEPLOYMENT.md` : nouvelles tables et migrations Alembic ✅ (mis à jour 2026-05-05)
+
+#### P33#9 — RBAC granulaire
+
+- [ ] Rôles `admin` / `qa_lead` / `viewer` avec permissions différenciées
+- [ ] Middleware d'autorisation par ressource
+
+#### P33#10 — Chiffrement des tokens d'intégration
+
+- [ ] Chiffrer `integrations.config_json` en DB (au lieu de clair)
+- [ ] Rotation automatique des clés de chiffrement
 
 ---
 
@@ -436,9 +574,10 @@ Source : [Testmo Blog — Announcing Runs Results API](https://www.testmo.com/bl
 
 ### Todo pour demain
 
-- [ ] Décider si on garde ou supprime le code P30 (automation runs)
-- [ ] Coder P31 : sync des cases Testmo depuis GitLab
-- [ ] Tester l'intégration end-to-end avec l'instance Testmo de production
+- [x] Décider si on garde ou supprime le code P30 (automation runs) → **Gardé en mode deprecated, masqué UI**
+- [x] Coder P31 : sync des cases Testmo depuis GitLab → [`docs/plans/P31-sync-gitlab-to-testmo-cases.md`](./docs/plans/P31-sync-gitlab-to-testmo-cases.md)
+- [x] Documenter le runbook E2E réel → [`docs/routines/routine-E2E-cases-real.md`](./docs/routines/routine-E2E-cases-real.md)
+- [x] Exécuter le test E2E réel avec l'instance Testmo de production (itération réelle GitLab → Testmo Cases) → **Validé 2026-05-05** sur `neo-pilot/R14 - run 2`. 2 bugs corrigés (`custom_description`, sanitize tags). Voir [`docs/routines/routine-E2E-cases-real.md`](./docs/routines/routine-E2E-cases-real.md)
 
 ---
 
@@ -461,6 +600,9 @@ Source : [Testmo Blog — Announcing Runs Results API](https://www.testmo.com/bl
 - [x] **P25** — PWA / Mobile : Service worker, offline mode, manifest, responsive des dashboards complexes ✅
 - [x] **P28** — Sync GitLab avancée & Corrections : Filtres sync, fix route `/compare`, fix `/projects`, untrack fichiers générés, label custom insensible à la casse ✅
 - [x] **P29** — Audit UI/UX & Design System : Accessibilité critique, design tokens, responsive, motion, navigation, charts accessibles, i18n complète des composants manquants ✅
+- [x] **P30** — Sync GitLab → Testmo Automation Runs : Extension TestmoService écriture, mapping statuts, sync execute, persistance `testmo_run_id`, preview UI, auto-sync, tests 64/64 ✅
+- [x] **P31** — Sync GitLab → Testmo Cases (Routine B) : `case_sync.py`, repository cases CRUD, extraction steps, folder hierarchy, routes REST `/sync/cases/*`, tRPC bridge, `SyncCaseRun` + `auto_sync_config.mode`, Dashboard6 pivot Run→Cases, tests 40+ ✅
+- [x] **P32** — Tech Debt Audit : Split testmo.service.ts, TestClosureModal, gitlab.service.ts, typer middlewares, README, types API auto-générés, marked@14, js-yaml, useApiError, lucide-react@1.14.0, split calculations.test.ts, graceful shutdown WS, validation Zod runs.routes, etc. ✅
 
 ## 📝 Notes
 

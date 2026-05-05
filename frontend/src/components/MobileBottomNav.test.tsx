@@ -24,8 +24,8 @@ describe('MobileBottomNav', () => {
       </MemoryRouter>
     );
     expect(screen.getByLabelText('Navigation principale')).toBeInTheDocument();
-    expect(screen.getByText('Accueil')).toBeInTheDocument();
     expect(screen.getByText('Global')).toBeInTheDocument();
+    expect(screen.getByText('Outils')).toBeInTheDocument();
   });
 
   it('navigates on click', () => {
@@ -45,5 +45,14 @@ describe('MobileBottomNav', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('Flags')).toBeInTheDocument();
+  });
+
+  it('does not show annual trends nav item', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <MobileBottomNav isAdmin={false} />
+      </MemoryRouter>
+    );
+    expect(screen.queryByText('Trends')).not.toBeInTheDocument();
   });
 });

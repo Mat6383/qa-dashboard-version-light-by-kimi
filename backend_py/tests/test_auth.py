@@ -19,28 +19,32 @@ async def test_me_without_token(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_me_with_valid_token(client: AsyncClient) -> None:
-    async with get_main_db() as db:
-        user = User(
-            gitlab_id=999001,
-            email="auth_test@example.com",
-            name="Auth Test",
-            role="viewer",
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+    import random
+    gitlab_id = 990000 + random.randint(0, 5000)
+    user = None
+    try:
+        async with get_main_db() as db:
+            user = User(
+                gitlab_id=gitlab_id,
+                email=f"auth_test_{gitlab_id}@example.com",
+                name="Auth Test",
+                role="viewer",
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
 
-    token = create_access_token(str(user.id), user.email, user.role)
-    response = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "auth_test@example.com"
-    assert data["role"] == "viewer"
-
-    # cleanup
-    async with get_main_db() as db:
-        await db.delete(user)
-        await db.commit()
+        token = create_access_token(str(user.id), user.email, user.role)
+        response = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == f"auth_test_{gitlab_id}@example.com"
+        assert data["role"] == "viewer"
+    finally:
+        if user:
+            async with get_main_db() as db:
+                await db.delete(user)
+                await db.commit()
 
 
 @pytest.mark.asyncio

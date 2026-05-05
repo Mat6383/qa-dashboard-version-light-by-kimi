@@ -28,9 +28,14 @@ import {
   Monitor,
 } from 'lucide-react';
 import apiService from '../services/api.service';
+import { isApiSuccess } from '../types/api.types';
 import '../styles/Dashboard6.css';
 import { LogIcon, logLineClass, LogLineText } from './SyncLogParts';
 import SyncHistoryPanel from './SyncHistoryPanel';
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 // ============================================================
 // Composant principal Dashboard6
@@ -103,9 +108,9 @@ export default function Dashboard6({ isDark }) {
       // Pré-sélectionner le premier projet configuré
       const firstConfigured = list.find((p) => p.configured);
       if (firstConfigured) setSelectedProject(firstConfigured.id);
-    } catch (err) {
+    } catch (err: unknown) {
       if (!mountedRef.current) return;
-      setError('Impossible de charger les projets: ' + err.message);
+      setError('Impossible de charger les projets: ' + getErrorMessage(err));
     }
   };
 
@@ -133,9 +138,9 @@ export default function Dashboard6({ isDark }) {
         const list = await apiService.getSyncIterations(projectId, search);
         if (!mountedRef.current) return;
         setIterations(list || []);
-      } catch (err) {
+      } catch (err: unknown) {
         if (!mountedRef.current) return;
-        setError('Impossible de charger les itérations: ' + err.message);
+        setError('Impossible de charger les itérations: ' + getErrorMessage(err));
       } finally {
         if (mountedRef.current) setLoadingIters(false);
       }
@@ -163,30 +168,34 @@ export default function Dashboard6({ isDark }) {
 
   // ---- Analyse (preview) -----------------------------------------
   const handleAnalyze = async () => {
-    if (!selectedProject || !selectedIter) return;
+    if (!selectedProject) {
+      setError('Veuillez sélectionner un projet.');
+      return;
+    }
     setError(null);
     setPreview(null);
     setState('analyzing');
 
     try {
-      const filters: any = {};
-      if (labelCustomFilter.trim()) filters.labelCustom = labelCustomFilter.trim();
-      if (statusFilter.trim()) filters.status = statusFilter.trim();
-      if (versionFilter.trim()) filters.version = versionFilter.trim();
-      if (versionDeTestFilter.trim()) filters.versionDeTest = versionDeTestFilter.trim();
-      filters.source = source;
-      const data = await apiService.previewSync(selectedProject, selectedIter, filters);
+      const data = await apiService.previewSyncCases(
+        selectedProject,
+        selectedIter,
+        { label: labelCustomFilter.trim() || 'Test::TODO' }
+      );
       setPreview(data);
       setState('preview');
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setState('idle');
     }
   };
 
   // ---- Exécution avec SSE ----------------------------------------
   const handleExecute = () => {
-    if (!selectedProject || !selectedIter) return;
+    if (!selectedProject) {
+      setError('Veuillez sélectionner un projet.');
+      return;
+    }
     setError(null);
     setLogLines([]);
     setFinalStats(null);
@@ -199,13 +208,15 @@ export default function Dashboard6({ isDark }) {
     const ctrl = new AbortController();
     abortCtrlRef.current = ctrl;
 
-    const body: any = { projectId: selectedProject, iterationName: selectedIter, source };
-    if (labelCustomFilter.trim()) body.labelCustom = labelCustomFilter.trim();
-    if (statusFilter.trim()) body.status = statusFilter.trim();
-    if (versionFilter.trim()) body.version = versionFilter.trim();
-    if (versionDeTestFilter.trim()) body.versionDeTest = versionDeTestFilter.trim();
+    const body = {
+      project_id: selectedProject,
+      iteration_name: selectedIter,
+      label: labelCustomFilter.trim() || 'Test::TODO',
+      root_folder_id: 4514,
+      dry_run: false,
+    };
 
-    fetch(`${API_BASE}/sync/execute`, {
+    fetch(`${API_BASE}/sync/cases/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -232,16 +243,19 @@ export default function Dashboard6({ isDark }) {
                 const event = JSON.parse(line.slice(6));
                 setLogLines((prev) => [...prev, event]);
 
-                if (event.level === 'done' || event.type === 'done') {
+                if (event.level === 'summary') {
                   setFinalStats({
                     created: event.created || 0,
                     updated: event.updated || 0,
                     skipped: event.skipped || 0,
                     enriched: event.enriched || 0,
                     errors: event.errors || 0,
-                    total: event.total || 0,
+                    total: event.total_issues || 0,
                     testmoRunUrl: event.testmo_run_url || null,
                   });
+                }
+
+                if (event.level === 'done' || event.type === 'done') {
                   setState('done');
                   loadHistory();
                 }
@@ -300,7 +314,7 @@ export default function Dashboard6({ isDark }) {
         name: manualRunName,
         milestoneId: testmoMilestoneId ? Number(testmoMilestoneId) : undefined,
       });
-      if (res.success && res.data) {
+      if (isApiSuccess(res)) {
         setCreatedManualRun(res.data);
         setLogLines((prev) => [
           ...prev,
@@ -309,8 +323,8 @@ export default function Dashboard6({ isDark }) {
       } else {
         setError(res.error || 'Échec création run manuel');
       }
-    } catch (err: any) {
-      setError('Erreur création run manuel : ' + err.message);
+    } catch (err: unknown) {
+      setError('Erreur création run manuel : ' + getErrorMessage(err));
     } finally {
       setBrowserState('idle');
     }
@@ -344,7 +358,7 @@ export default function Dashboard6({ isDark }) {
         projectId: Number(testmoProjectId),
         results,
       });
-      if (res.success) {
+      if (isApiSuccess(res)) {
         setLogLines((prev) => [
           ...prev,
           {
@@ -355,8 +369,8 @@ export default function Dashboard6({ isDark }) {
       } else {
         setError(res.error || 'Échec mise à jour résultats');
       }
-    } catch (err: any) {
-      setError('Erreur mise à jour résultats : ' + err.message);
+    } catch (err: unknown) {
+      setError('Erreur mise à jour résultats : ' + getErrorMessage(err));
     } finally {
       setBrowserState('idle');
     }
@@ -365,8 +379,8 @@ export default function Dashboard6({ isDark }) {
   // ---- Helpers UI --------------------------------------------------
   const currentProject = projects.find((p) => p.id === selectedProject);
   const isConfigured = currentProject?.configured === true;
-  const canAnalyze = isConfigured && selectedIter && state === 'idle';
-  const canExecute = isConfigured && selectedIter && state === 'preview';
+  const canAnalyze = isConfigured && state === 'idle';
+  const canExecute = isConfigured && state === 'preview';
   // Calcul du % de progression pendant le sync
   const processedCount = logLines.filter((e) =>
     ['case_created', 'case_updated', 'case_skipped', 'case_error'].includes(e.type)
@@ -381,7 +395,7 @@ export default function Dashboard6({ isDark }) {
       {/* Titre */}
       <div className="d6-title">
         <Settings size={22} />
-        SYNCHRONISATION GITLAB → TESTMO
+        SYNCHRONISATION GITLAB → TESTMO CASES
       </div>
 
       {/* Message d'erreur global */}
@@ -558,7 +572,7 @@ export default function Dashboard6({ isDark }) {
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
                     disabled={state === 'syncing' || state === 'analyzing'}
-                    title="Nom de la source d'automatisation dans Testmo"
+                    title="Nom de la source dans Testmo"
                   />
                 </div>
               </div>
@@ -619,11 +633,11 @@ export default function Dashboard6({ isDark }) {
             {preview.target_run && (
               <div className="d6-preview-path" style={{ marginBottom: '0.75rem' }}>
                 <Zap size={13} />
-                <span>Run Testmo :</span>
-                <strong>{preview.target_run.name}</strong>
-                {preview.target_run.id ? (
+                <span>Dossier Testmo :</span>
+                <strong>{preview.target_folder?.name || preview.folder?.child}</strong>
+                {preview.target_folder?.id ? (
                   <span className="d6-badge d6-badge-configured" style={{ marginLeft: 6 }}>
-                    existant #{preview.target_run.id}
+                    existant #{preview.target_folder.id}
                   </span>
                 ) : (
                   <span className="d6-badge d6-badge-unconfigured" style={{ marginLeft: 6 }}>
@@ -708,103 +722,7 @@ export default function Dashboard6({ isDark }) {
             )}
 
             {/* ── Testmo Browser : création run manuel ── */}
-            {state === 'preview' && (
-              <div
-                className="d6-browser-section"
-                style={{
-                  marginTop: '1.5rem',
-                  paddingTop: '1rem',
-                  borderTop: '1px solid var(--border-color)',
-                }}
-              >
-                <div className="d6-section-header" style={{ marginBottom: '0.75rem' }}>
-                  <Monitor size={14} />
-                  Run manuel Testmo (UI Automation)
-                </div>
-                <div className="d6-config-row" style={{ marginBottom: '0.75rem' }}>
-                  <div className="d6-field">
-                    <label>Nom du run</label>
-                    <input
-                      className="d6-input"
-                      value={manualRunName}
-                      onChange={(e) => setManualRunName(e.target.value)}
-                      placeholder="Ex: R06 - run 1"
-                    />
-                  </div>
-                  <div className="d6-field">
-                    <label>Project ID Testmo</label>
-                    <input
-                      className="d6-input"
-                      type="number"
-                      value={testmoProjectId}
-                      onChange={(e) => setTestmoProjectId(e.target.value)}
-                      placeholder="Ex: 1"
-                    />
-                  </div>
-                  <div className="d6-field">
-                    <label>Milestone ID (opt)</label>
-                    <input
-                      className="d6-input"
-                      type="number"
-                      value={testmoMilestoneId}
-                      onChange={(e) => setTestmoMilestoneId(e.target.value)}
-                      placeholder="Ex: 9"
-                    />
-                  </div>
-                </div>
-
-                <div className="d6-btn-row">
-                  <button
-                    className="d6-btn d6-btn-primary"
-                    onClick={handleCreateManualRun}
-                    disabled={browserState === 'creating' || !manualRunName || !testmoProjectId}
-                  >
-                    {browserState === 'creating' ? (
-                      <>
-                        <RefreshCw size={14} className="d6-spinner" /> Création...
-                      </>
-                    ) : (
-                      <>
-                        <Monitor size={14} /> Créer run manuel
-                      </>
-                    )}
-                  </button>
-
-                  {createdManualRun && (
-                    <button
-                      className="d6-btn d6-btn-success"
-                      onClick={handleUpdateManualRun}
-                      disabled={browserState === 'updating'}
-                    >
-                      {browserState === 'updating' ? (
-                        <>
-                          <RefreshCw size={14} className="d6-spinner" /> Mise à jour...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 size={14} /> Mettre à jour résultats
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-
-                {createdManualRun && (
-                  <div className="d6-alert d6-alert-success" style={{ marginTop: '0.75rem' }}>
-                    <CheckCircle2 size={14} />
-                    Run créé :{' '}
-                    <a
-                      href={createdManualRun.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="d6-log-link"
-                    >
-                      #{createdManualRun.runId}
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Section masquée (P31#8) — Automation runs dépréciés, rollback possible ici */}
           </div>
         </div>
       )}
@@ -876,7 +794,7 @@ export default function Dashboard6({ isDark }) {
                       rel="noreferrer"
                       className="d6-btn d6-btn-primary"
                     >
-                      Ouvrir le run Testmo →
+                      Ouvrir le dossier Testmo →
                     </a>
                   </div>
                 )}

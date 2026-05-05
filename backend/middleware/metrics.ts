@@ -1,6 +1,7 @@
 import client from 'prom-client';
 import fs from 'fs';
 import path from 'path';
+import type { Request, Response, NextFunction } from 'express';
 import logger from '../services/logger.service';
 
 // Collecte des métriques par défaut (mémoire, CPU, event loop...)
@@ -75,15 +76,15 @@ function updateDbSizeMetrics() {
         dbSizeGauge.set({ database: file }, stats.size);
       }
     }
-  } catch (err: any) {
-    logger.error('Metrics: Erreur lors de la lecture de la taille DB:', err.message);
+  } catch (err) {
+    logger.error('Metrics: Erreur lors de la lecture de la taille DB:', (err as Error).message);
   }
 }
 
 /**
  * Middleware Express qui instrumente les requêtes HTTP.
  */
-function metricsMiddleware(req: any, res: any, next: any) {
+function metricsMiddleware(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
 
   res.on('finish', () => {

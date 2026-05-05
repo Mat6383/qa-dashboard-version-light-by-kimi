@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from app.database import get_main_db
 from app.services.analytics import analytics_service
+from app.services.smart_alerts import smart_alerts_service
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -21,7 +22,14 @@ async def analytics_job() -> None:
     for project_id in project_ids:
         try:
             async with get_main_db() as db:
-                result = await analytics_service.analyze_project(db, project_id)
-            logger.info("Analytics job: project=%s insights=%s", project_id, result["insights_created"])
+                analytics_result = await analytics_service.analyze_project(db, project_id)
+            logger.info("Analytics job: project=%s insights=%s", project_id, analytics_result["insights_created"])
         except Exception as exc:
             logger.error("Analytics job failed for project %s: %s", project_id, exc)
+
+        try:
+            async with get_main_db() as db:
+                smart_result = await smart_alerts_service.analyze_project(db, project_id)
+            logger.info("Smart alerts job: project=%s insights=%s", project_id, smart_result["insights_created"])
+        except Exception as exc:
+            logger.error("Smart alerts job failed for project %s: %s", project_id, exc)

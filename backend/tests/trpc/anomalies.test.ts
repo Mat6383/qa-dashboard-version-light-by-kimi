@@ -18,10 +18,6 @@ jest.mock('../../services/gitlab.service', () => ({
   gitlabBreaker: { getStatus: jest.fn(() => ({ name: 'gitlab', state: 'CLOSED' })) },
 }));
 
-jest.mock('../../services/status-sync.service', () => ({
-  __esModule: true,
-  statusSyncBreaker: { getStatus: jest.fn(() => ({ name: 'statusSync', state: 'CLOSED' })) },
-}));
 
 describe('tRPC anomalies router', () => {
   it('returns anomalies list for a project', async () => {
@@ -41,7 +37,7 @@ describe('tRPC anomalies router', () => {
     const caller = createTestCaller();
     const result = await caller.anomalies.circuitBreakers();
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(3);
-    expect(result.data.map((d: any) => d.name)).toEqual(['testmo', 'gitlab', 'statusSync']);
+    expect(result.data).toHaveLength(2);
+    expect(result.data.map((d: any) => d.name)).toEqual(['testmo', 'gitlab']);
   });
 });

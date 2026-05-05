@@ -8,10 +8,13 @@ Routines "À distance" (serveurs Anthropic) à créer dans l'app Claude Desktop 
 
 ## Fichiers disponibles
 
-| Fichier | Routine | Horaires |
-|---|---|---|
-| `routine-A-status-sync.md` | Testmo → GitLab status (neo-pilot + workshop-web) | 10h00 et 13h30, lun-ven |
-| `routine-B-gitlab-to-testmo.md` | GitLab → Testmo création cas de test (neo-pilot) | 10h00 et 13h30, lun-ven |
+| Fichier                         | Routine                                           | Horaires                |
+| ------------------------------- | ------------------------------------------------- | ----------------------- |
+| `routine-A-status-sync.md`      | Testmo → GitLab status (neo-pilot + workshop-web) | 10h00 et 13h30, lun-ven |
+| `routine-B-gitlab-to-testmo.md` | GitLab → Testmo création cas de test (neo-pilot)  | 10h00 et 13h30, lun-ven |
+
+> **Note** : La Routine B est en cours de portage dans le backend Python natif (lot P31).  
+> Une fois le portage terminé, ces routines pourront être remplacées par le job `auto_sync` du backend.
 
 ## Procédure de création (4 routines au total)
 
@@ -24,11 +27,11 @@ Routines "À distance" (serveurs Anthropic) à créer dans l'app Claude Desktop 
 
 ## Valeurs à remplacer (depuis `backend/.env`)
 
-| Placeholder | Variable .env |
-|---|---|
-| `[VALEUR DE TESTMO_TOKEN DANS backend/.env]` | `TESTMO_TOKEN` |
+| Placeholder                                        | Variable .env        |
+| -------------------------------------------------- | -------------------- |
+| `[VALEUR DE TESTMO_TOKEN DANS backend/.env]`       | `TESTMO_TOKEN`       |
 | `[VALEUR DE GITLAB_WRITE_TOKEN DANS backend/.env]` | `GITLAB_WRITE_TOKEN` |
-| `[VALEUR DE GITLAB_TOKEN DANS backend/.env]` | `GITLAB_TOKEN` |
+| `[VALEUR DE GITLAB_TOKEN DANS backend/.env]`       | `GITLAB_TOKEN`       |
 
 ## Mise à jour en fin de sprint
 

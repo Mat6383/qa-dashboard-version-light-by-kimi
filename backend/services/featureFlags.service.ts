@@ -13,7 +13,7 @@ class FeatureFlagsService {
    * Notifie les webhooks d'un changement de feature flag.
    * @private
    */
-  _notifyChange(key: any, action: any, extra = {}) {
+  _notifyChange(key: string, action: string, extra: Record<string, unknown> = {}) {
     try {
       webhooksService.trigger('feature-flag.changed', { key, action, ...extra });
     } catch (err: any) {
@@ -26,7 +26,7 @@ class FeatureFlagsService {
    * Le résultat est sticky : même user → même résultat pour un flag donné.
    * @private
    */
-  _hashUserFlag(key: any, userId: any) {
+  _hashUserFlag(key: string, userId: string) {
     const hash = crypto.createHash('sha256').update(`${key}:${userId}`).digest('hex');
     return parseInt(hash.slice(0, 8), 16) % 100;
   }
@@ -38,7 +38,7 @@ class FeatureFlagsService {
    * @param {boolean} defaultValue
    * @returns {boolean}
    */
-  isEnabledForUser(key: any, userId: any, defaultValue = false) {
+  isEnabledForUser(key: string, userId: string, defaultValue = false) {
     const db = this._db();
     if (!db) return defaultValue;
     try {
@@ -61,12 +61,12 @@ class FeatureFlagsService {
    * Format rétrocompatible pour les consumers.
    * @param {string} [userId] - Si fourni, applique le rollout progressif par utilisateur.
    */
-  getAll(userId: any) {
+  getAll(userId?: string | null) {
     const db = this._db();
     if (!db) return {};
     try {
       const rows = db.prepare('SELECT key, enabled, rollout_percentage FROM feature_flags').all();
-      const result: any = {};
+      const result: Record<string, boolean> = {};
       for (const row of rows) {
         if (!row.enabled) {
           result[row.key] = false;
@@ -122,7 +122,7 @@ class FeatureFlagsService {
    * @param {boolean} defaultValue
    * @param {string} [userId]
    */
-  isEnabled(key: any, defaultValue = false, userId = null) {
+  isEnabled(key: string, defaultValue = false, userId: string | null = null) {
     if (userId) {
       return this.isEnabledForUser(key, userId, defaultValue);
     }
@@ -142,7 +142,7 @@ class FeatureFlagsService {
    * @param {string} key
    * @returns {Object|null}
    */
-  getByKey(key: any) {
+  getByKey(key: string) {
     const db = this._db();
     if (!db) return null;
     try {
@@ -174,7 +174,7 @@ class FeatureFlagsService {
    * @param {string} [options.description]
    * @param {number} [options.rolloutPercentage]
    */
-  create(key: any, { enabled = false, description = '', rolloutPercentage = 100 } = {} as any) {
+  create(key: string, { enabled = false, description = '', rolloutPercentage = 100 }: { enabled?: boolean; description?: string; rolloutPercentage?: number } = {}) {
     const db = this._db();
     if (!db) return false;
     try {
@@ -200,7 +200,7 @@ class FeatureFlagsService {
    * @param {string} [options.description]
    * @param {number} [options.rolloutPercentage]
    */
-  update(key: any, { enabled, description, rolloutPercentage }: any = {}) {
+  update(key: string, { enabled, description, rolloutPercentage }: { enabled?: boolean; description?: string; rolloutPercentage?: number } = {}) {
     const db = this._db();
     if (!db) return false;
     try {
@@ -238,7 +238,7 @@ class FeatureFlagsService {
    * Supprime un flag.
    * @param {string} key
    */
-  delete(key: any) {
+  delete(key: string) {
     const db = this._db();
     if (!db) return false;
     try {
@@ -261,7 +261,7 @@ class FeatureFlagsService {
    * @param {string} key
    * @param {boolean} enabled
    */
-  set(key: any, enabled: any) {
+  set(key: string, enabled: boolean) {
     const db = this._db();
     if (!db) return false;
     try {

@@ -60,7 +60,7 @@ export default function ShortcutHelpOverlay({ isOpen, onClose }: ShortcutHelpOve
       <div
         className="shortcut-help-modal"
         style={{
-          backgroundColor: 'var(--card-bg, #ffffff)',
+          backgroundColor: 'var(--card-bg)',
           color: 'var(--text-color, #111827)',
           borderRadius: '0.75rem',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
@@ -98,7 +98,7 @@ export default function ShortcutHelpOverlay({ isOpen, onClose }: ShortcutHelpOve
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             {shortcuts.map((shortcut) => (
-              <tr key={shortcut.keys} style={{ borderBottom: '1px solid var(--border-color, #e5e7eb)' }}>
+              <tr key={shortcut.keys} style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td
                   style={{
                     padding: '0.75rem 0.5rem',

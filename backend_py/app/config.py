@@ -32,22 +32,22 @@ class Settings(BaseSettings):
     db_comments: str = "crosstest-comments.db"
 
     # ── Testmo ──────────────────────────────────────────
-    testmo_url: str = Field(alias="TESTMO_URL")
-    testmo_token: str = Field(alias="TESTMO_TOKEN")
+    testmo_url: str = Field(default="", alias="TESTMO_URL")
+    testmo_token: str = Field(default="", alias="TESTMO_TOKEN")
     testmo_project_id: int = Field(default=1, alias="TESTMO_PROJECT_ID")
 
     # ── GitLab ──────────────────────────────────────────
-    gitlab_url: str = Field(alias="GITLAB_URL")
-    gitlab_token: str = Field(alias="GITLAB_TOKEN")
-    gitlab_write_token: str = Field(alias="GITLAB_WRITE_TOKEN")
+    gitlab_url: str = Field(default="", alias="GITLAB_URL")
+    gitlab_token: str = Field(default="", alias="GITLAB_TOKEN")
+    gitlab_write_token: str = Field(default="", alias="GITLAB_WRITE_TOKEN")
     gitlab_project_id: str | None = Field(default=None, alias="GITLAB_PROJECT_ID")
     gitlab_verify_ssl: bool = Field(default=True, alias="GITLAB_VERIFY_SSL")
-    gitlab_client_id: str = Field(alias="GITLAB_CLIENT_ID")
-    gitlab_client_secret: str = Field(alias="GITLAB_CLIENT_SECRET")
+    gitlab_client_id: str = Field(default="", alias="GITLAB_CLIENT_ID")
+    gitlab_client_secret: str = Field(default="", alias="GITLAB_CLIENT_SECRET")
 
     # ── Auth ────────────────────────────────────────────
-    jwt_secret: str = Field(alias="JWT_SECRET")
-    admin_api_token: str = Field(alias="ADMIN_API_TOKEN")
+    jwt_secret: str = Field(default="", alias="JWT_SECRET")
+    admin_api_token: str = Field(default="", alias="ADMIN_API_TOKEN")
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 

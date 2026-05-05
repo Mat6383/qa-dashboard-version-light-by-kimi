@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import logger from '../services/logger.service';
 import testmoService from '../services/testmo.service';
 import analyticsService from '../services/analytics.service';
+import smartAlertsService from '../services/smartAlerts.service';
 
 let task: any = null;
 
@@ -20,7 +21,12 @@ function start() {
         try {
           analyticsService.analyzeProject(project.id);
         } catch (err: any) {
-          logger.warn(`[AnalyticsJob] Échec analyse projet ${project.id}:`, err.message);
+          logger.warn(`[AnalyticsJob] Échec analyse legacy projet ${project.id}:`, err.message);
+        }
+        try {
+          smartAlertsService.analyzeProject(project.id);
+        } catch (err: any) {
+          logger.warn(`[AnalyticsJob] Échec smart alerts projet ${project.id}:`, err.message);
         }
       }
 

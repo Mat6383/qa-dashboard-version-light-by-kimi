@@ -77,12 +77,11 @@
     "standard": "Dashboard 1 (Standard)",
     "tv": "Dashboard 2 (TV)",
     "qualityRates": "Dashboard 3 (Quality Rates)",
+    "tools": "🛠️ Outils",
     "globalView": "Dashboard 4 (Vue Globale & PDF)",
-    "annualTrends": "Dashboard 5 (Tendances Annuelles)",
     "multiProject": "Dashboard 6 (Multi-Projets)",
     "historicalTrends": "📈 Tendances Historiques",
     "compare": "🔀 Comparateur",
-    "syncGitlabToTestmo": "⚙ Sync GitLab → Testmo",
     "configuration": "⚙️ Configuration des Cycles",
     "crosstest": "🔗 CrossTest OK",
     "autoSync": "🤖 Auto-Sync Testmo → GitLab",
@@ -402,14 +401,33 @@
     "statusTitle": "Statut",
     "priorityTitle": "Priorité"
   },
+  "tools": {
+    "title": "Outils",
+    "syncGitlabToTestmo": "Sync GitLab → Testmo",
+    "configuration": "Configuration des Cycles",
+    "crosstest": "CrossTest OK",
+    "autoSync": "Auto-Sync Testmo → GitLab"
+  },
+  "dashboard4": {
+    "overview": "Vue Globale",
+    "historical": "Tendances Historiques",
+    "compare": "Comparateur",
+    "annualTrends": "Tendances Annuelles",
+    "gitlabSync": "Sync GitLab → Testmo",
+    "loading": "Chargement des données ISTQB...",
+    "project": "Projet :",
+    "inProgress": "En cours",
+    "testClosure": "Clôture de Test",
+    "quickClosure": "Quick Clôture DOCX",
+    "reportGenerator": "Rapport HTML / PPTX"
+  },
   "nav": {
-    "home": "Accueil",
     "global": "Global",
-    "quality": "Qualité",
     "compare": "Compare",
-    "config": "Config",
+    "tools": "Outils",
     "flags": "Flags"
   },
+
   "breadcrumb": {
     "admin": "Admin",
     "auditLogs": "Audit Logs",
@@ -432,13 +450,5 @@
     "doughnutTitle": "Test Status Distribution",
     "barTitleBusiness": "Répartition par Statut",
     "barTitle": "Status Distribution"
-  },
-  "dashboard4": {
-    "loading": "Chargement des données ISTQB...",
-    "project": "Projet :",
-    "inProgress": "En cours",
-    "testClosure": "Clôture de Test",
-    "quickClosure": "Quick Clôture DOCX",
-    "reportGenerator": "Rapport HTML / PPTX"
   }
 }

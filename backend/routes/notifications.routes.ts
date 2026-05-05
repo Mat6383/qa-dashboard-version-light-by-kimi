@@ -16,7 +16,7 @@ router.get('/settings', requireAuth, async (req, res) => {
 
 router.get('/settings/:projectId', requireAuth, async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const settings = notificationService.getSettings(projectId);
     res.json({ success: true, data: settings });
   } catch (error) {

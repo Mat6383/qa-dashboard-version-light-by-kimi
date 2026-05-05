@@ -1,19 +1,23 @@
 import auditService from '../services/audit.service';
+import type { Request, Response, NextFunction } from 'express';
+
+interface AuditOptions {
+  captureBody?: boolean;
+  captureParams?: boolean;
+}
 
 /**
  * Crée un middleware d'audit pour une action donnée.
- * @param {string} action - Identifiant de l'action (ex: 'sync.execute')
- * @param {Object} options
- * @param {boolean} options.captureBody - Inclure le body de la requête dans details (défaut: false)
- * @param {boolean} options.captureParams - Inclure req.params dans details (défaut: false)
+ * @param action - Identifiant de l'action (ex: 'sync.execute')
+ * @param options
  */
-function auditAction(action: any, options: any = {}) {
+function auditAction(action: string, options: AuditOptions = {}) {
   const { captureBody = false, captureParams = false } = options;
 
-  return (req: any, res: any, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     res.on('finish', () => {
       const user = req.user || null;
-      const details: any = {};
+      const details: Record<string, unknown> = {};
 
       if (captureParams && req.params) {
         details.params = req.params;

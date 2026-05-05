@@ -3,9 +3,9 @@ import { renderHook } from '@testing-library/react';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 describe('useGlobalShortcuts', () => {
-  let onClose: ReturnType<typeof vi.fn>;
-  let onSave: ReturnType<typeof vi.fn>;
-  let onHelp: ReturnType<typeof vi.fn>;
+  let onClose: () => void;
+  let onSave: () => void;
+  let onHelp: () => void;
 
   beforeEach(() => {
     onClose = vi.fn();

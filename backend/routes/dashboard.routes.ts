@@ -115,8 +115,8 @@ router.get('/compare', async (req, res) => {
  */
 router.get('/:projectId', validateParams(projectIdParam), validateQuery(milestonesQuery), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
-    const preprodMilestones = req.query.preprodMilestones ? (req.query.preprodMilestones as any).split(',').map(Number) : null;
+    const projectId = parseInt(req.params.projectId as string);
+    const preprodMilestones = req.query.preprodMilestones ? (req.query.preprodMilestones as string).split(',').map(Number) : null;
     const prodMilestones = req.query.prodMilestones ? (req.query.prodMilestones as any).split(',').map(Number) : null;
 
     logger.info(`Récupération métriques pour projet ${projectId}`);
@@ -153,7 +153,7 @@ router.get(
   validateQuery(milestonesQuery),
   async (req, res) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = parseInt(req.params.projectId as string);
       const preprodMilestones = req.query.preprodMilestones ? (req.query.preprodMilestones as string).split(',').map(Number) : null;
       const prodMilestones = req.query.prodMilestones ? (req.query.prodMilestones as string).split(',').map(Number) : null;
 
@@ -177,7 +177,7 @@ router.get(
  */
 router.get('/:projectId/annual-trends', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
 
     logger.info(`Récupération Annual Trends pour projet ${projectId}`);
     const trends = await testmoService.getAnnualQualityTrends(projectId);
@@ -198,7 +198,7 @@ router.get('/:projectId/annual-trends', validateParams(projectIdParam), async (r
  */
 router.get('/:projectId/trends', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const { granularity = 'day', from, to } = req.query;
     const trends = metricSnapshotsService.getTrends(projectId, granularity as string, from as string, to as string);
     res.json({ success: true, data: trends, timestamp: new Date().toISOString() });
@@ -213,7 +213,7 @@ router.get('/:projectId/trends', validateParams(projectIdParam), async (req, res
  */
 router.get('/:projectId/stream', validateParams(projectIdParam), validateQuery(milestonesQuery), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const preprodMilestones = req.query.preprodMilestones ? (req.query.preprodMilestones as string).split(',').map(Number) : null;
     const prodMilestones = req.query.prodMilestones ? (req.query.prodMilestones as string).split(',').map(Number) : null;
 

@@ -1,9 +1,10 @@
 import Sentry from '@sentry/node';
+import type { Application, RequestHandler, ErrorRequestHandler } from 'express';
 import logger from './logger.service';
 
 let initialized = false;
 
-function init(app: any) {
+function init(app: Application) {
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
     logger.info('Sentry: DSN non configuré — monitoring désactivé');
@@ -26,10 +27,15 @@ function init(app: any) {
 }
 
 function getMiddlewares() {
-  if (!initialized) return { requestHandler: (req: any, res: any, next: any) => next(), errorHandler: (err: any, req: any, res: any, next: any) => next(err) };
+  if (!initialized) {
+    return {
+      requestHandler: ((req, res, next) => next()) as RequestHandler,
+      errorHandler: ((err, req, res, next) => next(err)) as ErrorRequestHandler,
+    };
+  }
   return {
-    requestHandler: (Sentry as any).Handlers.requestHandler(),
-    errorHandler: (Sentry as any).Handlers.errorHandler(),
+    requestHandler: (Sentry as any).Handlers.requestHandler() as RequestHandler,
+    errorHandler: (Sentry as any).Handlers.errorHandler() as ErrorRequestHandler,
   };
 }
 

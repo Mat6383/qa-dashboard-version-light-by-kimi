@@ -10,7 +10,7 @@ import { validateParams, projectIdParam } from '../validators';
  */
 router.get('/:projectId', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const anomalies = detectAnomalies(projectId);
 
     const hasAnomaly = anomalies.some((a) => a.severity !== 'normal');

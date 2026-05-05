@@ -2,8 +2,9 @@ import jwtService from '../services/auth/jwt.service';
 import usersService from '../services/users.service';
 import logger from '../services/logger.service';
 import auditService from '../services/audit.service';
+import type { Request, Response, NextFunction } from 'express';
 
-function extractToken(req: any) {
+function extractToken(req: Request): string | null {
   if (req.headers.authorization?.startsWith('Bearer ')) {
     return req.headers.authorization.slice(7);
   }
@@ -13,7 +14,7 @@ function extractToken(req: any) {
   return null;
 }
 
-function requireAuth(req: any, res: any, next: any) {
+function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({
@@ -45,8 +46,8 @@ function requireAuth(req: any, res: any, next: any) {
   next();
 }
 
-function requireRole(...allowedRoles: any[]) {
-  return (req: any, res: any, next: any) => {
+function requireRole(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -82,7 +83,7 @@ function requireRole(...allowedRoles: any[]) {
   };
 }
 
-function requireAuthOrAdmin(req: any, res: any, next: any) {
+function requireAuthOrAdmin(req: Request, res: Response, next: NextFunction) {
   // 1. Essayer JWT classique
   const token = extractToken(req);
   if (token) {
@@ -100,7 +101,7 @@ function requireAuthOrAdmin(req: any, res: any, next: any) {
   const adminToken = process.env.ADMIN_API_TOKEN;
   const provided = req.headers['x-admin-token'];
   if (adminToken && provided && provided === adminToken) {
-    req.user = { id: 'admin', email: 'admin@system', role: 'admin', name: 'Admin' };
+    req.user = { id: 'admin', email: 'admin@system', role: 'admin', name: 'Admin', avatar: null };
     return next();
   }
 

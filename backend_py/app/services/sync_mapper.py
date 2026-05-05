@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+import markdown  # type: ignore[import-untyped]
 
 from app.config import settings
 
@@ -104,3 +107,76 @@ def build_run_url(run_id: int) -> str:
     """Build a direct URL to the automation run in Testmo."""
     base = settings.testmo_url.rstrip("/")
     return f"{base}/automation/runs/{run_id}"
+
+
+# ------------------------------------------------------------------
+# Step extraction from GitLab notes (Routine B)
+# ------------------------------------------------------------------
+
+SECTION_HEADER_RE = re.compile(r"\[([^\]]+)\](?!\()")
+TEST_RE = re.compile(r"^tests?$", re.IGNORECASE)
+TESTMO_EXPECTED = "<p>Conforme aux specs fonctionnelles</p>"
+
+
+def _parse_sections(body: str) -> list[dict[str, str]]:
+    """Extract labeled sections from a GitLab note body.
+
+    Returns [{label, content}, ...] in appearance order.
+    Empty-content sections are discarded.
+    """
+    headers: list[dict[str, Any]] = []
+    for m in SECTION_HEADER_RE.finditer(body):
+        headers.append({"label": m.group(1).strip(), "start": m.start(), "end": m.end()})
+
+    sections: list[dict[str, str]] = []
+    for i, h in enumerate(headers):
+        content_end = headers[i + 1]["start"] if i + 1 < len(headers) else len(body)
+        content = body[h["end"] : content_end].strip()
+        if content:
+            sections.append({"label": h["label"], "content": content})
+    return sections
+
+
+def extract_steps_from_notes(notes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert GitLab issue notes into Testmo custom_steps.
+
+    Algorithm (ported from backend/services/sync.service.ts):
+    1. Keep only notes containing at least one [LABEL] pattern (excluding markdown links).
+    2. Non-TEST sections ([PRÉREQUIS], [CONTEXTE], [IMPACT]...) are taken from the
+       *longest* note, in their original appearance order.
+    3. TEST sections ([TEST] / [TESTS], case-insensitive) are collected from *all*
+       notes in chronological order (notes array is assumed sorted asc by created_at).
+    4. Final order: non-TEST sections first, then all TEST sections.
+    5. Each section is rendered as HTML via markdown.markdown().
+
+    Returns [] if no structured sections are found.
+    """
+    # Filter notes that contain at least one [LABEL] (not a markdown link)
+    structured = [n for n in notes if n.get("body") and SECTION_HEADER_RE.search(n["body"])]
+    if not structured:
+        return []
+
+    # Non-TEST sections: from the longest note (most complete)
+    best = max(structured, key=lambda n: len(n.get("body", "")))
+    other_sections = [s for s in _parse_sections(best.get("body", "")) if not TEST_RE.match(s["label"])]
+
+    # TEST sections: collect from ALL notes in chronological order
+    all_test_sections: list[dict[str, str]] = []
+    for note in structured:
+        for s in _parse_sections(note.get("body", "")):
+            if TEST_RE.match(s["label"]):
+                all_test_sections.append(s)
+
+    if not other_sections and not all_test_sections:
+        return []
+
+    steps: list[dict[str, Any]] = []
+    for i, s in enumerate(other_sections + all_test_sections, start=1):
+        md_source = f"**[{s['label']}]**\n\n{s['content']}"
+        steps.append({
+            "text1": markdown.markdown(md_source),
+            "text3": TESTMO_EXPECTED,
+            "display_order": i,
+        })
+
+    return steps

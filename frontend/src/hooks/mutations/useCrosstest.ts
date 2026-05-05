@@ -1,7 +1,7 @@
 import { trpc } from '../../trpc/client';
 
 interface SaveCommentVariables {
-  iid: number;
+  issue_iid: number;
   comment: string;
   milestoneContext?: string | null;
 }

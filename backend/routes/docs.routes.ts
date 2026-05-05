@@ -1,10 +1,11 @@
 import express from 'express';
 const router = express.Router();
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import yaml from 'js-yaml';
+import fs from 'fs';
 import path from 'path';
 
-const swaggerDocument = YAML.load(path.join(__dirname, '../docs/openapi.yaml'));
+const swaggerDocument = yaml.load(fs.readFileSync(path.join(__dirname, '../docs/openapi.yaml'), 'utf8')) as Record<string, unknown>;
 
 router.use(
   '/',

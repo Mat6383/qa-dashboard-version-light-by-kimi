@@ -1,7 +1,7 @@
 declare global {
   namespace Express {
     interface User {
-      id: number;
+      id: number | string;
       email: string;
       name: string;
       avatar: string | null;
@@ -12,6 +12,7 @@ declare global {
       requestId?: string;
       user?: User;
       startTime?: number;
+      validatedQuery?: unknown;
     }
   }
 }

@@ -7,7 +7,7 @@ import { DashboardRoom } from './dashboard.room';
 
 const rooms = new Map<string, DashboardRoom>();
 
-export function setupWebSocket(server: Server) {
+export function setupWebSocket(server: Server): { wss: WebSocket.Server; heartbeat: NodeJS.Timeout } {
   const wss = new WebSocket.Server({ noServer: true });
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
@@ -82,4 +82,6 @@ export function setupWebSocket(server: Server) {
   });
 
   logger.info('[WebSocket] Serveur WS prêt sur /ws/dashboard');
+
+  return { wss, heartbeat };
 }

@@ -69,7 +69,7 @@ async def init_databases() -> None:
     from app.models.integrations import Integration
     from app.models.notifications import AlertLog, NotificationSetting
     from app.models.retention import ArchivedSnapshot, RetentionPolicy
-    from app.models.sync_history import MetricSnapshot, ProjectGroup, SyncRun
+    from app.models.sync_history import AutoSyncConfig, MetricSnapshot, ProjectGroup, SyncCaseRun, SyncRun
     from app.models.users import User
     from app.models.webhooks import WebhookSubscription
 
@@ -83,6 +83,8 @@ async def init_databases() -> None:
     async with engine_main.begin() as conn:
         await conn.run_sync(User.__table__.create, checkfirst=True)
         await conn.run_sync(SyncRun.__table__.create, checkfirst=True)
+        await conn.run_sync(SyncCaseRun.__table__.create, checkfirst=True)
+        await conn.run_sync(AutoSyncConfig.__table__.create, checkfirst=True)
         await conn.run_sync(MetricSnapshot.__table__.create, checkfirst=True)
         await conn.run_sync(ProjectGroup.__table__.create, checkfirst=True)
         await conn.run_sync(AuditLog.__table__.create, checkfirst=True)

@@ -30,6 +30,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "structlog>=24.4",
     "orjson>=3.10",
+    "markdown>=3.10",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +52,7 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+explicit_package_bases = true
 
 [tool.setuptools.packages.find]
 where = ["."]

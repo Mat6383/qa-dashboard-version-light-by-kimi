@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../hooks/queries/useAnalytics';
 import { trpc } from '../trpc/client';
-import { Brain, CheckCircle, AlertTriangle, TrendingDown, Lightbulb, X } from 'lucide-react';
+import { Brain, CheckCircle, AlertTriangle, TrendingDown, Lightbulb, Sparkles, X } from 'lucide-react';
 
 const typeIcons: Record<string, React.ReactNode> = {
   trend: <TrendingDown size={16} />,
   pattern: <AlertTriangle size={16} />,
   recommendation: <Lightbulb size={16} />,
   anomaly: <AlertTriangle size={16} />,
+  smart_alert: <Sparkles size={16} />,
 };
 
 const typeColors: Record<string, string> = {
@@ -16,6 +17,7 @@ const typeColors: Record<string, string> = {
   pattern: 'var(--text-secondary)',
   recommendation: 'var(--text-success)',
   anomaly: 'var(--text-danger)',
+  smart_alert: '#8B5CF6',
 };
 
 export default function AnalyticsPanel({ projectId, isDark }: { projectId?: number; isDark: boolean }) {

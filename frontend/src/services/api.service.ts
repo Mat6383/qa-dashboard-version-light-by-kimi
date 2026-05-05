@@ -95,6 +95,7 @@ export interface ReportGenerateParams {
   formats?: { html?: boolean; pptx?: boolean };
   recommendations?: string[];
   complement?: string;
+  lang?: 'fr' | 'en';
 }
 
 export interface ExportMilestones {
@@ -315,7 +316,7 @@ const apiService = {
   },
 
   /**
-   * Lance un aperçu (dry-run) de synchronisation
+   * Lance un aperçu (dry-run) de synchronisation — legacy automation runs
    */
   async previewSync(
     projectId: string,
@@ -325,7 +326,25 @@ const apiService = {
     return apiCall('Preview Sync', async () => {
       const response = await apiClient.post(
         '/sync/preview',
-        { project_id: projectId, iteration_name: iterationName, ...filters },
+        { projectId, iterationName, ...filters },
+        { timeout: 60000 }
+      );
+      return response.data.data;
+    });
+  },
+
+  /**
+   * Lance un aperçu (dry-run) de synchronisation des cases Testmo
+   */
+  async previewSyncCases(
+    projectId: string | number,
+    iterationName: string,
+    options: { label?: string; rootFolderId?: number; testmoProjectId?: number } = {}
+  ): Promise<SyncPreviewResult> {
+    return apiCall('Preview Sync Cases', async () => {
+      const response = await apiClient.post(
+        '/sync/cases/preview',
+        { project_id: projectId, iteration_name: iterationName, ...options },
         { timeout: 60000 }
       );
       return response.data.data;
@@ -338,6 +357,16 @@ const apiService = {
   async getSyncHistory(): Promise<SyncHistoryEntry[]> {
     return apiCall('Get Sync History', async () => {
       const response = await apiClient.get('/sync/history');
+      return response.data.data;
+    });
+  },
+
+  /**
+   * Récupère l'historique des synchronisations de cases (50 derniers)
+   */
+  async getSyncCasesHistory(): Promise<SyncHistoryEntry[]> {
+    return apiCall('Get Sync Cases History', async () => {
+      const response = await apiClient.get('/sync/cases/history');
       return response.data.data;
     });
   },

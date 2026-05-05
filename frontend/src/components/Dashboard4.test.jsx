@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Dashboard4 from './Dashboard4';
 
@@ -19,6 +19,16 @@ vi.mock('jspdf', () => ({
     addImage: vi.fn(),
     save: vi.fn(),
   })),
+}));
+
+vi.mock('../services/api.service', () => ({
+  default: {
+    getAnnualTrends: vi.fn(() => Promise.resolve({ data: [] })),
+    getSyncProjects: vi.fn(() => Promise.resolve([])),
+    getSyncHistory: vi.fn(() => Promise.resolve([])),
+    getSyncIterations: vi.fn(() => Promise.resolve([])),
+    previewSync: vi.fn(() => Promise.resolve({})),
+  },
 }));
 
 const mockMetrics = {
@@ -77,5 +87,37 @@ describe('Dashboard4', () => {
   it('masque la section Production quand showProductionSection est false', () => {
     renderDashboard({ showProductionSection: false });
     expect(screen.queryByText(/Taux d'Échappement/i)).not.toBeInTheDocument();
+  });
+
+  it("affiche l'onglet Tendances Annuelles au clic", async () => {
+    renderDashboard();
+    fireEvent.click(screen.getByRole('tab', { name: /Tendances Annuelles/i }));
+    expect(await screen.findByText(/TENDANCES ANNUELLES DE QUALITÉ/i)).toBeInTheDocument();
+  });
+
+  it("affiche l'onglet Sync GitLab → Testmo au clic", () => {
+    renderDashboard();
+    fireEvent.click(screen.getByRole('tab', { name: /Sync GitLab → Testmo/i }));
+    expect(screen.getByText(/SYNCHRONISATION GITLAB → TESTMO/i)).toBeInTheDocument();
+  });
+
+  it("n'affiche pas le loader global quand metrics est null sur un onglet secondaire", () => {
+    render(
+      <Dashboard4
+        metrics={null}
+        project={null}
+        projects={[mockProject]}
+        projectId={1}
+        onProjectChange={vi.fn()}
+        isDark={false}
+        useBusiness={true}
+        setExportHandler={vi.fn()}
+        showProductionSection={true}
+        onToggleProductionSection={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /Sync GitLab → Testmo/i }));
+    expect(screen.queryByText(/Chargement des données ISTQB/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/SYNCHRONISATION GITLAB → TESTMO/i)).toBeInTheDocument();
   });
 });

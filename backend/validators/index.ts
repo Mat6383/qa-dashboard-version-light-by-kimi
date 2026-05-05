@@ -1,3 +1,4 @@
+import type { RequestHandler } from 'express';
 import { z } from 'zod';
 
 // ─── Params ────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ const runResultsQuery = z.object({
 // ─── Body ──────────────────────────────────────────────────────────────────
 const syncPreviewBody = z.object({
   projectId: z.string().min(1, '"projectId" requis'),
-  iterationName: z.string().min(1, '"iterationName" requis'),
+  iterationName: z.string().min(1, '"iterationName" requis').optional().or(z.literal('')),
   labelCustom: z.string().optional(),
   status: z.string().optional(),
   version: z.string().optional(),
@@ -146,13 +147,13 @@ const webhookUpdateBody = z.object({
 });
 
 // ─── Middleware ────────────────────────────────────────────────────────────
-function validate(schema: any) {
-  return (req: any, res: any, next: any) => {
+function validate(schema: z.ZodSchema): RequestHandler {
+  return (req, res, next) => {
     try {
       schema.parse(req);
       next();
-    } catch (err: any) {
-      const message = err.errors?.[0]?.message || err.message;
+    } catch (err: unknown) {
+      const message = (err as z.ZodError).issues?.[0]?.message || (err as Error).message;
       return res.status(400).json({
         success: false,
         error: message,
@@ -162,13 +163,13 @@ function validate(schema: any) {
   };
 }
 
-function validateParams(schema: any) {
-  return (req: any, res: any, next: any) => {
+function validateParams(schema: z.ZodSchema): RequestHandler {
+  return (req, res, next) => {
     try {
       schema.parse(req.params);
       next();
-    } catch (err: any) {
-      const message = err.errors?.[0]?.message || err.message;
+    } catch (err: unknown) {
+      const message = (err as z.ZodError).issues?.[0]?.message || (err as Error).message;
       return res.status(400).json({
         success: false,
         error: message,
@@ -178,13 +179,13 @@ function validateParams(schema: any) {
   };
 }
 
-function validateBody(schema: any) {
-  return (req: any, res: any, next: any) => {
+function validateBody(schema: z.ZodSchema): RequestHandler {
+  return (req, res, next) => {
     try {
       schema.parse(req.body);
       next();
-    } catch (err: any) {
-      const message = err.errors?.[0]?.message || err.message;
+    } catch (err: unknown) {
+      const message = (err as z.ZodError).issues?.[0]?.message || (err as Error).message;
       return res.status(400).json({
         success: false,
         error: message,
@@ -194,13 +195,13 @@ function validateBody(schema: any) {
   };
 }
 
-function validateQuery(schema: any) {
-  return (req: any, res: any, next: any) => {
+function validateQuery(schema: z.ZodSchema): RequestHandler {
+  return (req, res, next) => {
     try {
-      schema.parse(req.query);
+      req.validatedQuery = schema.parse(req.query);
       next();
-    } catch (err: any) {
-      const message = err.errors?.[0]?.message || err.message;
+    } catch (err: unknown) {
+      const message = (err as z.ZodError).issues?.[0]?.message || (err as Error).message;
       return res.status(400).json({
         success: false,
         error: message,

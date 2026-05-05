@@ -48,7 +48,7 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
     marginBottom: '16px',
   };
 
-  const textareaStyle = {
+  const textareaStyle: React.CSSProperties = {
     width: '100%',
     minHeight: '120px',
     padding: '10px',

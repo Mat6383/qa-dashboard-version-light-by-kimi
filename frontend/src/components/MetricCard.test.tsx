@@ -54,4 +54,21 @@ describe('MetricCard', () => {
     );
     expect(screen.getByText('Attention : faible')).toBeInTheDocument();
   });
+
+  it('affiche la barre de progression quand progress est fourni', () => {
+    render(
+      <MetricCard
+        title="Taux"
+        icon={MockIcon}
+        value={85}
+        color="#10B981"
+        arrow="↑"
+        badge="142 / 200"
+        label="tests"
+        progress={{ value: 85, label: '142 / 200' }}
+      />
+    );
+    expect(screen.getAllByText('142 / 200')).toHaveLength(2);
+    expect(screen.getAllByText('85%')).toHaveLength(2);
+  });
 });

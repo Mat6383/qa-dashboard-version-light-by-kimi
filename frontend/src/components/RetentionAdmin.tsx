@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useRetentionPolicies, useRetentionArchives } from '../hooks/queries/useRetention';
+import { useRetentionPolicies, useRetentionArchives, RetentionPolicy, Archive } from '../hooks/queries/useRetention';
 import { trpc } from '../trpc/client';
-import { Archive, Trash2, Play, Settings, Database } from 'lucide-react';
+import { Archive as ArchiveIcon, Trash2, Play, Settings, Database } from 'lucide-react';
 
 export default function RetentionAdmin({ isDark }: { isDark: boolean }) {
   const { t } = useTranslation();
@@ -13,7 +13,7 @@ export default function RetentionAdmin({ isDark }: { isDark: boolean }) {
   const runCycle = trpc.retention.runCycle.useMutation();
   const utils = trpc.useUtils();
 
-  const handleUpdate = (entityType: string, field: string, value: any) => {
+  const handleUpdate = (entityType: string, field: string, value: string | number | boolean) => {
     updatePolicy.mutate(
       { entityType, [field]: value },
       { onSuccess: () => utils.retention.policies.invalidate() }
@@ -45,7 +45,7 @@ export default function RetentionAdmin({ isDark }: { isDark: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {policies?.map((p: any) => (
+                {policies?.map((p: RetentionPolicy) => (
                   <tr key={p.entity_type}>
                     <td>{p.entity_type}</td>
                     <td>
@@ -83,7 +83,7 @@ export default function RetentionAdmin({ isDark }: { isDark: boolean }) {
 
           <section>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Archive size={18} /> {t('retention.archives', 'Archives')}
+              <ArchiveIcon size={18} /> {t('retention.archives', 'Archives')}
             </h3>
             <select value={selectedType || ''} onChange={(e) => setSelectedType(e.target.value || undefined)} style={{ margin: '12px 0' }}>
               <option value="">{t('retention.allTypes', 'Tous les types')}</option>
@@ -103,7 +103,7 @@ export default function RetentionAdmin({ isDark }: { isDark: boolean }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {archives.map((a: any) => (
+                  {archives.map((a: Archive) => (
                     <tr key={a.id}>
                       <td>{a.id}</td>
                       <td>{a.entity_type}</td>

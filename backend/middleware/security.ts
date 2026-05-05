@@ -1,12 +1,12 @@
 import helmet from 'helmet';
 import compression from 'compression';
-import express from 'express';
+import express, { type Application } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import logger from '../services/logger.service';
 import sentryService from '../services/sentry.service';
 
-function setupSecurity(app: any) {
+function setupSecurity(app: Application) {
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -57,16 +57,21 @@ function setupSecurity(app: any) {
   );
 
   // Rate-limiting global (ITIL Availability Management — protection DoS)
+  // En développement : limite augmentée + skip localhost pour éviter les blocages en local
+  const isDev = process.env.NODE_ENV !== 'production';
+  const isLocalhost = (ip: string | undefined) =>
+    !ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('::ffff:127.0.0.1');
+
   const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: parseInt(process.env.RATE_LIMIT_MAX || '200', 10) || 200,
+    max: isDev ? 2000 : (parseInt(process.env.RATE_LIMIT_MAX || '200', 10) || 200),
     standardHeaders: true,
     legacyHeaders: false,
     message: {
       success: false,
-      error: 'Trop de requêtes — réessayez dans une minute (rate limit: 200 req/min)',
+      error: `Trop de requêtes — réessayez dans une minute (rate limit: ${isDev ? 2000 : 200} req/min)`,
     },
-    skip: (req) => req.path === '/api/health',
+    skip: (req) => req.path === '/api/health' || (isDev && isLocalhost(req.ip || undefined)),
   });
 
   const heavyLimiter = rateLimit({

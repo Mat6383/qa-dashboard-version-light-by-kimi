@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import traceback
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import delete, select
@@ -37,6 +37,7 @@ from app.services.gitlab_connector import gitlab_connector_service
 from app.services.jira import integration_service
 from app.services.report import report_service
 from app.services.retention import retention_service
+from app.services.case_sync import case_sync_service
 from app.services.sync import sync_service
 from app.services.testmo import testmo_service
 from app.services.webhook_emitter import webhook_emitter
@@ -541,6 +542,47 @@ async def _sync_update_auto_config(input_data: dict[str, Any], db) -> dict[str, 
     return _result({"config": updated})
 
 
+async def _sync_preview_cases(input_data: dict[str, Any], db) -> dict[str, Any]:
+    from app.config import settings
+    result = await case_sync_service.preview_sync_iteration(
+        gitlab_project_id=cast(int, input_data.get("projectId")),
+        testmo_project_id=input_data.get("testmoProjectId") or settings.testmo_project_id,
+        iteration_name=cast(str, input_data.get("iterationName")),
+        label=cast(str, input_data.get("label", "Test::TODO")),
+        root_folder_id=cast(int, input_data.get("rootFolderId", 4514)),
+    )
+    return _result(result.to_dict())
+
+
+async def _sync_execute_cases(input_data: dict[str, Any], db) -> dict[str, Any]:
+    from app.config import settings
+    result = await case_sync_service.sync_iteration(
+        gitlab_project_id=cast(int, input_data.get("projectId")),
+        testmo_project_id=input_data.get("testmoProjectId") or settings.testmo_project_id,
+        iteration_name=cast(str, input_data.get("iterationName")),
+        label=cast(str, input_data.get("label", "Test::TODO")),
+        root_folder_id=cast(int, input_data.get("rootFolderId", 4514)),
+        dry_run=bool(input_data.get("dryRun", False)),
+    )
+    if not bool(input_data.get("dryRun", False)):
+        try:
+            await case_sync_service.persist_case_run(
+                db,
+                project_id=cast(int, input_data.get("projectId")),
+                iteration_name=cast(str, input_data.get("iterationName")),
+                folder_id=None,
+                result=result,
+            )
+        except Exception as exc:
+            logger.error("Failed to persist case sync run", extra={"error": str(exc)})
+    return _result(result.to_dict())
+
+
+async def _sync_cases_history(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
+    history = await case_sync_service.get_history(db)
+    return _result(history)
+
+
 async def _webhooks_list(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
     result = await db.execute(select(WebhookSubscription))
     rows = result.scalars().all()
@@ -637,6 +679,9 @@ PROCEDURES: dict[str, Any] = {
     "retention.archives": _retention_archives,
     "retention.runCycle": _retention_run_cycle,
     # sync
+    "sync.previewCases": _sync_preview_cases,
+    "sync.executeCases": _sync_execute_cases,
+    "sync.casesHistory": _sync_cases_history,
     "sync.updateAutoConfig": _sync_update_auto_config,
     # webhooks
     "webhooks.list": _webhooks_list,

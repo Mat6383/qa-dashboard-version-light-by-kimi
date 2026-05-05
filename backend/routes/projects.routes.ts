@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/:projectId/runs', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
     const activeOnly = req.query.active !== 'false'; // Par défaut: actifs seulement
 
     const runs = await testmoService.getProjectRuns(projectId, activeOnly);
@@ -49,7 +49,7 @@ router.get('/:projectId/runs', validateParams(projectIdParam), async (req, res) 
  */
 router.get('/:projectId/milestones', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
 
     const milestones = await testmoService.getProjectMilestones(projectId);
 
@@ -69,7 +69,7 @@ router.get('/:projectId/milestones', validateParams(projectIdParam), async (req,
  */
 router.get('/:projectId/automation', validateParams(projectIdParam), async (req, res) => {
   try {
-    const projectId = parseInt(req.params.projectId);
+    const projectId = parseInt(req.params.projectId as string);
 
     const automationRuns = await testmoService.getAutomationRuns(projectId);
 

@@ -1,13 +1,18 @@
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, CheckSquare } from 'lucide-react';
+import { Activity, CheckSquare, LineChart, GitCompare, Globe, TrendingUp, Settings } from 'lucide-react';
 import TestClosureModal from './TestClosureModal';
 import { useExportPDF } from '../hooks/useExportPDF';
 import QuickClosureModal from './QuickClosureModal';
 import ReportGeneratorModal from './ReportGeneratorModal';
 import PreprodSection from './PreprodSection';
 import ProductionSection from './ProductionSection';
+import HistoricalTrends from './HistoricalTrends';
+import CompareDashboard from './CompareDashboard';
+import Dashboard5 from './Dashboard5';
+import Dashboard6 from './Dashboard6';
 import '../styles/Dashboard4.css';
+import '../styles/Tabs.css';
 
 const DEFAULT_RATES = {
   escapeRate: 0,
@@ -19,6 +24,14 @@ const DEFAULT_RATES = {
   prodMilestone: 'N/A',
   message: 'Indisponible',
 };
+
+const tabs = [
+  { id: 'overview', labelKey: 'dashboard4.overview', icon: Globe },
+  { id: 'historical', labelKey: 'dashboard4.historical', icon: LineChart },
+  { id: 'compare', labelKey: 'dashboard4.compare', icon: GitCompare },
+  { id: 'annual-trends', labelKey: 'dashboard4.annualTrends', icon: TrendingUp },
+  { id: 'gitlab-sync', labelKey: 'dashboard4.gitlabSync', icon: Settings },
+];
 
 const Dashboard4 = ({
   metrics,
@@ -35,6 +48,7 @@ const Dashboard4 = ({
 }) => {
   const { t } = useTranslation();
   const dashboardRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('overview');
   const [showAllRuns, setShowAllRuns] = React.useState(false);
   const [showClosureModal, setShowClosureModal] = React.useState(false);
   const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
@@ -80,17 +94,8 @@ const Dashboard4 = ({
     };
   }, [setExportHandler]);
 
-  if (!metrics || !project) {
-    return (
-      <div className="tv-loading">
-        <Activity size={48} className="spinner" />
-        <h2>{t('dashboard4.loading')}</h2>
-      </div>
-    );
-  }
-
   const d1 = metrics;
-  const raw = d1.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
+  const raw = d1?.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
 
   return (
     <div className="dashboard4-root">
@@ -111,66 +116,118 @@ const Dashboard4 = ({
         </div>
       )}
 
-      <div
-        ref={dashboardRef}
-        className={`tv-dashboard dashboard4-card ${isDark ? 'tv-dark-theme' : ''}`}
-      >
-        <header className="dashboard4-hidden-header">{/* Ancien header masqué */}</header>
-        {(project || latestRun) && (
-          <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
-            <span className="dashboard4-project-name">{project?.name}</span>
-            {latestRun && (
-              <>
-                <span className="dashboard4-separator">—</span>
-                <span className="dashboard4-run-name">
-                  {latestRun.name}
-                </span>
-                <span className="dashboard4-badge">
-                  {t('dashboard4.inProgress')}
-                </span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Boutons d'action */}
-        <div className="dashboard4-actions">
-          <button className="btn-action btn-action-primary" onClick={() => setShowClosureModal(true)}>
-            <CheckSquare size={16} /> {t('dashboard4.testClosure')}
-          </button>
-          <button className="btn-action btn-action-success" onClick={() => setShowQuickClosureModal(true)}>
-            <CheckSquare size={16} /> {t('dashboard4.quickClosure')}
-          </button>
-          <button className="btn-action btn-action-secondary" onClick={() => setShowReportGenerator(true)}>
-            <CheckSquare size={16} /> {t('dashboard4.reportGenerator')}
-          </button>
-        </div>
-
-        <PreprodSection
-          metrics={metrics}
-          raw={raw}
-          sortedRuns={sortedRuns}
-          showAllRuns={showAllRuns}
-          setShowAllRuns={setShowAllRuns}
-          isDark={isDark}
-          useBusiness={useBusiness}
-          getAlertForMetric={getAlertForMetric}
-          anomalies={anomalies}
-        />
-
-        <ProductionSection
-          rates={rates}
-          escapeOk={escapeOk}
-          ddpOk={ddpOk}
-          showProductionSection={showProductionSection}
-          onToggleProductionSection={onToggleProductionSection}
-          isDark={isDark}
-          useBusiness={useBusiness}
-          anomalies={anomalies}
-        />
+      <div className="tabs-list" role="tablist" aria-label={t('dashboard4.title')} style={{ marginBottom: 'var(--spacing-md)' }}>
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`d4-tabpanel-${tab.id}`}
+              id={`d4-tab-${tab.id}`}
+              className={`tab-item ${isActive ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              <Icon size={16} />
+              {t(tab.labelKey)}
+            </button>
+          );
+        })}
       </div>
 
-      <TestClosureModal
+      {activeTab === 'overview' && (
+        <div ref={dashboardRef} role="tabpanel" id="d4-tabpanel-overview" aria-labelledby="d4-tab-overview">
+          {!metrics || !project ? (
+            <div className="tv-loading">
+              <Activity size={48} className="spinner" />
+              <h2>{t('dashboard4.loading')}</h2>
+            </div>
+          ) : (
+          <div className={`tv-dashboard dashboard4-card ${isDark ? 'tv-dark-theme' : ''}`}>
+            <header className="dashboard4-hidden-header">{/* Ancien header masqué */}</header>
+            {(project || latestRun) && (
+              <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
+                <span className="dashboard4-project-name">{project?.name}</span>
+                {latestRun && (
+                  <>
+                    <span className="dashboard4-separator">—</span>
+                    <span className="dashboard4-run-name">{latestRun.name}</span>
+                    <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Boutons d'action */}
+            <div className="dashboard4-actions">
+              <button className="btn-action btn-action-primary" onClick={() => setShowClosureModal(true)}>
+                <CheckSquare size={16} /> {t('dashboard4.testClosure')}
+              </button>
+              <button className="btn-action btn-action-success" onClick={() => setShowQuickClosureModal(true)}>
+                <CheckSquare size={16} /> {t('dashboard4.quickClosure')}
+              </button>
+              <button className="btn-action btn-action-secondary" onClick={() => setShowReportGenerator(true)}>
+                <CheckSquare size={16} /> {t('dashboard4.reportGenerator')}
+              </button>
+            </div>
+
+            <PreprodSection
+              metrics={metrics}
+              raw={raw}
+              sortedRuns={sortedRuns}
+              showAllRuns={showAllRuns}
+              setShowAllRuns={setShowAllRuns}
+              isDark={isDark}
+              useBusiness={useBusiness}
+              getAlertForMetric={getAlertForMetric}
+              anomalies={anomalies}
+            />
+
+            <ProductionSection
+              rates={rates}
+              escapeOk={escapeOk}
+              ddpOk={ddpOk}
+              showProductionSection={showProductionSection}
+              onToggleProductionSection={onToggleProductionSection}
+              isDark={isDark}
+              useBusiness={useBusiness}
+              anomalies={anomalies}
+            />
+          </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'historical' && (
+        <div role="tabpanel" id="d4-tabpanel-historical" aria-labelledby="d4-tab-historical">
+          <HistoricalTrends projectId={projectId} isDark={isDark} />
+        </div>
+      )}
+
+      {activeTab === 'compare' && (
+        <div role="tabpanel" id="d4-tabpanel-compare" aria-labelledby="d4-tab-compare">
+          <CompareDashboard isDark={isDark} />
+        </div>
+      )}
+
+      {activeTab === 'annual-trends' && (
+        <div role="tabpanel" id="d4-tabpanel-annual-trends" aria-labelledby="d4-tab-annual-trends">
+          <Dashboard5 projectId={projectId} isDark={isDark} useBusiness={useBusiness} />
+        </div>
+      )}
+
+      {activeTab === 'gitlab-sync' && (
+        <div role="tabpanel" id="d4-tabpanel-gitlab-sync" aria-labelledby="d4-tab-gitlab-sync">
+          <Dashboard6 isDark={isDark} />
+        </div>
+      )}
+
+      {metrics && project && (
+        <>
+          <TestClosureModal
         isOpen={showClosureModal}
         onClose={() => setShowClosureModal(false)}
         metrics={metrics}
@@ -195,6 +252,8 @@ const Dashboard4 = ({
         project={project}
         isDark={isDark}
       />
+        </>
+      )}
     </div>
   );
 };

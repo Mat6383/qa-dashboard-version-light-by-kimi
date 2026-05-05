@@ -77,12 +77,11 @@
     "standard": "Dashboard 1 (Standard)",
     "tv": "Dashboard 2 (TV)",
     "qualityRates": "Dashboard 3 (Quality Rates)",
+    "tools": "🛠️ Tools",
     "globalView": "Dashboard 4 (Global View & PDF)",
-    "annualTrends": "Dashboard 5 (Annual Trends)",
     "multiProject": "Dashboard 6 (Multi-Projects)",
     "historicalTrends": "📈 Historical Trends",
     "compare": "🔀 Comparator",
-    "syncGitlabToTestmo": "⚙ Sync GitLab → Testmo",
     "configuration": "⚙️ Cycle Configuration",
     "crosstest": "🔗 CrossTest OK",
     "autoSync": "🤖 Auto-Sync Testmo → GitLab",
@@ -402,12 +401,30 @@
     "statusTitle": "Status",
     "priorityTitle": "Priority"
   },
+  "tools": {
+    "title": "Tools",
+    "syncGitlabToTestmo": "Sync GitLab → Testmo",
+    "configuration": "Cycle Configuration",
+    "crosstest": "CrossTest OK",
+    "autoSync": "Auto-Sync Testmo → GitLab"
+  },
+  "dashboard4": {
+    "overview": "Global View",
+    "historical": "Historical Trends",
+    "compare": "Comparator",
+    "annualTrends": "Annual Trends",
+    "gitlabSync": "Sync GitLab → Testmo",
+    "loading": "Loading ISTQB data...",
+    "project": "Project:",
+    "inProgress": "In Progress",
+    "testClosure": "Test Closure",
+    "quickClosure": "Quick Closure DOCX",
+    "reportGenerator": "HTML / PPTX Report"
+  },
   "nav": {
-    "home": "Home",
     "global": "Global",
-    "quality": "Quality",
     "compare": "Compare",
-    "config": "Config",
+    "tools": "Tools",
     "flags": "Flags"
   },
   "breadcrumb": {
@@ -432,13 +449,5 @@
     "doughnutTitle": "Test Status Distribution",
     "barTitleBusiness": "Status Distribution",
     "barTitle": "Status Distribution"
-  },
-  "dashboard4": {
-    "loading": "Loading ISTQB data...",
-    "project": "Project:",
-    "inProgress": "In Progress",
-    "testClosure": "Test Closure",
-    "quickClosure": "Quick Closure DOCX",
-    "reportGenerator": "HTML / PPTX Report"
   }
 }

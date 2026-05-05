@@ -10,7 +10,7 @@
  */
 
 import './bootstrap/dotenv';
-import express from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 import passport from 'passport';
 import cookieParser from 'cookie-parser';
 import logger from './services/logger.service';
@@ -21,7 +21,6 @@ import { validate as validateEnv } from './bootstrap/envCheck';
 import { setupSecurity } from './middleware/security';
 import { metricsMiddleware } from './middleware/metrics';
 import requestLogger from './middleware/requestLogger';
-import autoSyncJob from './jobs/autoSyncJob';
 import metricsSnapshotJob from './jobs/metricsSnapshotJob';
 import auditPruneJob from './jobs/auditPruneJob';
 import backupJob from './jobs/backupJob';
@@ -39,7 +38,6 @@ import usersService from './services/users.service';
 import auditService from './services/audit.service';
 import analyticsService from './services/analytics.service';
 import retentionService from './services/retention.service';
-import integrationService from './services/integration.service';
 import './services/webhooks.service';
 
 import healthRoutes from './routes/health.routes';
@@ -48,9 +46,6 @@ import projectsRoutes from './routes/projects.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import runsRoutes from './routes/runs.routes';
 import reportsRoutes from './routes/reports.routes';
-import syncRoutes from './routes/sync.routes';
-import testmoBrowserRoutes from './routes/testmoBrowser.routes';
-import crosstestRoutes from './routes/crosstest.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import pdfRoutes from './routes/pdf.routes';
 import exportRoutes from './routes/export.routes';
@@ -107,9 +102,6 @@ app.use('/api/projects', projectsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/runs', runsRoutes);
 app.use('/api/reports', reportsRoutes);
-app.use('/api/sync', syncRoutes);
-app.use('/api/testmo-browser', testmoBrowserRoutes);
-app.use('/api/crosstest', crosstestRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/export', exportRoutes);
@@ -136,25 +128,27 @@ app.use((req, res) => {
 const { errorHandler: sentryErrorHandler } = sentryService.getMiddlewares();
 app.use(sentryErrorHandler);
 
-app.use((err: any, req: any, res: any, _next: any) => {
+const globalErrorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   logger.error('Erreur non gérée:', {
-    message: err.message,
-    stack: err.stack,
+    message: (err as Error).message,
+    stack: (err as Error).stack,
     path: req.path,
     method: req.method,
   });
-  res.status(err.status || 500).json({
+  res.status((err as any).status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Erreur interne du serveur' : err.message,
+    error: process.env.NODE_ENV === 'production' ? 'Erreur interne du serveur' : (err as Error).message,
     timestamp: new Date().toISOString(),
   });
-});
+};
 
-let server: any;
+app.use(globalErrorHandler);
+
+import type { Server } from 'http';
+let server: Server | undefined;
 
 // ─── Démarrage (hors mode test) ─────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  autoSyncJob.start();
   metricsSnapshotJob.start();
   auditPruneJob.start();
   backupJob.start();
@@ -165,14 +159,14 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`Server ready on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   });
 
-  setupWebSocket(server);
+  const { wss, heartbeat } = setupWebSocket(server);
 
   server.on('error', (error: Error) => {
     logger.error('Erreur au démarrage du serveur:', (error as Error).message);
     process.exit(1);
   });
 
-  gracefulShutdown.setup(server);
+  gracefulShutdown.setup(server, wss, heartbeat);
 }
 
 export { server };

@@ -7,9 +7,9 @@ import metricSnapshotsService from './metricSnapshots.service';
 const DB_DIR = process.env.DB_DATA_DIR || path.join(__dirname, '../db');
 const DB_PATH = path.join(DB_DIR, 'sync-history.db');
 
-interface InsightInput {
+export interface InsightInput {
   project_id: number;
-  type: 'trend' | 'pattern' | 'recommendation' | 'anomaly';
+  type: 'trend' | 'pattern' | 'recommendation' | 'anomaly' | 'smart_alert';
   title: string;
   message: string;
   confidence?: number;

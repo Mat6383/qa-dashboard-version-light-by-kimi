@@ -1,28 +1,96 @@
 # Architecture Python — QA Dashboard Backend (React conservé)
 
-> **Scope** : migration du backend Node/Express/tRPC → FastAPI + SQLAlchemy.  
-> **Le frontend React reste inchangé** ; seule l'URL d'API éventuellement change.
+> **Scope** : backend actif en production (`backend_py/`). Le legacy Node.js (`backend/`) est en mode maintenance warm-standby.  
+> **Le frontend React reste inchangé** ; il pointe vers `localhost:3001` (Python) par défaut.  
+> **Date de mise à jour** : 2026-05-05 (post-P34 cutover + P31 cases sync)
 
 ---
 
 ## 1. Vision & Décisions
 
-| Question         | Décision                                    | Justification                                                     |
-| ---------------- | ------------------------------------------- | ----------------------------------------------------------------- |
-| **Backend**      | FastAPI + SQLAlchemy 2.0 + Alembic          | Async natif, validation Pydantic, OpenAPI auto, écosystème mature |
-| **DB**           | SQLite (mêmes fichiers `.db`)               | Migration zero-downtime des données ; WAL mode conservé           |
-| **Frontend**     | **React 18 conservé tel quel**              | Seuls les appels API évoluent (tRPC → REST ou bridge)             |
-| **Auth**         | OAuth2 GitLab + JWT (`python-jose`)         | Équivalent fonctionnel au Passport.js actuel                      |
-| **Jobs**         | APScheduler (async)                         | Remplace `node-cron`, intégré à FastAPI lifespan                  |
-| **PDF**          | Playwright (`playwright-python`)            | Remplace Puppeteer, même moteur Chromium                          |
-| **Excel/CSV**    | `openpyxl` + `csv` stdlib                   | Remplace ExcelJS                                                  |
-| **PPTX**         | `python-pptx`                               | Remplace `pptxgenjs`                                              |
-| **Email**        | `aiosmtplib`                                | Remplace Nodemailer                                               |
-| **Monitoring**   | `prometheus-client` + `sentry-sdk[fastapi]` | Équivalent fonctionnel                                            |
-| **WebSocket**    | FastAPI native `WebSocket`                  | Remplace `ws` library                                             |
-| **SSE**          | FastAPI `StreamingResponse`                 | Native                                                            |
-| **HTTP externe** | `httpx` (async) + `tenacity`                | Remplace Axios + circuit breaker maison                           |
-| **Migrations**   | Alembic + runner SQL legacy                 | Rejoue les `.sql` existants puis Alembic pour la suite            |
+| Question          | Décision                                       | Justification                                                                     |
+| ----------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Backend actif** | FastAPI + SQLAlchemy 2.0 + Alembic (port 3001) | Async natif, validation Pydantic, OpenAPI auto. Remplace progressivement Node.js. |
+| **DB**            | SQLite (mêmes fichiers `.db`)                  | 2 engines : `sync-history.db` + `crosstest-comments.db`. WAL mode.                |
+| **Frontend**      | **React 18 conservé tel quel**                 | Seuls les appels API évoluent (tRPC → REST ou bridge)                             |
+| **Auth**          | OAuth2 GitLab + JWT (`python-jose`)            | Équivalent fonctionnel au Passport.js actuel. `X-Admin-Token` pour API admin.     |
+| **Jobs**          | APScheduler (async)                            | Remplace `node-cron`, intégré à FastAPI lifespan                                  |
+| **PDF**           | Playwright (`playwright-python`)               | Remplace Puppeteer, même moteur Chromium                                          |
+| **Excel/CSV**     | `openpyxl` + `csv` stdlib                      | Remplace ExcelJS                                                                  |
+| **PPTX**          | `python-pptx`                                  | Remplace `pptxgenjs`                                                              |
+| **Email**         | `aiosmtplib`                                   | Remplace Nodemailer                                                               |
+| **Monitoring**    | `prometheus-client` + `sentry-sdk[fastapi]`    | Endpoint `/metrics` + health checks liveness/readiness/detailed.                  |
+| **WebSocket**     | FastAPI native `WebSocket`                     | Remplace `ws` library                                                             |
+| **SSE**           | FastAPI `StreamingResponse`                    | Native                                                                            |
+| **HTTP externe**  | `httpx` (async) + `tenacity`                   | Remplace Axios + circuit breaker maison                                           |
+| **Migrations**    | Alembic + runner SQL legacy                    | 3 révisions : init, gitlab_connector, sync_case_runs + auto_sync_config           |
+
+---
+
+## 1.5 Architecture actuelle — Double backend (post-P34)
+
+Le système est un dashboard QA full-stack qui orchestre la synchronisation bidirectionnelle **Testmo ↔ GitLab**.
+
+```
+┌─────────────────┐      ┌─────────────────────────────┐      ┌─────────────────┐
+│   React 18      │─────▶│  Proxy Vite → localhost:3001│─────▶│  FastAPI Python │
+│   (port 3000)   │      │                             │      │  (port 3001)    │
+└─────────────────┘      └─────────────────────────────┘      └─────────────────┘
+                                                                │
+                              ┌─────────────────┐               ▼
+                              │  Node.js Legacy │◄──────── SQLite (sync-history.db)
+                              │  (warm-standby) │         + crosstest-comments.db
+                              └─────────────────┘
+```
+
+| Composant           | Rôle                                                                             | Port                         | Statut         |
+| ------------------- | -------------------------------------------------------------------------------- | ---------------------------- | -------------- |
+| **FastAPI Python**  | Backend actif : sync, cases, health, auth, webhooks, feature-flags, exports, SSE | 3001                         | ✅ Production  |
+| **Node.js Express** | Legacy : dashboard, runs, projects, reports (REST + tRPC), Puppeteer             | 3001 (dev via proxy) ou 3002 | ⚠️ Maintenance |
+| **React 18 + Vite** | Frontend : 8 dashboards, modals, exports                                         | 3000                         | ✅ Actif       |
+
+### Cutover P34 (2026-05-05)
+
+Routes désormais 100 % Python :
+
+- `/api/sync/*` — preview, execute, cases, history, projects, iterations
+- `/api/testmo-browser/*` — Playwright (remplace Puppeteer)
+- `/api/crosstest/*` — comments, status
+
+Services Node.js supprimés : `sync.service.ts`, `status-sync.service.ts`, `testmoBrowser.service.ts`, `auto-sync-config.service.ts`
+
+### P31 — Cases Sync (Routine B)
+
+La synchronisation GitLab → Testmo **Cases** (et non Automation Runs) est implémentée en Python :
+
+```
+backend_py/app/services/
+├── case_sync.py       ← Orchestration : find iteration → fetch issues → folder hierarchy → create/update cases
+├── sync_mapper.py     ← Mapping statuts, extraction steps depuis notes GitLab
+├── testmo.py          ← Repository cases : get_cases, create_cases, update_case, get_folders, create_folder
+└── gitlab.py          ← Issues + itérations via REST/GraphQL
+```
+
+Routes REST :
+
+- `POST /api/sync/cases/preview` — Dry-run
+- `POST /api/sync/cases/execute` — SSE stream (création/mise à jour cases)
+- `GET /api/sync/cases/history` — Historique `SyncCaseRun`
+
+tRPC bridge : `sync.previewCases`, `sync.executeCases`
+
+Modèle `SyncCaseRun` (table `sync_case_runs`) :
+
+```python
+class SyncCaseRun(Base):
+    __tablename__ = "sync_case_runs"
+    id, project_id, iteration_name, folder_id, folder_url
+    stats_created, stats_updated, stats_skipped, stats_errors
+    details: JSON
+    created_at
+```
+
+Modèle `AutoSyncConfig` — champ `mode` (`"cases"` | `"automation"`), défaut `"cases"`.
 
 ---
 
@@ -82,7 +150,8 @@ backend_py/
 │   │   ├── testmo.py           # Client Testmo + cache + circuit breaker
 │   │   ├── gitlab.py           # Client GitLab REST/GraphQL + circuit breaker
 │   │   ├── gitlab_connector.py
-│   │   ├── sync.py             # Sync GitLab → Testmo
+│   │   ├── sync.py             # Sync GitLab → Testmo (automation runs)
+│   │   ├── case_sync.py        # Sync GitLab → Testmo Cases (Routine B)
 │   │   ├── status_sync.py      # Sync Testmo → GitLab
 │   │   ├── report.py           # Orchestration rapports
 │   │   ├── report/
@@ -129,16 +198,38 @@ backend_py/
 Tous les modèles héritent de `Base` et utilisent `Mapped[]` + `mapped_column` (SQLA 2.0 style).
 Les types JSON sont stockés en `JSON` (SQLite les sérialise en TEXT natif).
 
+### Tables principales
+
+| Table                   | Modèle                | Description                                                     |
+| ----------------------- | --------------------- | --------------------------------------------------------------- |
+| `sync_runs`             | `SyncRun`             | Historique des sync automation runs (legacy P30)                |
+| `sync_case_runs`        | `SyncCaseRun`         | Historique des sync cases GitLab → Testmo (P31)                 |
+| `auto_sync_config`      | `AutoSyncConfig`      | Configuration du job auto-sync (champ `mode`: cases/automation) |
+| `metric_snapshots`      | `MetricSnapshot`      | Snapshots quotidiens des métriques pour tendances               |
+| `feature_flags`         | `FeatureFlag`         | Feature flags avec rollout progressif                           |
+| `webhook_subscriptions` | `WebhookSubscription` | Webhooks sortants HMAC-SHA256                                   |
+| `audit_log`             | `AuditLog`            | Traçabilité des actions admin                                   |
+| `integrations`          | `Integration`         | Connecteurs GitLab, Jira, etc.                                  |
+| `analytics_insights`    | `AnalyticsInsight`    | Détection de patterns par IA                                    |
+| `retention_policies`    | `RetentionPolicy`     | Politiques d'archivage                                          |
+| `archived_snapshots`    | `ArchivedSnapshot`    | Données archivées                                               |
+| `users`                 | `User`                | Utilisateurs OAuth GitLab + JWT                                 |
+| `comments`              | `Comment`             | Commentaires crosstest                                          |
+
 ### Base de données multiples
 
-L'application actuelle utilise 2 fichiers `.db`. En SQLAlchemy on configure 2 `Engine` :
+L'application utilise 2 fichiers `.db` avec 2 `Engine` SQLAlchemy :
 
 - `engine_main` → `sync-history.db` (toutes les tables opérationnelles)
 - `engine_comments` → `crosstest-comments.db`
 
-On utilise un `sessionmaker` par engine et une factory de dépendance FastAPI qui route vers le bon engine selon le contexte (ou on merge en une seule DB via Alembic lors de la migration).
+Un `sessionmaker` par engine et une factory de dépendance FastAPI route vers le bon engine selon le contexte.
 
-**Recommandation migration** : lors du premier déploiement Python, faire migrer Alembic qui crée toutes les tables dans un seul fichier SQLite (plus simple), avec un script de reprise des données depuis les 2 fichiers legacy.
+**Migration Alembic** : `alembic upgrade head` crée toutes les tables. 3 révisions existantes :
+
+1. `cf4371bc740e` — Init (tables de base)
+2. `8a0998e7f55f` — GitLab connector + indexes
+3. `c64826df80ff` — `sync_case_runs` + `auto_sync_config`
 
 ---
 

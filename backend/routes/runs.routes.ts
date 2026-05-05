@@ -10,7 +10,7 @@ import { validateParams, validateQuery, runIdParam, runResultsQuery } from '../v
  */
 router.get('/:runId', validateParams(runIdParam), async (req, res) => {
   try {
-    const runId = parseInt(req.params.runId);
+    const runId = parseInt(req.params.runId as string);
 
     const runDetails = await testmoService.getRunDetails(runId);
 
@@ -30,10 +30,10 @@ router.get('/:runId', validateParams(runIdParam), async (req, res) => {
  */
 router.get('/:runId/results', validateParams(runIdParam), validateQuery(runResultsQuery), async (req, res) => {
   try {
-    const runId = parseInt(req.params.runId);
-    const statusFilter = req.query.status; // Ex: '3,5' pour Failed+Blocked
+    const runId = parseInt(req.params.runId as string);
+    const { status: statusFilter } = req.validatedQuery as { status?: string };
 
-    const results = await testmoService.getRunResults(runId, (statusFilter as string) || undefined);
+    const results = await testmoService.getRunResults(runId, statusFilter);
 
     res.json({
       success: true,

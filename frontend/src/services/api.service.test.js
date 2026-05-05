@@ -169,7 +169,7 @@ describe('api.service', () => {
     await apiService.previewSync('neo-pilot', 'R10');
     expect(axiosMockState.mockPost).toHaveBeenCalledWith(
       '/sync/preview',
-      { project_id: 'neo-pilot', iteration_name: 'R10' },
+      { projectId: 'neo-pilot', iterationName: 'R10' },
       { timeout: 60000 }
     );
   });
