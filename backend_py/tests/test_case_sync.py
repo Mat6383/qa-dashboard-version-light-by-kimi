@@ -203,7 +203,7 @@ async def test_sync_iteration_updates_existing_case(svc: CaseSyncService) -> Non
         mock_issues.return_value = [{"iid": 1, "title": "Existing case"}]
         mock_notes.return_value = []
         mock_folder.return_value = {"id": 99}
-        mock_cases.return_value = [{"id": 50, "name": "Existing case"}]
+        mock_cases.return_value = [{"id": 50, "name": "Existing case", "custom_description": "Old description"}]
         mock_update.return_value = {"updated": True}
 
         result = await svc.sync_iteration(1, 1, "R06")
@@ -240,6 +240,7 @@ async def test_sync_iteration_dry_run(svc: CaseSyncService) -> None:
          patch("app.services.case_sync.gitlab_service.get_issues_by_label_and_iteration", new_callable=AsyncMock) as mock_issues, \
          patch("app.services.case_sync.gitlab_service.get_issue_notes", new_callable=AsyncMock) as mock_notes, \
          patch("app.services.case_sync.testmo_service.get_or_create_folder", new_callable=AsyncMock) as mock_folder, \
+         patch("app.services.case_sync.testmo_service._find_folder_by_name", new_callable=AsyncMock) as mock_find_folder, \
          patch("app.services.case_sync.testmo_service.get_cases", new_callable=AsyncMock) as mock_cases, \
          patch("app.services.case_sync.testmo_service.create_cases") as mock_create, \
          patch("app.services.case_sync.testmo_service.update_case") as mock_update:
@@ -250,7 +251,8 @@ async def test_sync_iteration_dry_run(svc: CaseSyncService) -> None:
         ]
         mock_notes.return_value = []
         mock_folder.return_value = {"id": 99}
-        mock_cases.return_value = [{"id": 50, "name": "Old"}]
+        mock_find_folder.return_value = {"id": 99}
+        mock_cases.return_value = [{"id": 50, "name": "Old", "custom_description": "Old description"}]
 
         result = await svc.preview_sync_iteration(1, 1, "R06")
 
@@ -325,3 +327,34 @@ async def test_sync_iteration_to_dict(svc: CaseSyncService) -> None:
         result = await svc.sync_iteration(1, 1, "R06")
         d = result.to_dict()
     assert d == {"created": 0, "updated": 0, "skipped": 0, "errors": 0, "folder_id": None, "folder_name": None, "details": []}
+
+
+@pytest.mark.asyncio
+async def test_sync_iteration_prefetches_notes_in_parallel(svc: CaseSyncService) -> None:
+    with patch("app.services.case_sync.gitlab_service.find_iteration_for_project", new_callable=AsyncMock) as mock_iter, \
+         patch("app.services.case_sync.gitlab_service.get_issues_by_label_and_iteration", new_callable=AsyncMock) as mock_issues, \
+         patch("app.services.case_sync.gitlab_service.get_issue_notes", new_callable=AsyncMock) as mock_notes, \
+         patch("app.services.case_sync.gitlab_service.update_issue_label", new_callable=AsyncMock), \
+         patch("app.services.case_sync.testmo_service.get_or_create_folder", new_callable=AsyncMock) as mock_folder, \
+         patch("app.services.case_sync.testmo_service.get_cases", new_callable=AsyncMock) as mock_cases, \
+         patch("app.services.case_sync.testmo_service.create_cases", new_callable=AsyncMock) as mock_create:
+        mock_iter.return_value = {"id": 10, "title": "R06"}
+        mock_issues.return_value = [
+            {"iid": 1, "title": "A"},
+            {"iid": 2, "title": "B"},
+            {"iid": 3, "title": "C"},
+        ]
+        mock_notes.return_value = []
+        mock_folder.return_value = {"id": 99}
+        mock_cases.return_value = []
+        mock_create.return_value = [{"id": 100}, {"id": 101}, {"id": 102}]
+
+        result = await svc.sync_iteration(1, 1, "R06")
+
+    assert result.created == 3
+    assert mock_notes.call_count == 3
+    assert mock_notes.call_args_list == [
+        ((1, 1),),
+        ((1, 2),),
+        ((1, 3),),
+    ]

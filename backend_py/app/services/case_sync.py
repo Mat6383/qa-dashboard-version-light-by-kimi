@@ -273,11 +273,35 @@ class CaseSyncService:
             result.details.append({"error": f"Failed to fetch cases: {exc}"})
             return result
 
-        # 5. Process each issue
+        # 5. Pre-fetch all notes in parallel
+        note_tasks: list[Any] = []
+        for issue in issues:
+            iid = issue.get("iid")
+            if iid is not None:
+                note_tasks.append(gitlab_service.get_issue_notes(gitlab_project_id, cast(int, iid)))
+
+        notes_results = await asyncio.gather(*note_tasks, return_exceptions=True)
+        notes_by_iid: dict[int, list[dict[str, Any]]] = {}
+        for issue, notes_res in zip(issues, notes_results):
+            iid = issue.get("iid")
+            if isinstance(notes_res, Exception):
+                logger.warning("Failed to fetch notes", extra={"iid": iid, "error": str(notes_res)})
+                notes_by_iid[cast(int, iid)] = []
+            else:
+                notes_by_iid[cast(int, iid)] = notes_res
+
+        # 6. Process each issue
         for issue in issues:
             iid = issue.get("iid")
             title = issue.get("title", "")
             detail: dict[str, Any] = {"iid": iid, "title": title}
+            notes = notes_by_iid.get(cast(int, iid), [])
+
+            payload = build_case_payload(
+                issue, notes, cast(int, folder_id), gitlab_project_id, iteration_name,
+                gitlab_integration_id=gitlab_integration_id,
+                gitlab_connection_project_id=gitlab_connection_project_id,
+            )
 
             try:
                 existing = cases_by_name.get(title)
@@ -295,21 +319,6 @@ class CaseSyncService:
                         result.details.append(detail)
                         continue
 
-                    # Fetch notes and build payload early to compare
-                    try:
-                        notes = await gitlab_service.get_issue_notes(
-                            gitlab_project_id, cast(int, iid)
-                        )
-                    except Exception as exc:
-                        logger.warning("Failed to fetch notes", extra={"iid": iid, "error": str(exc)})
-                        notes = []
-
-                    payload = build_case_payload(
-                        issue, notes, cast(int, folder_id), gitlab_project_id, iteration_name,
-                        gitlab_integration_id=gitlab_integration_id,
-                        gitlab_connection_project_id=gitlab_connection_project_id,
-                    )
-
                     if _is_case_identical(existing, payload):
                         result.skipped += 1
                         detail["action"] = "skipped"
@@ -318,34 +327,13 @@ class CaseSyncService:
                         continue
                     # Case exists but different: force update
 
-                # Fetch notes (if not already fetched above)
-                if not existing:
-                    try:
-                        notes = await gitlab_service.get_issue_notes(
-                            gitlab_project_id, cast(int, iid)
-                        )
-                    except Exception as exc:
-                        logger.warning("Failed to fetch notes", extra={"iid": iid, "error": str(exc)})
-                        notes = []
-
-                    payload = build_case_payload(
-                        issue, notes, cast(int, folder_id), gitlab_project_id, iteration_name,
-                        gitlab_integration_id=gitlab_integration_id,
-                        gitlab_connection_project_id=gitlab_connection_project_id,
-                    )
-
                 if dry_run:
-                    if existing and has_issue_link and _is_case_identical(existing, payload):
-                        result.skipped += 1
-                        detail["action"] = "skipped"
-                        detail["reason"] = "identical"
-                    elif existing:
+                    detail["action"] = "update" if existing else "create"
+                    result.details.append(detail)
+                    if existing:
                         result.updated += 1
-                        detail["action"] = "update"
                     else:
                         result.created += 1
-                        detail["action"] = "create"
-                    result.details.append(detail)
                     continue
 
                 if existing:
