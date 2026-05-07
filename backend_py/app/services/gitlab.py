@@ -255,6 +255,22 @@ class GitLabService:
             self._project_path_cache[project_id] = project["path_with_namespace"]
         return self._project_path_cache[project_id]
 
+    async def search_issue_by_title(
+        self, project_id: str | int, title: str
+    ) -> dict[str, Any] | None:
+        """Search for an issue by exact title match across the whole project."""
+        normalized_title = (title or "").lower().strip()
+        if not normalized_title:
+            return None
+        issues = await self._get_paginated(
+            f"/projects/{project_id}/issues",
+            {"search": title, "state": "all", "scope": "all", "per_page": 20},
+        )
+        for issue in issues:
+            if (issue.get("title") or "").lower().strip() == normalized_title:
+                return issue
+        return None
+
     async def get_issues_by_label_and_iteration(
         self,
         project_id: str | int,
