@@ -131,11 +131,11 @@ export default function Dashboard8({ isDark }) {
     setSaveStatus('saving');
     try {
       const patch = {
-        run_id:          form.testmoRunId ? Number(form.testmoRunId) : undefined,
-        iteration_name:  form.iterationName.trim() || undefined,
-        version:         form.versionProd.trim() || undefined,
+        run_id:          form.testmoRunId ? Number(form.testmoRunId) : null,
+        iteration_name:  form.iterationName.trim() || null,
+        version:         form.versionProd.trim() || null,
         gitlab_project_id: form.gitlabProjectId.trim(),
-        testmo_project_id: form.testmoProjectId ? Number(form.testmoProjectId) : undefined,
+        testmo_project_id: form.testmoProjectId ? Number(form.testmoProjectId) : null,
       };
       if (!patch.gitlab_project_id) {
         setSaveStatus('error');
