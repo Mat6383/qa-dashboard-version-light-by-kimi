@@ -157,7 +157,8 @@ async def _crosstest_delete_comment(input_data: dict[str, Any], db) -> dict[str,
 
 async def _dashboard_metrics(input_data: dict[str, Any], db) -> dict[str, Any]:
     project_id = input_data.get("projectId")
-    metrics = await testmo_service.get_project_metrics(project_id)
+    preprod = input_data.get("preprodMilestones")
+    metrics = await testmo_service.get_project_metrics(project_id, milestone_ids=preprod)
     return _result(metrics)
 
 

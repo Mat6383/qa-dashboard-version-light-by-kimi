@@ -118,6 +118,26 @@ async function apiCall<T>(operation: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+function mapSnakeToCamel(obj: Record<string, any>): Record<string, any> {
+  if (!obj || typeof obj !== 'object') return obj;
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    result[camelKey] = value;
+  }
+  return result;
+}
+
+function mapCamelToSnake(obj: Record<string, any>): Record<string, any> {
+  if (!obj || typeof obj !== 'object') return obj;
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    result[snakeKey] = value;
+  }
+  return result;
+}
+
 const apiService = {
   /**
    * Health check du backend
@@ -339,7 +359,15 @@ const apiService = {
   async previewSyncCases(
     projectId: string | number,
     iterationName: string,
-    options: { label?: string; rootFolderId?: number; testmoProjectId?: number } = {}
+    options: {
+      label?: string;
+      rootFolderId?: number;
+      testmoProjectId?: number;
+      gitlab_status?: string;
+      version_prod?: string;
+      version_test?: string;
+      run_name?: string;
+    } = {}
   ): Promise<SyncPreviewResult> {
     return apiCall('Preview Sync Cases', async () => {
       const response = await apiClient.post(
@@ -451,7 +479,7 @@ const apiService = {
   async getAutoSyncConfig(): Promise<AutoSyncConfig> {
     return apiCall('Get Auto-Sync Config', async () => {
       const response = await apiClient.get('/sync/auto-config');
-      return response.data.data;
+      return mapSnakeToCamel(response.data.data) as AutoSyncConfig;
     });
   },
 
@@ -460,8 +488,8 @@ const apiService = {
    */
   async updateAutoSyncConfig(patch: Partial<AutoSyncConfig>): Promise<AutoSyncConfig> {
     return apiCall('Update Auto-Sync Config', async () => {
-      const response = await apiClient.put('/sync/auto-config', patch);
-      return response.data.data;
+      const response = await apiClient.put('/sync/auto-config', mapCamelToSnake(patch));
+      return mapSnakeToCamel(response.data.data) as AutoSyncConfig;
     });
   },
 

@@ -178,10 +178,12 @@ class TestmoService:
         result: dict[str, Any] = await self._cached_request(key, _fetch)
         return result
 
-    async def get_project_metrics(self, project_id: int) -> dict[str, Any]:
+    async def get_project_metrics(self, project_id: int, milestone_ids: list[int] | None = None) -> dict[str, Any]:
         """Aggregate ISTQB/ITIL/LEAN KPIs from runs + sessions."""
         runs_data = await self.get_project_runs(project_id, active_only=True)
         runs = runs_data if isinstance(runs_data, list) else runs_data.get("result", [])
+        if milestone_ids:
+            runs = [r for r in runs if r.get("milestone_id") in milestone_ids]
 
         # Aggregated counters
         aggregated = {

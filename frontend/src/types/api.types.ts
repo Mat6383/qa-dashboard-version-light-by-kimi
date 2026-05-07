@@ -231,8 +231,13 @@ export interface AutoSyncConfig {
   runId: number | null;
   iterationName: string | null;
   gitlabProjectId: string | null;
+  testmoProjectId?: number | null;
   updatedAt: string | null;
   version?: string | null;
+  label?: string | null;
+  gitlabStatus?: string | null;
+  versionProd?: string | null;
+  versionTest?: string | null;
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────

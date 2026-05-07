@@ -122,6 +122,8 @@ class SyncStatusPayload(BaseModel):
     project_id: int | str
     iteration_name: str
     run_id: int | None = None
+    dry_run: bool = False
+    version: str | None = None
 
 
 class SyncHistoryResponse(BaseModel):
@@ -130,19 +132,25 @@ class SyncHistoryResponse(BaseModel):
 
 class SyncCasesPreviewPayload(BaseModel):
     project_id: int | str
-    iteration_name: str
+    iteration_name: str = ""
     label: str = "Test::TODO"
     root_folder_id: int = 4514
     testmo_project_id: int | None = None
+    gitlab_status: str | None = None
+    version_prod: str | None = None
+    run_name: str | None = None
 
 
 class SyncCasesExecutePayload(BaseModel):
     project_id: int | str
-    iteration_name: str
+    iteration_name: str = ""
     label: str = "Test::TODO"
     root_folder_id: int = 4514
     testmo_project_id: int | None = None
     dry_run: bool = False
+    gitlab_status: str | None = None
+    version_prod: str | None = None
+    run_name: str | None = None
 
 
 class AutoConfigResponse(BaseModel):

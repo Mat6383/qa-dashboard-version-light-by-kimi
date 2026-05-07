@@ -24,6 +24,7 @@ _CIRCUIT_BREAKERS: dict[str, CircuitBreaker] = {
 
 
 @router.get("/")
+@router.get("")
 async def health_check() -> dict[str, Any]:
     import time
     return {

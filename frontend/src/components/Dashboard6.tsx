@@ -54,6 +54,7 @@ export default function Dashboard6({ isDark }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [versionFilter, setVersionFilter] = useState('');
   const [versionDeTestFilter, setVersionDeTestFilter] = useState('');
+  const [runName, setRunName] = useState('');
   const [source, setSource] = useState('gitlab-sync');
   const [preview, setPreview] = useState(null); // { iteration, folder, issues, summary }
   const [logLines, setLogLines] = useState([]); // événements SSE
@@ -180,7 +181,13 @@ export default function Dashboard6({ isDark }) {
       const data = await apiService.previewSyncCases(
         selectedProject,
         selectedIter,
-        { label: labelCustomFilter.trim() || 'Test::TODO' }
+        {
+          label: labelCustomFilter.trim() || 'Test::TODO',
+          gitlab_status: statusFilter.trim() || undefined,
+          version_prod: versionFilter.trim() || undefined,
+          version_test: versionDeTestFilter.trim() || undefined,
+          run_name: runName.trim() || undefined,
+        }
       );
       setPreview(data);
       setState('preview');
@@ -214,6 +221,10 @@ export default function Dashboard6({ isDark }) {
       label: labelCustomFilter.trim() || 'Test::TODO',
       root_folder_id: 4514,
       dry_run: false,
+      gitlab_status: statusFilter.trim() || undefined,
+      version_prod: versionFilter.trim() || undefined,
+      version_test: versionDeTestFilter.trim() || undefined,
+      run_name: runName.trim() || undefined,
     };
 
     fetch(`${API_BASE}/sync/cases/execute`, {
@@ -562,6 +573,17 @@ export default function Dashboard6({ isDark }) {
                     value={versionDeTestFilter}
                     onChange={(e) => setVersionDeTestFilter(e.target.value)}
                     disabled={state === 'syncing' || state === 'analyzing'}
+                  />
+                </div>
+                <div className="d6-field">
+                  <label>Nom du run cible</label>
+                  <input
+                    className="d6-input"
+                    placeholder="Ex: R14 - run 3"
+                    value={runName}
+                    onChange={(e) => setRunName(e.target.value)}
+                    disabled={state === 'syncing' || state === 'analyzing'}
+                    title="Nom du dossier cible dans Testmo (indépendant de l'itération)"
                   />
                 </div>
                 <div className="d6-field">

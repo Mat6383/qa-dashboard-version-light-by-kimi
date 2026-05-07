@@ -1,14 +1,15 @@
 /**
  * ================================================
- * DASHBOARD 8 — Auto-Sync Control Panel
+ * DASHBOARD 8 — Auto-Sync Control Panel (Status Sync)
  * ================================================
  * Panneau de contrôle pour la synchronisation
- * automatique Testmo → GitLab.
+ * automatique Testmo → GitLab (status + commentaires).
  *
  * Fonctionnalités :
  *   - Voir & modifier la config cron à chaud
  *   - Activer / désactiver la sync automatique
- *   - Déclencher une sync manuelle (avec log SSE)
+ *   - Sélectionner un run Testmo
+ *   - Déclencher une sync manuelle (SSE)
  *   - Déclencher un dry-run pour prévisualiser
  *
  * @author Matou - Neo-Logix QA Lead
@@ -48,7 +49,7 @@ function LogLine({ entry }) {
   else if (entry.type === 'updated')
     text = `✓ #${entry.issueIid} "${entry.caseName}" → status:${entry.newStatus}`;
   else if (entry.type === 'would-update')
-    text = `[DRY] #${entry.issueIid} "${entry.caseName}" : ${entry.currentStatus || '∅'} → ${entry.newStatus}`;
+    text = `[DRY] #${entry.issueIid} "${entry.caseName}" → ${entry.newStatus}`;
   else if (entry.type === 'skip')
     text = `⊘ "${entry.caseName}" — ${entry.reason}`;
   else if (entry.type === 'error')
@@ -63,7 +64,15 @@ function LogLine({ entry }) {
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function Dashboard8({ isDark }) {
   const [config, setConfig]         = useState(null);
-  const [form, setForm]             = useState({ runId: '', iterationName: '', gitlabProjectId: '', version: '' });
+  const [form, setForm]             = useState({
+    testmoRunId: '',
+    iterationName: '',
+    versionProd: '',
+    gitlabProjectId: '',
+    testmoProjectId: '',
+  });
+  const [runs, setRuns]             = useState([]);
+  const [loadingRuns, setLoadingRuns] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'ok' | 'error'
   const [loadError, setLoadError]   = useState(null);
   const [runMode, setRunMode]       = useState(null); // 'live' | 'dryrun'
@@ -77,10 +86,11 @@ export default function Dashboard8({ isDark }) {
       const data = await apiService.getAutoSyncConfig();
       setConfig(data);
       setForm({
-        runId:           String(data.runId   ?? ''),
-        iterationName:   data.iterationName  ?? '',
+        testmoRunId:     data.runId ? String(data.runId) : '',
+        iterationName:   data.iterationName ?? '',
+        versionProd:     data.version ?? '',
         gitlabProjectId: String(data.gitlabProjectId ?? ''),
-        version:         data.version ?? '',
+        testmoProjectId: String(data.testmoProjectId ?? ''),
       });
     } catch (err) {
       setLoadError('Impossible de charger la config : ' + err.message);
@@ -94,17 +104,40 @@ export default function Dashboard8({ isDark }) {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
+  // ── Charger les runs Testmo ────────────────────────────────────────────────
+  const loadRuns = useCallback(async (projectId) => {
+    if (!projectId) return;
+    setLoadingRuns(true);
+    try {
+      const data = await apiService.getProjectRuns(Number(projectId), true);
+      const list = (data as any)?.runs || [];
+      setRuns(list);
+    } catch (err) {
+      console.error('Erreur chargement runs:', err);
+      setRuns([]);
+    } finally {
+      setLoadingRuns(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (form.testmoProjectId) {
+      loadRuns(Number(form.testmoProjectId));
+    }
+  }, [form.testmoProjectId, loadRuns]);
+
   // ── Sauvegarder la config ───────────────────────────────────────────────────
   const handleSave = async () => {
     setSaveStatus('saving');
     try {
       const patch = {
-        runId:           parseInt(form.runId),
-        iterationName:   form.iterationName.trim(),
-        gitlabProjectId: form.gitlabProjectId.trim(),
-        version:         form.version.trim() || undefined,
+        run_id:          form.testmoRunId ? Number(form.testmoRunId) : undefined,
+        iteration_name:  form.iterationName.trim() || undefined,
+        version:         form.versionProd.trim() || undefined,
+        gitlab_project_id: form.gitlabProjectId.trim(),
+        testmo_project_id: form.testmoProjectId ? Number(form.testmoProjectId) : undefined,
       };
-      if (!patch.runId || !patch.iterationName || !patch.gitlabProjectId) {
+      if (!patch.gitlab_project_id) {
         setSaveStatus('error');
         return;
       }
@@ -134,14 +167,24 @@ export default function Dashboard8({ isDark }) {
     if (running) return;
     setRunMode(dryRun ? 'dryrun' : 'live');
 
-    const { runId, iterationName, gitlabProjectId, version } = config;
-    if (!runId || !iterationName || !gitlabProjectId) {
+    // Use form values (allow launching without saving config)
+    const projectId = form.gitlabProjectId || config?.gitlabProjectId;
+    const runId     = form.testmoRunId     || config?.runId;
+    const iterName  = form.iterationName   || config?.iterationName;
+    const version   = form.versionProd     || config?.version;
+
+    if (!projectId || !runId) {
       stop();
       setRunMode(null);
       return;
     }
-
-    await start({ runId, iterationName, gitlabProjectId, dryRun, version: version || undefined });
+    await start({
+      project_id: projectId,
+      iteration_name: iterName || '',
+      run_id: Number(runId),
+      dry_run: dryRun,
+      version: version || undefined,
+    });
     setRunMode(null);
   };
 
@@ -188,10 +231,11 @@ export default function Dashboard8({ isDark }) {
   }
 
   const formDirty =
-    String(form.runId)           !== String(config.runId ?? '')           ||
-    form.iterationName            !== (config.iterationName ?? '')         ||
-    String(form.gitlabProjectId)  !== String(config.gitlabProjectId ?? '') ||
-    form.version                  !== (config.version ?? '');
+    form.testmoRunId              !== String(config.runId ?? '')            ||
+    form.iterationName            !== (config.iterationName ?? '')          ||
+    form.versionProd              !== (config.version ?? '')                ||
+    String(form.gitlabProjectId)  !== String(config.gitlabProjectId ?? '')  ||
+    String(form.testmoProjectId)  !== String(config.testmoProjectId ?? '');
 
   return (
     <div className={`d8-root ${isDark ? 'dark' : ''}`}>
@@ -244,24 +288,50 @@ export default function Dashboard8({ isDark }) {
           <div className="d8-card-title"><Save size={16} /> Configuration du run actif</div>
 
           <div className="d8-form-group">
-            <label>ID du run Testmo</label>
+            <label>Projet Testmo ID</label>
             <input
-              type="number"
+              type="text"
               className="d8-input"
-              value={form.runId}
-              placeholder="ex : 279"
-              onChange={e => setForm(f => ({ ...f, runId: e.target.value }))}
+              value={form.testmoProjectId}
+              placeholder="ex : 1"
+              onChange={e => setForm(f => ({ ...f, testmoProjectId: e.target.value }))}
             />
           </div>
 
           <div className="d8-form-group">
-            <label>Nom de l'itération GitLab</label>
+            <label>Run Testmo</label>
+            <select
+              className="d8-input"
+              value={form.testmoRunId}
+              onChange={e => setForm(f => ({ ...f, testmoRunId: e.target.value }))}
+              disabled={loadingRuns || !form.testmoProjectId}
+            >
+              <option value="">{loadingRuns ? 'Chargement…' : 'Choisir un run…'}</option>
+              {runs.map((r: any) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="d8-form-group">
+            <label>Itération GitLab (optionnel)</label>
             <input
               type="text"
               className="d8-input"
               value={form.iterationName}
               placeholder="ex : R14 - run 1"
               onChange={e => setForm(f => ({ ...f, iterationName: e.target.value }))}
+            />
+          </div>
+
+          <div className="d8-form-group">
+            <label>Version Prod (optionnel)</label>
+            <input
+              type="text"
+              className="d8-input"
+              value={form.versionProd}
+              placeholder="Ex: R14 - Pilot"
+              onChange={e => setForm(f => ({ ...f, versionProd: e.target.value }))}
             />
           </div>
 
@@ -273,17 +343,6 @@ export default function Dashboard8({ isDark }) {
               value={form.gitlabProjectId}
               placeholder="ex : 63"
               onChange={e => setForm(f => ({ ...f, gitlabProjectId: e.target.value }))}
-            />
-          </div>
-
-          <div className="d8-form-group">
-            <label>Version (champ custom GitLab, optionnel)</label>
-            <input
-              type="text"
-              className="d8-input"
-              value={form.version}
-              placeholder="ex : 1.2.3"
-              onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
             />
           </div>
 
@@ -303,10 +362,11 @@ export default function Dashboard8({ isDark }) {
               <button
                 className="d8-btn-ghost"
                 onClick={() => setForm({
-                  runId:           String(config.runId ?? ''),
+                  testmoRunId:     String(config.runId ?? ''),
                   iterationName:   config.iterationName ?? '',
+                  versionProd:     config.version ?? '',
                   gitlabProjectId: String(config.gitlabProjectId ?? ''),
-                  version:         config.version ?? '',
+                  testmoProjectId: String(config.testmoProjectId ?? ''),
                 })}
               >
                 Annuler
@@ -317,20 +377,20 @@ export default function Dashboard8({ isDark }) {
           {/* Résumé config active */}
           <div className="d8-config-summary">
             <div className="d8-summary-row">
-              <span>Run actif</span>
-              <strong>#{config.runId ?? '—'}</strong>
+              <span>Run Testmo</span>
+              <strong>{runs.find((r: any) => String(r.id) === String(config.runId))?.name || config.runId || '—'}</strong>
             </div>
             <div className="d8-summary-row">
               <span>Itération</span>
               <strong>{config.iterationName || '—'}</strong>
             </div>
             <div className="d8-summary-row">
-              <span>Projet GitLab</span>
-              <strong>#{config.gitlabProjectId || '—'}</strong>
+              <span>Version Prod</span>
+              <strong>{config.version || '—'}</strong>
             </div>
             <div className="d8-summary-row">
-              <span>Version</span>
-              <strong>{config.version || '—'}</strong>
+              <span>Projet GitLab</span>
+              <strong>#{config.gitlabProjectId || '—'}</strong>
             </div>
           </div>
         </div>
@@ -343,7 +403,7 @@ export default function Dashboard8({ isDark }) {
             <button
               className="d8-btn-primary"
               onClick={() => handleRun(false)}
-              disabled={running}
+              disabled={running || !(form.testmoRunId || config?.runId)}
             >
               {running && runMode === 'live'
                 ? <><RefreshCw size={14} className="spinning" /> Sync en cours…</>
@@ -353,7 +413,7 @@ export default function Dashboard8({ isDark }) {
             <button
               className="d8-btn-secondary"
               onClick={() => handleRun(true)}
-              disabled={running}
+              disabled={running || !(form.testmoRunId || config?.runId)}
             >
               {running && runMode === 'dryrun'
                 ? <><RefreshCw size={14} className="spinning" /> Dry-run…</>

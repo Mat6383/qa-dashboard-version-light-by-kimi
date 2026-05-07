@@ -50,7 +50,7 @@ describe('useCrosstest mutations', () => {
   it('deleteComment invalidates comments on success', async () => {
     mockMutateAsyncDelete.mockResolvedValue({ success: true });
     const { result } = renderHook(() => useDeleteCrosstestComment());
-    await result.current.mutateAsync({ iid: 1 });
+    await result.current.mutateAsync({ issue_iid: 1 });
     expect(mockInvalidateComments).toHaveBeenCalled();
   });
 });

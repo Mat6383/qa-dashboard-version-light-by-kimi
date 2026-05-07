@@ -151,12 +151,16 @@ const Dashboard4 = ({
             {(project || latestRun) && (
               <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
                 <span className="dashboard4-project-name">{project?.name}</span>
-                {latestRun && (
+                {latestRun ? (
                   <>
                     <span className="dashboard4-separator">—</span>
                     <span className="dashboard4-run-name">{latestRun.name}</span>
                     <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
                   </>
+                ) : (
+                  <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
+                    {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
+                  </span>
                 )}
               </div>
             )}

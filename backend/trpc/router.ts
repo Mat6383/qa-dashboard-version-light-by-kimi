@@ -18,6 +18,9 @@ import { notificationsRouter } from './routers/notifications';
 import { reportsRouter } from './routers/reports';
 import { analyticsRouter } from './routers/analytics';
 import { retentionRouter } from './routers/retention';
+import { integrationsRouter } from './routers/integrations';
+import { syncRouter } from './routers/sync';
+import { crosstestRouter } from './routers/crosstest';
 
 export const appRouter = router({
   dashboard: dashboardRouter,
@@ -32,6 +35,9 @@ export const appRouter = router({
   reports: reportsRouter,
   analytics: analyticsRouter,
   retention: retentionRouter,
+  integrations: integrationsRouter,
+  sync: syncRouter,
+  crosstest: crosstestRouter,
 });
 
 export type AppRouter = typeof appRouter;

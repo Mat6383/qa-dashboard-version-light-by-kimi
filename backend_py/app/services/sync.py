@@ -352,6 +352,8 @@ class SyncService:
         project_id: str | int,
         iteration_name: str,
         run_id: int | None = None,
+        dry_run: bool = False,
+        version: str | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Sync Testmo run status back to GitLab issues."""
         from app.services.status_sync import status_sync_service
@@ -359,6 +361,8 @@ class SyncService:
             run_id=run_id or 0,
             iteration_name=iteration_name,
             gitlab_project_id=project_id,
+            dry_run=dry_run,
+            version=version,
         ):
             yield event
 
@@ -421,6 +425,10 @@ class SyncService:
                     "gitlab_project_id": config.gitlab_project_id,
                     "testmo_project_id": config.testmo_project_id,
                     "version": config.version,
+                    "label": config.label,
+                    "gitlab_status": config.gitlab_status,
+                    "version_prod": config.version_prod,
+                    "version_test": config.version_test,
                 }
         # Fallback to settings if no DB row
         return {
@@ -432,6 +440,10 @@ class SyncService:
             "gitlab_project_id": settings.sync_auto_gitlab_project_id,
             "testmo_project_id": settings.testmo_project_id,
             "version": settings.sync_auto_version,
+            "label": None,
+            "gitlab_status": None,
+            "version_prod": None,
+            "version_test": None,
         }
 
     async def update_auto_config(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -457,6 +469,14 @@ class SyncService:
                 config.testmo_project_id = int(payload["testmo_project_id"]) if payload["testmo_project_id"] is not None else None
             if "version" in payload:
                 config.version = str(payload["version"]) if payload["version"] else None
+            if "label" in payload:
+                config.label = str(payload["label"]) if payload["label"] else None
+            if "gitlab_status" in payload:
+                config.gitlab_status = str(payload["gitlab_status"]) if payload["gitlab_status"] else None
+            if "version_prod" in payload:
+                config.version_prod = str(payload["version_prod"]) if payload["version_prod"] else None
+            if "version_test" in payload:
+                config.version_test = str(payload["version_test"]) if payload["version_test"] else None
             await db.commit()
             await db.refresh(config)
         return await self.get_auto_config()

@@ -60,6 +60,10 @@ class AutoSyncConfig(Base):
     iteration_name: Mapped[str | None] = mapped_column(String, nullable=True)
     run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     version: Mapped[str | None] = mapped_column(String, nullable=True)
+    label: Mapped[str | None] = mapped_column(String, nullable=True)
+    gitlab_status: Mapped[str | None] = mapped_column(String, nullable=True)
+    version_prod: Mapped[str | None] = mapped_column(String, nullable=True)
+    version_test: Mapped[str | None] = mapped_column(String, nullable=True)
     timezone: Mapped[str] = mapped_column(String, default="Europe/Paris")
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc)

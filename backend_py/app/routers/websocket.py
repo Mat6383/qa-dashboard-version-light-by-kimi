@@ -41,9 +41,12 @@ async def dashboard_websocket(
                 }
                 await websocket.send_text(json.dumps(payload))
             except Exception as exc:
-                await websocket.send_text(
-                    json.dumps({"type": "error", "message": str(exc)})
-                )
+                try:
+                    await websocket.send_text(
+                        json.dumps({"type": "error", "message": str(exc)})
+                    )
+                except (WebSocketDisconnect, RuntimeError):
+                    break
             await asyncio.sleep(5)
     except WebSocketDisconnect:
         pass

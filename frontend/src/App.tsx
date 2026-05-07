@@ -20,6 +20,7 @@ import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
 import apiService from './services/api.service';
+import { queryClient } from './lib/queryClient';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import AppLayout from './components/AppLayout';
 import AppRouter from './components/AppRouter';
@@ -71,6 +72,9 @@ function App() {
     (preprodMilestones, prodMilestones) => {
       setSelectedPreprodMilestones(preprodMilestones || []);
       setSelectedProdMilestones(prodMilestones || []);
+      // Force immediate refetch of dashboard data with new milestones
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-qualityRates'] });
       navigate('/');
     },
     [navigate, setSelectedPreprodMilestones, setSelectedProdMilestones]

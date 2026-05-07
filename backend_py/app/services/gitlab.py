@@ -42,6 +42,7 @@ class GitLabService:
 
         self.cb_rest = CircuitBreaker(name="gitlab_rest", failure_threshold=5, recovery_timeout=30.0)
         self.cb_graphql = CircuitBreaker(name="gitlab_graphql", failure_threshold=5, recovery_timeout=30.0)
+        self._project_path_cache: dict[str | int, str] = {}
 
     @with_resilience(breaker=None, max_attempts=3, base_delay_ms=600)
     async def _rest_get(self, path: str, params: dict[str, Any] | None = None) -> Any:
@@ -82,7 +83,8 @@ class GitLabService:
             return data["data"]
 
     async def _get_paginated(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        """Follow x-next-page header, 100 items/page."""
+        """Follow x-next-page header, 100 items/page. Deduplicate by id."""
+        seen_ids: set[int | str] = set()
         all_items: list[dict[str, Any]] = []
         page_params = dict(params or {})
         page_params.setdefault("per_page", 100)
@@ -95,7 +97,11 @@ class GitLabService:
                 items = resp.json()
                 if not isinstance(items, list):
                     break
-                all_items.extend(items)
+                for item in items:
+                    item_id = item.get("id")
+                    if item_id not in seen_ids:
+                        seen_ids.add(item_id)
+                        all_items.append(item)
                 next_page = resp.headers.get("x-next-page")
                 if not next_page:
                     break
@@ -243,13 +249,96 @@ class GitLabService:
         )
         return filtered
 
+    async def _get_project_full_path(self, project_id: str | int) -> str:
+        if project_id not in self._project_path_cache:
+            project = await self._rest_get(f"/projects/{project_id}")
+            self._project_path_cache[project_id] = project["path_with_namespace"]
+        return self._project_path_cache[project_id]
+
     async def get_issues_by_label_and_iteration(
-        self, project_id: str | int, label: str, iteration_id: str | int
+        self,
+        project_id: str | int,
+        label: str | None = None,
+        iteration_id: str | int | None = None,
+        gitlab_status: str | None = None,
+        version_prod: str | None = None,
     ) -> list[dict[str, Any]]:
-        return await self._get_paginated(
+        params: dict[str, Any] = {"state": "all", "order_by": "created_at", "sort": "desc"}
+        if label:
+            params["labels"] = label
+        if iteration_id is not None:
+            params["iteration_id"] = iteration_id
+        issues = await self._get_paginated(
             f"/projects/{project_id}/issues",
-            {"label_name[]": label, "iteration_id": iteration_id, "state": "all"},
+            params,
         )
+
+        # If no custom-field filters requested, return raw REST result
+        if not gitlab_status and not version_prod:
+            return issues
+
+        # Batch GraphQL to read Status widget + CustomFields for each issue
+        if not issues:
+            return []
+
+        full_path = await self._get_project_full_path(project_id)
+        filtered: list[dict[str, Any]] = []
+        BATCH_SIZE = 50
+        for i in range(0, len(issues), BATCH_SIZE):
+            batch = issues[i : i + BATCH_SIZE]
+            iids = [str(issue["iid"]) for issue in batch]
+            query = """
+            query GetCustomFields($fullPath: ID!, $iids: [String!]!) {
+              project(fullPath: $fullPath) {
+                workItems(types: [ISSUE], first: 100, iids: $iids) {
+                  nodes {
+                    iid
+                    widgets {
+                      type
+                      ... on WorkItemWidgetCustomFields {
+                        customFieldValues {
+                          customField { name }
+                          ... on WorkItemSelectFieldValue { selectedOptions { value } }
+                        }
+                      }
+                      ... on WorkItemWidgetStatus {
+                        status { name }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """
+            data = await self._graphql(query, {"fullPath": full_path, "iids": iids})
+            info_by_iid: dict[str, dict[str, Any]] = {}
+            for node in data.get("project", {}).get("workItems", {}).get("nodes", []):
+                node_status = None
+                node_version = None
+                for widget in node.get("widgets", []):
+                    if widget.get("type") == "STATUS" and widget.get("status"):
+                        node_status = widget["status"]["name"]
+                    if isinstance(widget.get("customFieldValues"), list):
+                        for cf in widget.get("customFieldValues", []):
+                            if cf.get("customField", {}).get("name") == "Version Prod":
+                                opts = cf.get("selectedOptions")
+                                if opts:
+                                    node_version = opts[0].get("value")
+                info_by_iid[str(node["iid"])] = {"status": node_status, "version_prod": node_version}
+
+            for issue in batch:
+                info = info_by_iid.get(str(issue["iid"]), {})
+                if gitlab_status and info.get("status") != gitlab_status:
+                    continue
+                if version_prod and info.get("version_prod") != version_prod:
+                    continue
+                filtered.append(issue)
+
+        logger.info(
+            'GitLab: %s/%s issue(s) après filtre custom fields (status=%s, version_prod=%s)',
+            len(filtered), len(issues), gitlab_status, version_prod,
+        )
+        return filtered
 
     async def get_issue_notes(self, project_id: str | int, issue_iid: int) -> list[dict[str, Any]]:
         notes = await self._get_paginated(f"/projects/{project_id}/issues/{issue_iid}/notes")
@@ -373,7 +462,7 @@ class GitLabService:
     ) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"state": state}
         if labels:
-            params["label_name[]"] = labels
+            params["labels"] = labels
         if search:
             params["search"] = search
         return await self._get_paginated(f"/projects/{project_id}/issues", params)

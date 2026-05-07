@@ -24,9 +24,10 @@ async def auto_sync_job() -> None:
     iteration_name = config.get("iteration_name")
     run_id = config.get("run_id")
     version = config.get("version")
+    label = config.get("label") or config.get("gitlab_status") or "Test::TODO"
 
-    if not project_id or not iteration_name:
-        logger.warning("Auto-sync misconfigured: missing project_id or iteration_name")
+    if not project_id:
+        logger.warning("Auto-sync misconfigured: missing project_id")
         return
 
     logger.info(
@@ -45,7 +46,8 @@ async def auto_sync_job() -> None:
             result = await case_sync_service.sync_iteration(
                 gitlab_project_id=int(project_id),
                 testmo_project_id=int(testmo_project_id),
-                iteration_name=iteration_name,
+                iteration_name=iteration_name or "",
+                label=label,
                 dry_run=False,
             )
             logger.info(

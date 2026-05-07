@@ -98,6 +98,7 @@ def build_case_payload(
     folder_id: int,
     gitlab_project_id: int | str,
     iteration_name: str,
+    folder_name: str | None = None,
     gitlab_integration_id: int | None = None,
     gitlab_connection_project_id: int | None = None,
 ) -> dict[str, Any]:
@@ -115,10 +116,11 @@ def build_case_payload(
     def _sanitize_tag(tag: str) -> str:
         return re.sub(r"[^a-zA-Z0-9_\-]", "_", tag)
 
+    tag_name = _sanitize_tag(folder_name or iteration_name or "sync")
     tags = [
         "gitlab-sync",
         _sanitize_tag(f"gitlab-{gitlab_project_id}-{iid}"),
-        _sanitize_tag(f"iteration-{iteration_name}"),
+        f"iteration-{tag_name}",
     ]
     payload["tags"] = tags
 
@@ -161,11 +163,14 @@ class CaseSyncService:
         self,
         gitlab_project_id: int | str,
         testmo_project_id: int,
-        iteration_name: str,
+        iteration_name: str = "",
         label: str = "Test::TODO",
         root_folder_id: int = 4514,
         dry_run: bool = False,
         logical_project_id: str | int | None = None,
+        gitlab_status: str | None = None,
+        version_prod: str | None = None,
+        run_name: str | None = None,
     ) -> SyncCaseResult:
         """Sync GitLab issues for an iteration into Testmo cases."""
         result = SyncCaseResult()
@@ -178,18 +183,28 @@ class CaseSyncService:
         # Resolve Testmo repo id for folder creation
         testmo_repo_id = resolve_testmo_repo_id(logical_project_id) if logical_project_id else None
 
-        # 1. Find iteration
-        iteration = await gitlab_service.find_iteration_for_project(gitlab_project_id, iteration_name)
-        if not iteration:
-            logger.error("Iteration not found", extra={"iteration_name": iteration_name})
-            result.errors += 1
-            result.details.append({"error": f"Iteration '{iteration_name}' not found"})
-            return result
+        # 1. Find iteration (optional)
+        iteration_id = None
+        if iteration_name and iteration_name.strip():
+            try:
+                iteration = await gitlab_service.find_iteration_for_project(gitlab_project_id, iteration_name)
+            except Exception as exc:
+                logger.error("Failed to find iteration", extra={"error": str(exc)})
+                result.errors += 1
+                result.details.append({"error": f"GitLab API error: {exc}"})
+                return result
+            if not iteration:
+                logger.error("Iteration not found", extra={"iteration_name": iteration_name})
+                result.errors += 1
+                result.details.append({"error": f"Iteration '{iteration_name}' not found"})
+                return result
+            iteration_id = iteration["id"]
 
         # 2. Fetch issues
         try:
             issues = await gitlab_service.get_issues_by_label_and_iteration(
-                gitlab_project_id, label, iteration["id"]
+                gitlab_project_id, label, iteration_id,
+                gitlab_status=gitlab_status, version_prod=version_prod,
             )
         except Exception as exc:
             logger.error("Failed to fetch issues", extra={"error": str(exc)})
@@ -198,11 +213,12 @@ class CaseSyncService:
             return result
 
         if not issues:
-            logger.info("No issues to sync", extra={"iteration_name": iteration_name})
+            logger.info("No issues to sync", extra={"iteration_name": iteration_name, "run_name": run_name})
             return result
 
         # 3. Folder hierarchy
-        parent_name, child_name = _parse_folder_hierarchy(iteration_name)
+        folder_base_name = (run_name or "").strip() or iteration_name.strip() or label.strip() or "sync"
+        parent_name, child_name = _parse_folder_hierarchy(folder_base_name)
         try:
             if dry_run:
                 # Simulate folder hierarchy without writing to Testmo
@@ -256,22 +272,33 @@ class CaseSyncService:
             return result
 
         # 4. Fetch existing cases in folder
-        try:
-            existing_cases = await testmo_service.get_cases(testmo_project_id, folder_id=folder_id)
-            cases_by_name: dict[str, dict[str, Any]] = {}
-            for c in existing_cases:
-                name = c.get("name")
-                if name:
-                    cases_by_name[str(name)] = c
-                    # Match legacy cases that had [#iid] prefix in previous format
-                    clean_name = re.sub(r"^\[#\d+\]\s+", "", str(name))
-                    if clean_name != str(name):
-                        cases_by_name[clean_name] = c
-        except Exception as exc:
-            logger.error("Failed to fetch existing cases", extra={"error": str(exc)})
-            result.errors += len(issues)
-            result.details.append({"error": f"Failed to fetch cases: {exc}"})
-            return result
+        if dry_run and folder_id is None:
+            # Skip fetching all project cases when previewing without a specific folder
+            existing_cases: list[dict[str, Any]] = []
+        else:
+            try:
+                existing_cases = await testmo_service.get_cases(testmo_project_id, folder_id=folder_id)
+            except Exception as exc:
+                logger.error("Failed to fetch existing cases", extra={"error": str(exc)})
+                result.errors += len(issues)
+                result.details.append({"error": f"Failed to fetch cases: {exc}"})
+                return result
+
+        cases_by_name: dict[str, dict[str, Any]] = {}
+        for c in existing_cases:
+            name = c.get("name")
+            if name:
+                cases_by_name[str(name)] = c
+                # Match legacy cases that had [#iid] prefix in previous format
+                clean_name = re.sub(r"^\[#\d+\]\s+", "", str(name))
+                if clean_name != str(name):
+                    cases_by_name[clean_name] = c
+
+        # Limit preview to avoid timeouts on large projects
+        MAX_PREVIEW_ISSUES = 20
+        if dry_run and len(issues) > MAX_PREVIEW_ISSUES:
+            issues = issues[:MAX_PREVIEW_ISSUES]
+            result.details.append({"info": f"Preview limité à {MAX_PREVIEW_ISSUES} issues (total: {len(issues)}). Utilise un label ou une itération pour filtrer."})
 
         # 5. Pre-fetch all notes in parallel
         note_tasks: list[Any] = []
@@ -299,6 +326,7 @@ class CaseSyncService:
 
             payload = build_case_payload(
                 issue, notes, cast(int, folder_id), gitlab_project_id, iteration_name,
+                folder_name=folder_base_name,
                 gitlab_integration_id=gitlab_integration_id,
                 gitlab_connection_project_id=gitlab_connection_project_id,
             )
@@ -379,10 +407,13 @@ class CaseSyncService:
         self,
         gitlab_project_id: int | str,
         testmo_project_id: int,
-        iteration_name: str,
+        iteration_name: str = "",
         label: str = "Test::TODO",
         root_folder_id: int = 4514,
         logical_project_id: str | int | None = None,
+        gitlab_status: str | None = None,
+        version_prod: str | None = None,
+        run_name: str | None = None,
     ) -> SyncCaseResult:
         """Dry-run version of sync_iteration."""
         return await self.sync_iteration(
@@ -393,6 +424,9 @@ class CaseSyncService:
             root_folder_id=root_folder_id,
             dry_run=True,
             logical_project_id=logical_project_id,
+            gitlab_status=gitlab_status,
+            version_prod=version_prod,
+            run_name=run_name,
         )
 
     async def persist_case_run(

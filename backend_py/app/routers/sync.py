@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any, AsyncGenerator
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+import httpx
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
@@ -36,7 +37,18 @@ async def sync_projects(db: DBMain):
 
 @router.get("/{project_id}/iterations")
 async def get_iterations(project_id: int | str, search: str | None = Query(None), db: DBMain = None):
-    iterations = await sync_service.list_iterations(project_id, search)
+    try:
+        iterations = await sync_service.list_iterations(project_id, search)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            raise HTTPException(
+                status_code=502,
+                detail="GitLab authentication failed: the token is invalid or expired. Please check your GITLAB_TOKEN in backend_py/.env",
+            ) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"GitLab API error: HTTP {exc.response.status_code}",
+        ) from exc
     return {"success": True, "data": iterations}
 
 
@@ -104,7 +116,7 @@ async def sync_status_to_gitlab(request: Request, payload: SyncStatusPayload, db
 
     async def event_generator() -> AsyncGenerator[str, None]:
         async for event in sync_service.sync_status_to_gitlab(
-            gl_project_id, payload.iteration_name, payload.run_id
+            gl_project_id, payload.iteration_name, payload.run_id, dry_run=payload.dry_run, version=payload.version
         ):
             if await request.is_disconnected():
                 break
@@ -142,14 +154,28 @@ async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> di
     project_cfg = get_sync_project(payload.project_id)
     root_folder_id = project_cfg["testmo"]["rootFolderId"] if project_cfg else payload.root_folder_id
 
-    result = await case_sync_service.preview_sync_iteration(
-        gitlab_project_id=gl_project_id,
-        testmo_project_id=payload.testmo_project_id or resolve_testmo_project_id(payload.project_id) or settings.testmo_project_id,
-        iteration_name=payload.iteration_name,
-        logical_project_id=payload.project_id,
-        label=payload.label,
-        root_folder_id=root_folder_id,
-    )
+    try:
+        result = await case_sync_service.preview_sync_iteration(
+            gitlab_project_id=gl_project_id,
+            testmo_project_id=payload.testmo_project_id or resolve_testmo_project_id(payload.project_id) or settings.testmo_project_id,
+            iteration_name=payload.iteration_name,
+            logical_project_id=payload.project_id,
+            label=payload.label,
+            root_folder_id=root_folder_id,
+            gitlab_status=payload.gitlab_status,
+            version_prod=payload.version_prod,
+            run_name=payload.run_name,
+        )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            raise HTTPException(
+                status_code=502,
+                detail="GitLab authentication failed: the token is invalid or expired. Please check your GITLAB_TOKEN in backend_py/.env",
+            ) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"GitLab API error: HTTP {exc.response.status_code}",
+        ) from exc
 
     # Map to frontend-compatible format
     parent_name, child_name = _parse_folder_hierarchy(payload.iteration_name)
@@ -227,6 +253,9 @@ async def sync_cases_execute(request: Request, payload: SyncCasesExecutePayload,
             label=payload.label,
             root_folder_id=root_folder_id,
             dry_run=payload.dry_run,
+            gitlab_status=payload.gitlab_status,
+            version_prod=payload.version_prod,
+            run_name=payload.run_name,
         )
 
         # Stream per-issue log events
