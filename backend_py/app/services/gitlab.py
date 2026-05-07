@@ -23,7 +23,7 @@ class GitLabService:
 
         self.rest = httpx.AsyncClient(
             base_url=f"{base}/api/v4",
-            headers={"PRIVATE-TOKEN": settings.gitlab_token},
+            headers={"PRIVATE-TOKEN": settings.gitlab_write_token or settings.gitlab_token},
             timeout=settings.api_timeout,
             verify=verify,
         )
