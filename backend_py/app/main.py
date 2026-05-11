@@ -91,7 +91,11 @@ async def lifespan(app: FastAPI):
     start_scheduler()
     yield
     stop_scheduler()
+    from app.services.gitlab import gitlab_service
     from app.services.pdf import pdf_service
+    from app.services.testmo import testmo_service
+    await gitlab_service.close()
+    await testmo_service.close()
     await pdf_service.shutdown()
 
 

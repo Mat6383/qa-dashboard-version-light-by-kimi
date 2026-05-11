@@ -237,8 +237,8 @@ class CaseSyncService:
                             if target_folder:
                                 folder_id = target_folder.get("id")
                                 result.folder_id = folder_id
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.warning("Dry-run folder lookup failed: %s", exc)
                 else:
                     try:
                         target_folder = await testmo_service._find_folder_by_name(
@@ -247,8 +247,8 @@ class CaseSyncService:
                         if target_folder:
                             folder_id = target_folder.get("id")
                             result.folder_id = folder_id
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.warning("Dry-run folder lookup failed: %s", exc)
             else:
                 if parent_name:
                     parent_folder = await testmo_service.get_or_create_folder(

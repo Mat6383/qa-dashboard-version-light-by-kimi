@@ -822,6 +822,9 @@ class TestmoService:
                 return cast(dict[str, Any], folder)
         return None
 
+    async def close(self) -> None:
+        await self.client.aclose()
+
     def clear_cache(self) -> None:
         self.cache.clear()
         logger.info("Testmo cache cleared")

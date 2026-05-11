@@ -190,9 +190,7 @@ async def _dashboard_multi_project_summary(_input_data: dict[str, Any] | None, d
                         "ok": False,
                         "alerts": [{"severity": "error", "message": "Données indisponibles"}],
                     },
-                    "timestamp": __import__("datetime").datetime.now(
-                        __import__("datetime").timezone.utc
-                    ).isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
     return _result(summaries)

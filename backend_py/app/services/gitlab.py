@@ -112,6 +112,11 @@ class GitLabService:
                     break
         return all_items
 
+    async def close(self) -> None:
+        await self.rest.aclose()
+        await self.rest_write.aclose()
+        await self.graphql.aclose()
+
     def _format_iteration_date(self, d: str | None) -> str:
         if not d:
             return "?"

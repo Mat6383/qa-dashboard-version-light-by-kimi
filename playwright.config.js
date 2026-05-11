@@ -32,6 +32,7 @@ module.exports = defineConfig({
       env: {
         ENVIRONMENT: 'development',
         PORT: '3001',
+        JWT_SECRET: 'test-e2e-jwt-secret-key-at-least-32-chars-long',
         TESTMO_URL: 'http://localhost',
         TESTMO_TOKEN: 'test',
         GITLAB_URL: 'http://localhost',

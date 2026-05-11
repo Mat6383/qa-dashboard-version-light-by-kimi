@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter
@@ -22,14 +23,23 @@ _CIRCUIT_BREAKERS: dict[str, CircuitBreaker] = {
 }
 
 
+def _get_uptime() -> float:
+    try:
+        import time
+
+        import psutil
+        return time.time() - psutil.Process().create_time()
+    except Exception:
+        return 0.0
+
+
 @router.get("/")
 @router.get("")
 async def health_check() -> dict[str, Any]:
-    import time
     return {
         "status": "OK",
-        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
-        "uptime": time.time() - __import__("psutil").Process().create_time() if __import__("sys").modules.get("psutil") else 0,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime": _get_uptime(),
         "environment": "development",
         "version": "3.0.0",
         "checks": {"server": {"status": "OK"}},
@@ -49,7 +59,7 @@ async def detailed_health(db: DBMain) -> dict[str, Any]:
     total, used, free = shutil.disk_usage("/")
     return {
         "status": "OK",
-        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "uptime": 0,
         "environment": "development",
         "version": "3.0.0",

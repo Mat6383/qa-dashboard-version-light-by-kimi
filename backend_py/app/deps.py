@@ -15,6 +15,9 @@ from app.config import settings
 from app.core.security import decode_jwt
 from app.database import get_comments_db, get_main_db
 from app.models.users import User
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 security_bearer = HTTPBearer(auto_error=False)
 
@@ -99,8 +102,10 @@ async def require_admin_or_token(
                 user = result.scalar_one_or_none()
                 if user is not None and user.role == "admin":
                     return user
-        except Exception:
+        except JWTError:
             pass
+        except Exception as exc:
+            logger.warning("Unexpected error in admin auth fallback: %s", exc)
 
     # 2. Fallback X-Admin-Token
     if x_admin_token and hmac.compare_digest(x_admin_token, settings.admin_api_token):

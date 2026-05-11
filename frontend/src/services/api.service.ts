@@ -55,28 +55,36 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    // eslint-disable-next-line no-console
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+    }
     return config;
   },
   (error: AxiosError) => {
-    // eslint-disable-next-line no-console
-    console.error('[API] Request error:', error);
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.error('[API] Request error:', error);
+    }
     return Promise.reject(error);
   }
 );
 
 apiClient.interceptors.response.use(
   (response) => {
-    // eslint-disable-next-line no-console
-    console.log(`[API] Response:`, response.status, response.data);
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log(`[API] Response:`, response.status, response.data);
+    }
     return response;
   },
   (error: AxiosError) => {
     if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
       return Promise.reject(error);
     }
-    console.error('[API] Response error:', error.response?.data || error.message);
+    if (import.meta.env.DEV) {
+      console.error('[API] Response error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );
