@@ -562,9 +562,13 @@ class TestmoService:
 
     async def compare_projects(self, project_ids: list[int]) -> list[dict[str, Any]]:
         """Metrics comparison across multiple projects."""
-        results = []
-        for pid in project_ids:
-            metrics = await self.get_project_metrics(pid)
+        tasks = [self.get_project_metrics(pid) for pid in project_ids]
+        metrics_list = await asyncio.gather(*tasks, return_exceptions=True)
+        results: list[dict[str, Any]] = []
+        for pid, metrics in zip(project_ids, metrics_list):
+            if isinstance(metrics, Exception):
+                logger.warning("Failed to fetch metrics for project %s: %s", pid, metrics)
+                continue
             results.append({"project_id": pid, **metrics})
         return results
 

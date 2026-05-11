@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+import secrets
 from urllib.parse import urlencode
 
 import httpx
@@ -26,18 +27,43 @@ GITLAB_API_URL = f"{settings.gitlab_url.rstrip('/')}/api/v4"
 
 
 @router.get("/gitlab")
-async def gitlab_oauth_start() -> RedirectResponse:
+async def gitlab_oauth_start(response: Response) -> RedirectResponse:
+    state = secrets.token_urlsafe(32)
     params = {
         "client_id": settings.gitlab_client_id,
         "redirect_uri": f"{settings.gitlab_url.rstrip('/')}/api/auth/gitlab/callback",
         "response_type": "code",
         "scope": "read_user openid profile email",
+        "state": state,
     }
-    return RedirectResponse(url=f"{GITLAB_OAUTH_URL}?{urlencode(params)}")
+    redirect = RedirectResponse(url=f"{GITLAB_OAUTH_URL}?{urlencode(params)}")
+    redirect.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=300,
+        path="/",
+    )
+    return redirect
 
 
 @router.get("/gitlab/callback")
-async def gitlab_oauth_callback(code: str, response: Response) -> RedirectResponse:
+async def gitlab_oauth_callback(
+    code: str,
+    state: str,
+    request: Request,
+    response: Response,
+) -> RedirectResponse:
+    # Validate OAuth state to prevent CSRF
+    expected_state = request.cookies.get("oauth_state")
+    if not expected_state or not secrets.compare_digest(expected_state, state):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OAuth state",
+        )
+    response.delete_cookie("oauth_state", path="/")
     # 1. Exchange code for access token
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(
@@ -185,6 +211,12 @@ async def me(request: Request) -> dict[str, Any]:
         payload = decode_jwt(token)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+
+    if payload.get("type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not allowed",
+        )
 
     user_id = int(payload["sub"])
     async with get_main_db() as db:

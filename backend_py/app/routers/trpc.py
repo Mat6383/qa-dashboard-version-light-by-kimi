@@ -9,11 +9,12 @@ import json
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import delete, select
 
 from app.database import get_comments_db, get_main_db
+from app.deps import require_auth
 from app.models.comments import CrossTestComment
 from app.models.feature_flags import FeatureFlag
 from app.models.integrations import Integration
@@ -55,7 +56,7 @@ from app.schemas_trpc import (
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 async def _db():
@@ -183,40 +184,26 @@ async def _dashboard_quality_rates(input_data: dict[str, Any], db) -> dict[str, 
 
 async def _dashboard_multi_project_summary(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
     projects = await testmo_service.get_projects()
-    summaries = []
-    for p in projects:
+
+    async def _summary_for_project(p: dict[str, Any]) -> dict[str, Any] | None:
         try:
             metrics = await testmo_service.get_project_metrics(p["id"])
-            summaries.append(
-                {
-                    "projectId": p["id"],
-                    "projectName": p.get("name"),
-                    "passRate": metrics.get("pass_rate"),
-                    "completionRate": metrics.get("completion_rate"),
-                    "blockedRate": metrics.get("blocked_rate"),
-                    "escapeRate": metrics.get("escape_rate"),
-                    "detectionRate": metrics.get("detection_rate"),
-                    "timestamp": metrics.get("timestamp"),
-                }
-            )
+            return {
+                "projectId": p["id"],
+                "projectName": p.get("name"),
+                "passRate": metrics.get("pass_rate"),
+                "completionRate": metrics.get("completion_rate"),
+                "blockedRate": metrics.get("blocked_rate"),
+                "escapeRate": metrics.get("escape_rate"),
+                "detectionRate": metrics.get("detection_rate"),
+                "timestamp": metrics.get("timestamp"),
+            }
         except Exception as exc:
-            logger.warning("MultiProject metric failed for %s: %s", p.get("id"), exc)
-            summaries.append(
-                {
-                    "projectId": p["id"],
-                    "projectName": p.get("name"),
-                    "passRate": None,
-                    "completionRate": None,
-                    "blockedRate": None,
-                    "escapeRate": None,
-                    "detectionRate": None,
-                    "slaStatus": {
-                        "ok": False,
-                        "alerts": [{"severity": "error", "message": "Données indisponibles"}],
-                    },
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }
-            )
+            logger.warning("Failed to fetch metrics for project %s: %s", p.get("id"), exc)
+            return None
+
+    summary_tasks = [_summary_for_project(p) for p in projects]
+    summaries = [s for s in await asyncio.gather(*summary_tasks) if s is not None]
     return _result(summaries)
 
 
@@ -272,7 +259,12 @@ async def _feature_flags_create(input_data: dict[str, Any], db) -> dict[str, Any
     existing = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
     if existing.scalar_one_or_none():
         return _err("Flag already exists", "CONFLICT")
-    flag = FeatureFlag(**{k: v for k, v in input_data.items() if k != "id"})
+    flag = FeatureFlag(
+        key=input_data["key"],
+        enabled=input_data.get("enabled", False),
+        description=input_data.get("description"),
+        rollout_percentage=input_data.get("rolloutPercentage", 100.0),
+    )
     db.add(flag)
     await db.commit()
     await db.refresh(flag)
@@ -288,14 +280,24 @@ async def _feature_flags_create(input_data: dict[str, Any], db) -> dict[str, Any
     )
 
 
+_FEATURE_FLAG_UPDATE_FIELDS = {
+    "enabled",
+    "description",
+    "rollout_percentage",
+    "rolloutPercentage",
+}
+
+
 async def _feature_flags_update(input_data: dict[str, Any], db) -> dict[str, Any]:
     result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
     flag = result.scalar_one_or_none()
     if not flag:
         return _err("Flag not found", "NOT_FOUND")
-    data = {k: v for k, v in input_data.items() if k != "key" and v is not None}
-    for field, value in data.items():
-        setattr(flag, field, value)
+    for field in _FEATURE_FLAG_UPDATE_FIELDS & set(input_data.keys()):
+        if field == "rolloutPercentage":
+            flag.rollout_percentage = input_data[field]
+        else:
+            setattr(flag, field, input_data[field])
     await db.commit()
     await db.refresh(flag)
     return _result(
@@ -605,7 +607,13 @@ async def _webhooks_list(_input_data: dict[str, Any] | None, db) -> dict[str, An
 
 
 async def _webhooks_create(input_data: dict[str, Any], db) -> dict[str, Any]:
-    sub = WebhookSubscription(**input_data)
+    sub = WebhookSubscription(
+        url=input_data["url"],
+        events=input_data.get("events", []),
+        secret=input_data.get("secret", ""),
+        enabled=input_data.get("enabled", True),
+        filters=input_data.get("filters"),
+    )
     db.add(sub)
     await db.commit()
     await db.refresh(sub)
@@ -614,14 +622,16 @@ async def _webhooks_create(input_data: dict[str, Any], db) -> dict[str, Any]:
     )
 
 
+_WEBHOOK_UPDATE_FIELDS = {"url", "events", "secret", "enabled", "filters"}
+
+
 async def _webhooks_update(input_data: dict[str, Any], db) -> dict[str, Any]:
     result = await db.execute(select(WebhookSubscription).where(WebhookSubscription.id == input_data["id"]))
     sub = result.scalar_one_or_none()
     if not sub:
         return _err("Webhook not found", "NOT_FOUND")
-    data = {k: v for k, v in input_data.items() if k != "id" and v is not None}
-    for field, value in data.items():
-        setattr(sub, field, value)
+    for field in _WEBHOOK_UPDATE_FIELDS & set(input_data.keys()):
+        setattr(sub, field, input_data[field])
     await db.commit()
     await db.refresh(sub)
     return _result(

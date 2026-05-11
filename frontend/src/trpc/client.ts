@@ -29,7 +29,6 @@ export const trpcClient = trpc.createClient({
         return {
           'x-request-id': generateRequestId(),
           Authorization: `Bearer ${token}`,
-          'X-Admin-Token': token,
         };
       },
     }),

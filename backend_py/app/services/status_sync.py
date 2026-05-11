@@ -253,6 +253,30 @@ class StatusSyncService:
         # 3. Appliquer les statuts Work Item via GraphQL
         stats["total"] = len(results)
 
+        # Pré-collecter les fallback searches et les exécuter en parallèle
+        missing_case_names: list[str] = []
+        for result in results:
+            case_name = result.get("case_name") or case_names.get(result.get("case_id"))
+            if case_name and _normalize(case_name) not in issue_by_title:
+                missing_case_names.append(case_name)
+
+        if missing_case_names:
+            search_tasks = [
+                gitlab_service.search_issue_by_title(gitlab_project_id, name)
+                for name in missing_case_names
+            ]
+            search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+            for name, found in zip(missing_case_names, search_results):
+                if isinstance(found, Exception):
+                    logger.warning("[StatusSync] Fallback search failed for %s: %s", name, found)
+                    continue
+                if found:
+                    issue_by_title[_normalize(name)] = found
+                    logger.info(
+                        "[StatusSync] Case \"%s\" retrouvé hors itération via fallback (issue #%s)",
+                        name, found.get("iid")
+                    )
+
         for result in results:
             status_id = result.get("status_id")
             new_status = STATUS_TO_GITLAB_STATUS.get(status_id)
@@ -264,23 +288,12 @@ class StatusSyncService:
 
             issue = issue_by_title.get(_normalize(case_name))
             if not issue:
-                # Fallback: search by exact title across the whole project
-                issue = await gitlab_service.search_issue_by_title(
-                    gitlab_project_id, case_name
+                logger.info(
+                    "[StatusSync] Pas d'issue GitLab pour case \"%s\" — ignoré",
+                    case_name
                 )
-                if issue:
-                    issue_by_title[_normalize(case_name)] = issue
-                    logger.info(
-                        "[StatusSync] Case \"%s\" retrouvé hors itération via fallback (issue #%s)",
-                        case_name, issue.get("iid")
-                    )
-                else:
-                    logger.info(
-                        "[StatusSync] Pas d'issue GitLab pour case \"%s\" — ignoré",
-                        case_name
-                    )
-                    stats["skipped"] += 1
-                    continue
+                stats["skipped"] += 1
+                continue
 
             if not new_status:
                 stats["skipped"] += 1

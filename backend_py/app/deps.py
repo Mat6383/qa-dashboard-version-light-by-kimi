@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,14 +51,17 @@ async def require_auth(
 
     try:
         payload = decode_jwt(token)
-    except JWTError:
+    except jwt.InvalidTokenError:
         # Fallback to cookie if Bearer token is invalid
         token = request.cookies.get("access_token")
         if not token:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         payload = decode_jwt(token)
 
-    user_id = int(payload.get("sub", 0))
+    try:
+        user_id = int(payload.get("sub", 0))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
     async with get_main_db() as db:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
@@ -102,7 +105,7 @@ async def require_admin_or_token(
                 user = result.scalar_one_or_none()
                 if user is not None and user.role == "admin":
                     return user
-        except JWTError:
+        except (jwt.InvalidTokenError, ValueError, TypeError):
             pass
         except Exception as exc:
             logger.warning("Unexpected error in admin auth fallback: %s", exc)

@@ -115,7 +115,8 @@ async def prometheus_middleware(request: Request, call_next):
     response = await call_next(request)
     duration = time() - start
     status = str(response.status_code)
-    path = request.url.path
+    route = request.scope.get("route")
+    path = getattr(route, "path", None) or request.url.path
     method = request.method
 
     HTTP_DURATION.labels(method=method, path=path, status=status).observe(duration)

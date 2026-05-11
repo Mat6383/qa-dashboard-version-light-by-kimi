@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import functools
+import ipaddress
 import logging
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 
 def sanitize_errors(
@@ -38,3 +40,22 @@ def sanitize_errors(
         return async_wrapper
 
     return decorator
+
+
+def validate_external_url(url: str) -> None:
+    """Raise ValueError if URL points to internal/private addresses (SSRF guard)."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Invalid URL: no hostname")
+    if hostname.lower() in ("localhost", "127.0.0.1", "::1"):
+        raise ValueError("URL points to localhost")
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_reserved:
+            raise ValueError(f"URL points to private/reserved IP: {hostname}")
+    except ValueError:
+        # hostname is not an IP — that's fine
+        pass

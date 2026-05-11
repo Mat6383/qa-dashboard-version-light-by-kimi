@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.utils.api_helpers import sanitize_errors
+from app.utils.api_helpers import sanitize_errors, validate_external_url
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +17,7 @@ class JiraClient:
     """Lightweight Jira REST API v2 client."""
 
     def __init__(self, base_url: str, email: str, api_token: str) -> None:
+        validate_external_url(base_url)
         self.base_url = base_url.rstrip("/")
         self.email = email
         self.api_token = api_token

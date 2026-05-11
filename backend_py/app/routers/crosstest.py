@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import delete, select
 
 from app.config import settings
-from app.deps import DBComments, DBMain
+from app.deps import DBComments, DBMain, require_auth
 from app.models.comments import CrossTestComment
 from app.schemas import (
     CrossTestCommentCreate,
@@ -15,7 +15,7 @@ from app.schemas import (
 )
 from app.services.gitlab import gitlab_service
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 @router.get("/iterations")

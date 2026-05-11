@@ -312,7 +312,8 @@ class CaseSyncService:
 
         notes_results = await asyncio.gather(*note_tasks, return_exceptions=True)
         notes_by_iid: dict[int, list[dict[str, Any]]] = {}
-        for issue, notes_res in zip(issues, notes_results):
+        issues_with_iid = [issue for issue in issues if issue.get("iid") is not None]
+        for issue, notes_res in zip(issues_with_iid, notes_results):
             iid = issue.get("iid")
             if isinstance(notes_res, Exception):
                 logger.warning("Failed to fetch notes", extra={"iid": iid, "error": str(notes_res)})

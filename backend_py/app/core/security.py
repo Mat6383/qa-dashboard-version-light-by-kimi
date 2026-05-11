@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import jwt
+import jwt
 from passlib.context import CryptContext
 
 from app.config import settings

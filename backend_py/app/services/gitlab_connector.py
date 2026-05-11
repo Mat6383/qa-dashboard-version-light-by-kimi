@@ -8,7 +8,7 @@ import httpx
 
 from app.core.circuit_breaker import CircuitBreaker
 from app.core.resilience import with_resilience
-from app.utils.api_helpers import sanitize_errors
+from app.utils.api_helpers import sanitize_errors, validate_external_url
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,6 +24,7 @@ class GitLabConnector:
     __test__ = False
 
     def __init__(self, base_url: str, token: str, verify_ssl: bool = True) -> None:
+        validate_external_url(base_url)
         base = base_url.rstrip("/")
         self.client = httpx.AsyncClient(
             base_url=f"{base}/api/v4",

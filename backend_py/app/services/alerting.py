@@ -18,6 +18,18 @@ logger = get_logger(__name__)
 class AlertingService:
     """Send alerts via email, Slack, or Teams."""
 
+    def __init__(self) -> None:
+        self._smtp: SMTP | None = None
+
+    def _get_smtp_client(self) -> SMTP:
+        if self._smtp is None:
+            self._smtp = SMTP(
+                hostname=settings.smtp_host,
+                port=settings.smtp_port,
+                use_tls=settings.smtp_port == 465,
+            )
+        return self._smtp
+
     @sanitize_errors(logger, msg="Email send failed")
     async def send_email(
         self,
@@ -36,17 +48,13 @@ Content-Type: text/html; charset=utf-8
 
 {html or body}
 """
-        smtp = SMTP(
-            hostname=settings.smtp_host,
-            port=settings.smtp_port,
-            use_tls=settings.smtp_port == 465,
-        )
-        await smtp.connect()
-        if settings.smtp_port == 587:
-            await smtp.starttls()
-        await smtp.login(settings.smtp_user, settings.smtp_pass)
+        smtp = self._get_smtp_client()
+        if not smtp.is_connected:
+            await smtp.connect()
+            if settings.smtp_port == 587:
+                await smtp.starttls()
+            await smtp.login(settings.smtp_user, settings.smtp_pass)
         await smtp.sendmail(settings.smtp_from or settings.smtp_user, [to], message.encode("utf-8"))
-        await smtp.quit()
         return {"success": True, "channel": "email", "destination": to}
 
     @sanitize_errors(logger, msg="Slack send failed")
