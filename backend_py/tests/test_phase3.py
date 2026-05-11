@@ -6,16 +6,12 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from app.core.security import create_access_token
-from app.database import get_comments_db, get_main_db
+from app.database import get_main_db
 from app.models.audit import AuditLog
-from app.models.comments import CrossTestComment
-from app.models.feature_flags import FeatureFlag
-from app.models.notifications import NotificationSetting
 from app.models.users import User
-from app.models.webhooks import WebhookSubscription
 
 
 # ── helpers ─────────────────────────────────────────────

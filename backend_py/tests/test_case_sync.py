@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from app.services.case_sync import (
     CaseSyncService,
-    SyncCaseResult,
     build_case_payload,
     is_case_enriched,
     _parse_folder_hierarchy,

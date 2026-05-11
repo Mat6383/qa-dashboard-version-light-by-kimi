@@ -13,6 +13,8 @@
     "@tanstack/react-virtual": "^3.13.24",
     "@trpc/client": "^11.17.0",
     "@trpc/react-query": "^11.17.0",
+    "@trpc/server": "^11.17.0",
+    "zod": "^4.3.6",
     "axios": "^1.6.5",
     "chart.js": "^4.4.1",
     "docx": "^9.6.1",
@@ -46,7 +48,6 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "generate:types": "openapi-typescript ../backend/docs/openapi.yaml -o src/types/api.generated.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"

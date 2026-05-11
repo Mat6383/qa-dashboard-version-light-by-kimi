@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, cast
 
 from fastapi import APIRouter, Query, Request
+from pydantic import ValidationError
 from sqlalchemy import delete, select
 
 from app.database import get_comments_db, get_main_db
@@ -28,6 +29,29 @@ from app.services.report import report_service
 from app.services.retention import retention_service
 from app.services.sync import sync_service
 from app.services.testmo import testmo_service
+from app.schemas_trpc import (
+    AnalyticsListInput,
+    AnalyticsMarkReadInput,
+    AnalyticsMarkAllReadInput,
+    AnalyticsAnalyzeInput,
+    AnomaliesListInput,
+    DashboardMetricsInput,
+    FeatureFlagGetInput,
+    FeatureFlagDeleteInput,
+    IntegrationIdInput,
+    IntegrationCreateJiraIssueInput,
+    GitlabIssuesInput,
+    NotificationSettingsInput,
+    NotificationSaveSettingsInput,
+    NotificationTestWebhookInput,
+    ReportGenerateInput,
+    RetentionUpdatePolicyInput,
+    RetentionArchivesInput,
+    SyncPreviewCasesInput,
+    SyncExecuteCasesInput,
+    WebhookIdInput,
+    WebhookUpdateInput,
+)
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -615,7 +639,67 @@ async def _webhooks_delete(input_data: dict[str, Any], db) -> dict[str, Any]:
     return _result({"success": True})
 
 
-# Map "router.procedure" → handler
+# Map "router.procedure" → Pydantic validator (None = no validation)
+VALIDATORS: dict[str, Any] = {
+    # analytics
+    "analytics.list": AnalyticsListInput,
+    "analytics.markRead": AnalyticsMarkReadInput,
+    "analytics.markAllRead": AnalyticsMarkAllReadInput,
+    "analytics.analyze": AnalyticsAnalyzeInput,
+    # anomalies
+    "anomalies.list": AnomaliesListInput,
+    "anomalies.circuitBreakers": None,
+    # cache
+    "cache.clear": None,
+    # crosstest
+    "crosstest.saveComment": None,  # uses snake_case fields; validated inside handler
+    "crosstest.deleteComment": None,
+    # dashboard
+    "dashboard.metrics": DashboardMetricsInput,
+    "dashboard.qualityRates": DashboardMetricsInput,
+    "dashboard.multiProjectSummary": None,
+    # featureFlags
+    "featureFlags.list": None,
+    "featureFlags.get": FeatureFlagGetInput,
+    "featureFlags.listAdmin": None,
+    "featureFlags.create": None,  # FeatureFlagCreate has camelCase aliases
+    "featureFlags.update": None,  # FeatureFlagUpdate has camelCase aliases
+    "featureFlags.delete": FeatureFlagDeleteInput,
+    # integrations
+    "integrations.list": None,
+    "integrations.get": IntegrationIdInput,
+    "integrations.create": None,  # IntegrationCreate fields match
+    "integrations.update": None,  # IntegrationUpdate fields match (plus id)
+    "integrations.delete": IntegrationIdInput,
+    "integrations.testConnection": IntegrationIdInput,
+    "integrations.createJiraIssue": IntegrationCreateJiraIssueInput,
+    "integrations.gitlabProjects": IntegrationIdInput,
+    "integrations.gitlabIssues": GitlabIssuesInput,
+    # notifications
+    "notifications.settings": NotificationSettingsInput,
+    "notifications.saveSettings": NotificationSaveSettingsInput,
+    "notifications.testWebhook": NotificationTestWebhookInput,
+    # projects
+    "projects.list": None,
+    # reports
+    "reports.generate": ReportGenerateInput,
+    # retention
+    "retention.policies": None,
+    "retention.updatePolicy": RetentionUpdatePolicyInput,
+    "retention.archives": RetentionArchivesInput,
+    "retention.runCycle": None,
+    # sync
+    "sync.previewCases": SyncPreviewCasesInput,
+    "sync.executeCases": SyncExecuteCasesInput,
+    "sync.casesHistory": None,
+    "sync.updateAutoConfig": None,
+    # webhooks
+    "webhooks.list": None,
+    "webhooks.create": None,  # WebhookSubscriptionCreate fields match
+    "webhooks.update": WebhookUpdateInput,
+    "webhooks.delete": WebhookIdInput,
+}
+
 PROCEDURES: dict[str, Any] = {
     # analytics
     "analytics.list": _analytics_list,
@@ -677,11 +761,20 @@ PROCEDURES: dict[str, Any] = {
 }
 
 
-async def _run_procedure(path: str, raw_input: dict[str, Any], db: Any, call_id: Any) -> dict[str, Any]:
+async def _run_procedure(path: str, raw_input: dict[str, Any] | None, db: Any, call_id: Any) -> dict[str, Any]:
     """Execute a single tRPC procedure with unified error handling."""
     handler = PROCEDURES.get(path)
     if not handler:
         return {"error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"}, "id": call_id}
+
+    validator = VALIDATORS.get(path)
+    if validator is not None:
+        try:
+            validated = validator.model_validate(raw_input or {})
+            raw_input = validated.model_dump()
+        except ValidationError as exc:
+            return {"error": {"message": str(exc), "code": "BAD_REQUEST"}, "id": call_id}
+
     try:
         result = await handler(raw_input, db)
         result["id"] = call_id

@@ -7,14 +7,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from app.core.security import create_access_token
 from app.database import get_main_db
 from app.models.analytics import AnalyticsInsight
-from app.models.integrations import Integration
-from app.models.notifications import NotificationSetting
-from app.models.retention import ArchivedSnapshot, RetentionPolicy
 from app.models.users import User
 from app.models.webhooks import WebhookSubscription
 
@@ -66,6 +63,80 @@ async def test_trpc_analytics_list(client: AsyncClient) -> None:
     assert isinstance(data, list)
     assert data[0]["id"] == 1
     assert isinstance(data[0]["result"]["data"], list)
+
+    await _cleanup_user(admin.id)
+
+
+# ── tRPC Input Validation (SEC-003) ─────────────────────
+
+@pytest.mark.asyncio
+async def test_trpc_validation_bad_request(client: AsyncClient) -> None:
+    """Invalid inputs should return BAD_REQUEST instead of INTERNAL_SERVER_ERROR."""
+    admin = await _make_admin()
+    headers = await _admin_headers(admin)
+
+    # 1. analytics.list — limit must be an int
+    resp = await client.post("/trpc/", json=[
+        {"path": "analytics.list", "method": "query", "input": {"projectId": 1, "limit": "ten"}, "id": 1}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert body["error"]["code"] == "BAD_REQUEST"
+
+    # 2. analytics.markRead — id is required
+    resp = await client.post("/trpc/", json=[
+        {"path": "analytics.markRead", "method": "mutation", "input": {}, "id": 2}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert body["error"]["code"] == "BAD_REQUEST"
+
+    # 3. dashboard.metrics — projectId should be int (string is coercible by Pydantic v2, so test a bool)
+    resp = await client.post("/trpc/", json=[
+        {"path": "dashboard.metrics", "method": "query", "input": {"projectId": []}, "id": 3}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert body["error"]["code"] == "BAD_REQUEST"
+
+    # 4. integrations.get — id is required
+    resp = await client.post("/trpc/", json=[
+        {"path": "integrations.get", "method": "query", "input": {}, "id": 4}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert body["error"]["code"] == "BAD_REQUEST"
+
+    # 5. reports.generate — projectId is required
+    resp = await client.post("/trpc/", json=[
+        {"path": "reports.generate", "method": "mutation", "input": {"formats": {"html": True}}, "id": 5}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert body["error"]["code"] == "BAD_REQUEST"
+
+    await _cleanup_user(admin.id)
+
+
+@pytest.mark.asyncio
+async def test_trpc_validation_preserves_valid_calls(client: AsyncClient) -> None:
+    """Valid inputs should continue to work normally."""
+    admin = await _make_admin()
+    headers = await _admin_headers(admin)
+
+    resp = await client.post("/trpc/", json=[
+        {"path": "analytics.list", "method": "query", "input": {"projectId": 1, "limit": 10}, "id": 1}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert "error" not in body
+
+    resp = await client.post("/trpc/", json=[
+        {"path": "retention.archives", "method": "query", "input": {"entityType": "run", "limit": 50}, "id": 2}
+    ], headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()[0]
+    assert "error" not in body
 
     await _cleanup_user(admin.id)
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from app.services.status_sync import (
     ALL_TEST_LABELS,

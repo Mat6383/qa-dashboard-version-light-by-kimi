@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token
 from app.database import get_main_db
 from app.models.users import User
 

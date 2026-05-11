@@ -48,8 +48,8 @@ if ! docker compose version &>/dev/null; then
   exit 1
 fi
 
-if [[ ! -f "backend/.env" ]]; then
-  error "backend/.env manquant. Copiez backend/.env.example et renseignez les variables."
+if [[ ! -f "backend_py/.env" ]]; then
+  error "backend_py/.env manquant. Copiez backend_py/.env.example et renseignez les variables."
   exit 1
 fi
 

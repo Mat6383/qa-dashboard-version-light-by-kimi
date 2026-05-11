@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport

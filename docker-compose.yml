@@ -1,6 +1,6 @@
 # ───────────────────────────────────────────────────────────────────────────────
 # QA Dashboard by Kimi 2.0 — Docker Compose
-# Backend (Node + Chromium + SQLite) + Frontend (Nginx statique)
+# Backend (Python FastAPI + SQLite) + Frontend (Nginx statique)
 # ───────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -9,21 +9,21 @@ services:
   # ═════════════════════════════════════════════════════════════════════════════
   backend:
     build:
-      context: ./backend
+      context: ./backend_py
       dockerfile: Dockerfile
     container_name: qa-dashboard-backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env
+      - ./backend_py/.env
     environment:
-      - NODE_ENV=production
+      - ENV=production
       # Le frontend est servi par Nginx sur le même domaine en production
       - FRONTEND_URL=http://localhost:8080
     volumes:
       # Persistance SQLite (bases *.db dans /app/db-data)
       - sqlite-data:/app/db-data
       # Logs host-accessibles
-      - ./backend/logs:/app/logs
+      - ./backend_py/logs:/app/logs
     ports:
       - "3001:3001"
     networks:

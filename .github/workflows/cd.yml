@@ -35,8 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          cd backend && npm ci
-          cd ../frontend && npm ci
+          cd frontend && npm ci
 
       - name: Build frontend
         run: cd frontend && npm run build
@@ -44,11 +43,11 @@ jobs:
       - name: Package release
         run: |
           mkdir -p release/dashboard-by-kimi-2.0
-          cp -r backend release/dashboard-by-kimi-2.0/
+          cp -r backend_py release/dashboard-by-kimi-2.0/
           cp -r frontend/dist release/dashboard-by-kimi-2.0/frontend/
           cp package.json release/dashboard-by-kimi-2.0/
           cp README.md release/dashboard-by-kimi-2.0/
-          cp backend/.env.example release/dashboard-by-kimi-2.0/backend/.env.example
+          cp backend_py/.env.example release/dashboard-by-kimi-2.0/backend_py/.env.example
           tar -czf dashboard-by-kimi-2.0.tar.gz -C release dashboard-by-kimi-2.0
 
       - name: Upload release artifact
@@ -91,6 +90,6 @@ jobs:
   #         script: |
   #           cd ~/app
   #           tar -xzf ~/deployments/dashboard-by-kimi-2.0.tar.gz --strip-components=1
-  #           cd backend && npm ci --production
-  #           pm2 restart dashboard-backend || pm2 start server.js --name dashboard-backend
+  #           cd backend_py && uv sync
+  #           pm2 restart dashboard-backend || pm2 start "uv run uvicorn app.main:app --port 3001" --name dashboard-backend
   ##########################################################################
