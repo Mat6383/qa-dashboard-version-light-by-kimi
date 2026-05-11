@@ -1,159 +1,97 @@
-# Tech Debt Audit — QA Dashboard
+# Tech Debt Audit — QA Dashboard (backend_py + frontend)
 
-Generated: 2026-05-04
-Updated: 2026-05-05 (post-P34 cutover)
-
-## Executive summary
-
-- **1 Critical finding**, **6 High**, **12 Medium**, **8 Low** (2 Medium résolus en P34)
-- **Largest debt concentration**: `backend/` Node/Express legacy — ~600 `any` types, accumulation technique sur ~40k LOC (réduction suite suppression services sync obsolètes)
-- **Backend Python (FastAPI)** : autonome en production sur port 3001, 206 tests, dette quasi nulle
-- **Cutover P34 complété** : routes `/api/sync/*`, `/api/testmo-browser/*`, `/api/crosstest/*` désormais 100 % Python. 15 fichiers Node.js morts supprimés (services, routes, jobs, tests).
-- **Frontend** : dette principalement dans les tests (types Jest manquants) et les modals (>900 LOC)
-- **Documentation drift sévère** : README partiellement obsolète ; OpenAPI régénérée depuis FastAPI ✅
-- **Aucune vulnérabilité critique** (2 modérées via `exceljs` → `uuid`)
-- **Aucune dépendance circulaire** détectée (frontend + backend) — architecture modulaire saine
+> **Date** : 2026-05-11  
+> **Scope** : `backend_py/` (FastAPI actif), `frontend/src/` (React/TS), `backend/` (legacy Node — maintenance uniquement)  
+> **Outils** : `ruff`, `mypy`, `git log`, analyse manuelle
 
 ---
 
-## Architectural mental model
+## Executive Summary — Top 10 Findings
 
-Le système est un dashboard QA full-stack qui orchestre la synchronisation bidirectionnelle **Testmo ↔ GitLab**. Le cutover P34 a basculé les routes sync/testmo-browser/crosstest vers Python. Le backend Node.js reste actif pour les routes non encore décommissionnées (dashboard, runs, projects, reports, etc.) mais est en mode maintenance.
-
-1. **Backend Node/Express** (legacy, ~15k LOC restants) — API REST, tRPC, SQLite, Puppeteer. Les services sync/testmoBrowser/crosstest ont été supprimés en P34.
-2. **Backend Python/FastAPI** (actif en production, port 3001, ~10k LOC) — Toutes les routes sync, health, auth, webhooks, feature-flags, et plus sont servies par Python.
-3. **Frontend React 18 + Vite** (~15k LOC) — 8 dashboards, modals de clôture, exports PDF/DOCX/PPTX. Proxy Vite pointe sur `localhost:3001` (Python).
-
-Le frontend communique exclusivement avec le backend Python en production. Le legacy Node est conservé en warm-standby pour les routes restantes jusqu'à leur propre cutover.
-
----
-
-## Findings
-
-| ID       | Category                           | File:Line                                             | Severity   | Effort | Description                                                                                                             | Recommendation                                                                                |
-| -------- | ---------------------------------- | ----------------------------------------------------- | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| F001     | Architectural decay                | `backend/services/testmo.service.ts:1`                | Critical   | L      | God-class de 1 537 LOC gérant cache, circuit breaker, retry, exports, browser automation, auth                          | Découper en `TestmoClient`, `TestmoCache`, `TestmoExport`, `TestmoBrowser`                    |
-| F002     | Architectural decay                | `frontend/src/components/TestClosureModal.tsx:1`      | High       | L      | Modal de 922 LOC mélangeant UI, logique métier, export PDF, state complexe                                              | Extraire la logique PDF dans un hook, découper en sous-composants                             |
-| F003     | Architectural decay                | `backend/services/gitlab.service.ts:1`                | High       | L      | Service de 920 LOC avec GraphQL + REST + parsing + retry + cache                                                        | Découper en `GitlabRestClient`, `GitlabGraphQLClient`, `GitlabParser`                         |
-| F004     | Type & contract debt               | `backend/middleware/*.ts` (multiple)                  | High       | M      | 716 usages de `any` dans le backend, majoritairement dans les middlewares Express (`req: any`, `res: any`, `next: any`) | Typer avec `Request`, `Response`, `NextFunction` d'Express ou des interfaces projet           |
-| F004b    | Type & contract debt               | `backend_py/app/services/testmo.py` (multiple)        | High       | S      | `Returning Any` sur méthodes `_cached_request` / `_post` / `_patch`                                                     | Caster retours avec variables typées intermédiaires                                           |
-| F005     | Type & contract debt               | `frontend/src/components/Dashboard6.tsx:316`          | High       | S      | Accès `.error` sur `ApiResponse<T>` sans type guard — provoque une erreur TS à la compilation                           | Utiliser le type guard `isApiSuccess()` déjà existant dans `api.types.ts`                     |
-| F006     | Documentation drift                | `README.md:135-170`                                   | High       | S      | README obsolète : référence `server.js`, `App.jsx`, `MetricsCards.jsx` qui n'existent plus                              | Synchroniser README avec la structure actuelle (`backend_py/`, tRPC, Dashboard 4-8)           |
-| F007     | Dependency & config debt           | `backend/package.json:45`                             | Medium     | S      | 2 vulnérabilités modérées `uuid < 14.0.0` via `exceljs@4.x`                                                             | Upgrader `exceljs` ou forcer `uuid@^9` via `overrides`                                        |
-| F008     | Type & contract debt               | `frontend/src/` (10 fichiers de test)                 | Medium     | M      | Types Jest manquants (`toBeInTheDocument`, `beforeEach`) dans tsconfig — 96 erreurs TS                                  | Ajouter `"@testing-library/jest-dom"` dans `types` du tsconfig ou migrer vers `vitest` types  |
-| F009     | Type & contract debt               | `frontend/src/types/api.types.ts:58-88`               | Medium     | S      | Types API frontend miroir du backend — risque de drift si le backend change                                             | Générer automatiquement depuis OpenAPI (`openapi-typescript`) ou via le tRPC bridge Python    |
-| F010     | Type & contract debt               | `backend_py/app/models/base.py:1`                     | Medium     | S      | mypy bloqué : "Source file found twice" (`models.base` vs `app.models.base`)                                            | Ajouter `__init__.py` manquants ou configurer `MYPYPATH` / `--explicit-package-bases`         |
-| F011     | Consistency rot                    | `frontend/src/components/Dashboard6.tsx:175`          | Medium     | S      | `const filters: any = {}` et `body: any` — perte de type safety sur les payloads API                                    | Définir des interfaces `SyncFilters`, `SyncBody`                                              |
-| F012     | Consistency rot                    | `frontend/src/components/RetentionAdmin.tsx:16`       | Medium     | S      | `value: any` et `(p: any)` dans un composant admin qui devrait être fortement typé                                      | Utiliser les types du backend ou définir `RetentionPolicy`, `ArchiveSnapshot`                 |
-| F013     | Test debt                          | `frontend/src/components/`                            | Medium     | M      | ~15 fichiers de test avec `toBeInTheDocument` non reconnu — tests probablement non exécutés en CI                       | Corriger tsconfig + lancer `vitest run` en CI et bloquer le merge si échec                    |
-| ~~F014~~ | ~~Performance & resource hygiene~~ | ~~`backend/services/testmoBrowser.service.ts:1`~~     | ~~Medium~~ | —      | ~~Service supprimé en P34 — remplacé par `backend_py/app/services/testmo_browser.py` (Playwright)~~                     | ~~Résolu P34~~                                                                                |
-| F015     | Error handling & observability     | `backend/middleware/metrics.ts:78`                    | Medium     | S      | `catch (err: any)` avec log sans structure — pas de corrélation requestId                                               | Utiliser `logger.child({ requestId })` et typer l'erreur                                      |
-| F016     | Error handling & observability     | `frontend/src/components/FeatureFlagsAdmin.tsx:101`   | Low        | S      | 4 blocs `catch (err: any)` identiques sans log ni feedback utilisateur                                                  | Normaliser la gestion d'erreur avec un hook `useApiError`                                     |
-| F017     | Dependency & config debt           | `frontend/package.json:23`                            | Low        | S      | `lucide-react@0.263.1` très ancien (2023) — versions récentes apportent tree-shaking optimisé                           | Upgrader vers `lucide-react@^0.400+`                                                          |
-| F018     | Consistency rot                    | `reports/generate_R06_pptx.js:1`                      | Low        | S      | Script Node standalone à la racine utilisant `pptxgenjs` directement — pas intégré au build                             | Migrer dans `frontend/src/utils/` ou `backend_py/app/services/report/`                        |
-| F019     | Security hygiene                   | `backend/routes/runs.routes.ts:34`                    | Low        | S      | `req.query.status` utilisé sans validation Zod dans une route publique                                                  | Ajouter `z.string().regex(/^[\d,]+$/).parse()`                                                |
-| F020     | Test debt                          | `backend/tests/calculations.test.ts:1`                | Low        | M      | Fichier de test de 936 LOC — difficile à maintenir, pas de `describe` imbriqué                                          | Découper en `status-sync.test.ts`, `label-changes.test.ts`, `version-filter.test.ts`          |
-| F021     | Documentation drift                | `frontend/src/trpc/client.ts:10`                      | Low        | S      | TODO commenté depuis longtemps : "générer un AppRouter côté frontend depuis le bridge Python"                           | Implémenter le bridge tRPC Python ↔ Frontend ou supprimer le TODO                             |
-| F022     | Architectural decay                | `frontend/src/utils/docxGenerator.ts:1`               | Medium     | L      | 652 LOC générant des documents DOCX avec `docx` lib — très complexe, pas de tests                                       | Extraire en service backend (`backend_py/app/services/report/`) ou ajouter des tests snapshot |
-| F023     | Consistency rot                    | `backend/services/`                                   | Medium     | M      | Duplication de logique retry/circuit breaker dans `testmo.service.ts`, `gitlab.service.ts`, `sync.service.ts`           | Extraire un `ResilientHttpClient` commun avec retry, circuit breaker, timeout                 |
-| F024     | Type & contract debt               | `backend/services/featureFlags.service.d.ts:1`        | Medium     | S      | Fichier `.d.ts` orphelin à côté du `.ts` — risque de divergence                                                         | Fusionner dans `featureFlags.service.ts` ou supprimer si non utilisé                          |
-| F025     | Performance & resource hygiene     | `backend/server.ts:1`                                 | Low        | M      | Pas de graceful shutdown pour les WebSockets (`websocket/index.ts`) — connexions coupées brutalement                    | Appeler `wss.close()` dans le handler `gracefulShutdown`                                      |
-| F026     | Dependency & config debt           | `backend/package.json:1`                              | Low        | S      | `marked@^4.3.0` déprécié, `yamljs@^0.3.0` sans maintenance — accumuler des libs obsolètes                               | Upgrader `marked` vers v15+, remplacer `yamljs` par `js-yaml`                                 |
-| F027     | Test debt                          | `backend/tests/integration/routes.coverage.test.js:1` | Medium     | M      | Test de 742 LOC avec mocks complexes et pas de couverture de la vraie DB                                                | Migrer vers des tests d'intégration avec `better-sqlite3` en mémoire                          |
-| F028     | Architectural decay                | `backend/services/backup.service.ts:1`                | Medium     | M      | 429 LOC gérant backup local, S3, rsync, rotation, restore — trop de responsabilités                                     | Découper en `BackupLocal`, `BackupS3`, `BackupRotation`, `BackupRestore`                      |
+| #   | Finding                                                                                                                                                                                                                                                                       | Severity        | Fichier clé                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------- |
+| 1   | **JWT signé avec clé vide par défaut** — `JWT_SECRET` vaut `""` si absent du `.env`. N'importe qui peut forger un token admin.                                                                                                                                                | 🔴 **Critical** | `backend_py/app/config.py:49`                                             |
+| 2   | **Access token exposé en query parameter** — `auth.py` redirige vers `/?token=<JWT>`. Le token fuite dans les logs serveur, l'historique navigateur et les referrers.                                                                                                         | 🔴 **Critical** | `backend_py/app/routers/auth.py:120-122`                                  |
+| 3   | **tRPC bridge sans validation d'input** — Le endpoint `/trpc` désérialise du JSON arbitraire et route vers des handlers internes sans schéma Pydantic. Injection de procédure possible.                                                                                       | 🟠 **High**     | `backend_py/app/routers/trpc.py:703-728`                                  |
+| 4   | **Shadowing de variable `created` (dict → int)** — Dans `sync.py`, `created` reçoit d'abord le retour de `create_automation_run` (`dict`), puis est écrasé par `created = 0` (`int`). Le compteur écrase le dict ; pas de crash immédiat mais logique corrompue si réutilisé. | 🟠 **High**     | `backend_py/app/services/sync.py:255` & `:272`                            |
+| 5   | **Exceptions brutes exposées au client** — `str(exc)` est yieldé dans les streams SSE (`dashboard.py`, `trpc.py`, `sync.py`). Stack traces et messages internes fuitent.                                                                                                      | 🟠 **High**     | `backend_py/app/routers/dashboard.py:132`, `trpc.py:697,725`              |
+| 6   | **AsyncClient httpx jamais fermés** — `TestmoService` et `GitLabService` instancient des `httpx.AsyncClient` en singleton global sans `aclose()` au shutdown. Fuite de sockets/connexions.                                                                                    | 🟠 **High**     | `backend_py/app/services/testmo.py:24-28`, `gitlab.py:24-41`              |
+| 7   | **Mypy catastrophique (85+ erreurs)** — `retention.py` query les mauvais modèles, `feature_flags.py` abuse `TypeVar`, `database.py` appelle `.create()` sur `FromClause`. La base de code n'est pas type-safe.                                                                | 🟡 **Medium**   | `backend_py/app/services/retention.py`, `feature_flags.py`, `database.py` |
+| 8   | **Auth admin bypass silencieux** — `require_admin_or_token` catch `Exception` sur le décodage JWT et passe à la suite sans log. Un token invalide est traité comme "pas de token" puis fallback admin.                                                                        | 🟡 **Medium**   | `backend_py/app/deps.py:98`                                               |
+| 9   | **Token JWT stocké en localStorage** — Le frontend stocke le JWT dans `localStorage`. Vulnérable au XSS ; impossible de le marquer `HttpOnly`.                                                                                                                                | 🟡 **Medium**   | `frontend/src/hooks/useAuth.ts:18`                                        |
+| 10  | **Preview limit mensonger** — `case_sync.py` tronque les issues à 20 **avant** de logger `len(issues)`, le message indique donc toujours 20 comme total.                                                                                                                      | 🟡 **Medium**   | `backend_py/app/services/case_sync.py:298-301`                            |
 
 ---
 
-## Top 5 "if you fix nothing else, fix these"
+## Findings Table
 
-### 1. F001 — Décomposer `testmo.service.ts` (1 537 LOC)
-
-Ce fichier est le cœur du backend et contient ~8% de tout le codebase. Il gère l'API Testmo, le cache, les retries, les exports, le browser automation (Puppeteer) et l'authentification. Une régression ici affecte tout le dashboard.
-
-**Outline du refactor** :
-
-```
-backend/services/testmo/
-├── client.ts       # HTTP client Testmo (axios + retry)
-├── cache.ts        # In-memory cache + anti-stampede
-├── export.ts       # Export CSV/Excel/PDF
-├── browser.ts      # Puppeteer interactions
-└── auth.ts         # Token refresh / session
-```
-
-### 2. F004 — Typer les middlewares Express
-
-716 `any` dans le backend est un signal d'alarme. Les middlewares (`auth.middleware.ts`, `audit.middleware.ts`, `requestLogger.ts`) sont les portes d'entrée du système. Les typer correctement permettrait de détecter des bugs de sécurité (ex: `req.user` non vérifié) à la compilation.
-
-**Diff sketch** :
-
-```ts
-// Avant
-function requireAuth(req: any, res: any, next: any) { ... }
-
-// Après
-interface AuthenticatedRequest extends Request {
-  user: { id: number; email: string; role: string };
-}
-function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) { ... }
-```
-
-### 3. F006 — Réécrire le README
-
-Le README est la première chose qu'un nouveau développeur lit. Référencer `App.jsx` et `server.js` alors que le projet utilise `main.tsx` et `server.ts` crée de la confusion immédiate. C'est 30 min de travail pour un gain d'onboarding énorme.
-
-### 4. F005 — Corriger le type guard `ApiResponse` dans Dashboard6
-
-2 lignes à corriger. Utiliser le type guard déjà présent dans le codebase :
-
-```ts
-const res = await apiService.exportRun(...);
-if (!isApiSuccess(res)) {
-  setError(res.error); // maintenant typé correctement
-  return;
-}
-```
-
-### 5. F007 — Forcer `uuid@^9` dans le backend
-
-2 lignes dans `package.json` :
-
-```json
-"overrides": {
-  "exceljs": {
-    "uuid": "^9.0.0"
-  }
-}
-```
+| ID       | Category     | File:Line                                       | Severity    | Description                                                                                                                                                                                      | Recommendation                                                                                                   |
+| -------- | ------------ | ----------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------- |
+| SEC-001  | Security     | `backend_py/app/config.py:49`                   | 🔴 Critical | `jwt_secret: str = Field(default="", alias="JWT_SECRET")`. Clé de signature JWT vide par défaut.                                                                                                 | Lever une `RuntimeError` au startup si `jwt_secret` est vide ou trop court (< 32 octets).                        |
+| SEC-002  | Security     | `backend_py/app/routers/auth.py:120-122`        | 🔴 Critical | Access token passé en query param lors du callback OAuth.                                                                                                                                        | Utiliser un cookie `HttpOnly` temporaire ou un redirect POST+form pour transporter le token.                     |
+| SEC-003  | Security     | `backend_py/app/routers/trpc.py:703-728`        | 🟠 High     | Le handler `trpc_batch` parse du JSON brut et fait `PROCEDURES.get(path)` sans validation.                                                                                                       | Implémenter un schéma Pydantic pour valider le body tRPC (`path`, `input`, `id`).                                |
+| SEC-004  | Security     | `backend_py/app/routers/dashboard.py:132`       | 🟠 High     | Stream SSE : `yield f"data: {json.dumps({'error': str(exc)})}"`. Leak d'erreur interne.                                                                                                          | Renvoyer un message générique côté client ; logger le vrai `exc` côté serveur.                                   |
+| SEC-005  | Security     | `backend_py/app/routers/trpc.py:697,725`        | 🟠 High     | `except Exception as exc:` puis `"message": str(exc)` dans la réponse JSON.                                                                                                                      | Mapper les exceptions vers des codes d'erreur génériques en prod.                                                |
+| SEC-006  | Security     | `frontend/src/hooks/useAuth.ts:18`              | 🟡 Medium   | JWT stocké en `localStorage`. Exposé au XSS.                                                                                                                                                     | Migrer vers un cookie `HttpOnly` pour le refresh token ; utiliser un access token en mémoire (pas localStorage). |
+| SEC-007  | Security     | `backend_py/app/routers/auth.py:111-118`        | 🟡 Medium   | Cookie `refresh_token` n'est `secure` qu'en `production`. En dev/staging il peut transiter en clair.                                                                                             | Forcer `secure=True` dès que `settings.frontend_url` commence par `https`.                                       |
+| SEC-008  | Security     | `backend_py/app/deps.py:98`                     | 🟡 Medium   | `require_admin_or_token` : `except Exception: pass` sur le décodage JWT.                                                                                                                         | Logger l'erreur et ne pas fallback silencieusement sur le admin token.                                           |
+| SEC-009  | Security     | `backend_py/app/services/gitlab.py:44`          | 🟡 Medium   | `gitlab_verify_ssl: bool = Field(default=True, ...)`. Si mis à `false` en prod, pas d'alerte.                                                                                                    | Ajouter un warning au startup si `verify=False` et `environment == "production"`.                                |
+| BUG-001  | Bug          | `backend_py/app/services/sync.py:255` & `:272`  | 🟠 High     | Variable `created` : ligne 255 `created = await testmo_service.create_automation_run(...)` (dict), ligne 272 `created = 0` (int). Shadowing.                                                     | Renommer le compteur `created_count` ou le dict `created_run`.                                                   |
+| BUG-002  | Bug          | `backend_py/app/services/case_sync.py:298-301`  | 🟡 Medium   | `issues = issues[:MAX_PREVIEW_ISSUES]` puis `len(issues)` dans le message info → total toujours égal à 20.                                                                                       | Capturer `total_issues = len(issues)` **avant** la troncature.                                                   |
+| BUG-003  | Bug          | `backend_py/app/services/sync.py:307`           | 🟡 Medium   | `testmo_run_id` peut être `None` (ligne 238) ; passé à `complete_automation_run` qui attend `int`.                                                                                               | Vérifier `if testmo_run_id is not None:` avant d'appeler `complete_automation_run`.                              |
+| BUG-004  | Bug          | `backend_py/app/services/sync.py:323`           | 🟡 Medium   | `issue.get("iid")` peut retourner `None` ; passé à `update_issue_label` qui attend `int`.                                                                                                        | Vérifier `iid` avant l'appel ou utiliser `cast`.                                                                 |
+| BUG-005  | Bug          | `backend_py/app/services/testmo.py:385`         | 🟡 Medium   | Mypy détecte que `res` dans la list-comp pourrait être `BaseException` (car `return_exceptions=True` dans `gather`). En pratique `isinstance(resp, Exception)` protège, mais le typage est faux. | Typer explicitement `responses` et narrow avec `isinstance` avant la compréhension.                              |
+| BUG-006  | Bug          | `backend_py/app/routers/feature_flags.py:32-57` | 🟡 Medium   | `_body_model` utilise `model_cls.model_fields` sur un `TypeVar("T")`. Mypy râle ; runtime fragile si `T` n'est pas un `BaseModel`.                                                               | Contraindre `T = TypeVar("T", bound=BaseModel)` ou utiliser `type[BaseModel]`.                                   |
+| BUG-007  | Bug          | `backend_py/app/services/retention.py:109-153`  | 🟡 Medium   | Multiple erreurs mypy : `MetricSnapshot` utilisé à la place d'`AuditLog` et `AnalyticsInsight` dans les requêtes.                                                                                | Corriger les modèles SQLAlchemy dans les `select()`.                                                             |
+| BUG-008  | Bug          | `backend_py/app/database.py:84-102`             | 🟡 Medium   | `conn.run_sync(User.__table__.create, ...)` — mypy voit `FromClause` sans attribut `create`.                                                                                                     | Utiliser `await conn.run_sync(lambda sync_conn: User.__table__.create(sync_conn, checkfirst=True))`.             |
+| PERF-001 | Performance  | `backend_py/app/services/testmo.py:133-147`     | 🟡 Medium   | Pagination sans limite de sécurité (`while True`). Si l'API Testmo bug et renvoie toujours `next_page`, boucle infinie.                                                                          | Ajouter un `MAX_PAGES = 100` et lever une exception si dépassé.                                                  |
+| PERF-002 | Performance  | `backend_py/app/services/testmo.py:149-167`     | 🟡 Medium   | Idem pour `get_case_names`.                                                                                                                                                                      | Même recommandation.                                                                                             |
+| PERF-003 | Performance  | `backend_py/app/services/gitlab.py:85-109`      | 🟡 Medium   | `_get_paginated` : même risque de boucle infinie sur `x-next-page`.                                                                                                                              | Même recommandation.                                                                                             |
+| PERF-004 | Performance  | `backend_py/app/routers/dashboard.py:35-56`     | 🟡 Medium   | `/dashboard/multi` et `/compare` acceptent `project_ids: list[int] = Query(default=[])`. Pas de limite de taille.                                                                                | Limiter à ~10 project_ids et paginer.                                                                            |
+| ARCH-001 | Architecture | `backend_py/app/services/testmo.py:799`         | 🟠 High     | Singleton global `testmo_service = TestmoService()` avec `AsyncClient` jamais fermé.                                                                                                             | Implémenter un lifespan handler qui appelle `testmo_service.client.aclose()` et `gitlab_service.rest.aclose()`.  |
+| ARCH-002 | Architecture | `backend_py/app/services/gitlab.py:499`         | 🟠 High     | Idem `gitlab_service = GitLabService()`.                                                                                                                                                         | Fermer les clients dans le lifespan FastAPI.                                                                     |
+| ARCH-003 | Architecture | `backend_py/app/routers/trpc.py:751`            | 🟡 Medium   | God file `trpc.py` (751 lignes) — bridge monolithique.                                                                                                                                           | Splitter par domaine (`trpc_dashboard.py`, `trpc_sync.py`, etc.).                                                |
+| ARCH-004 | Architecture | `backend_py/app/services/testmo.py`             | 🟡 Medium   | God file `testmo.py` (799 lignes) — cache, metrics, cases, folders, automation.                                                                                                                  | Extraire `TestmoCasesRepository`, `TestmoFolderRepository`, `TestmoMetricsAggregator`.                           |
+| ARCH-005 | Architecture | `backend_py/app/services/testmo_browser.py`     | 🟡 Medium   | God file `testmo_browser.py` (560 lignes) — Playwright pooling maison.                                                                                                                           | Extraire `BrowserPool`, `PagePool`, `TestmoBrowserActions`.                                                      |
+| ARCH-006 | Architecture | `frontend/src/services/api.service.ts`          | 🟡 Medium   | God file `api.service.ts` (670 lignes) — service monolithique.                                                                                                                                   | Splitter par domaine (`api.dashboard.ts`, `api.sync.ts`, etc.).                                                  |
+| ARCH-007 | Architecture | `frontend/src/components/Dashboard6.tsx`        | 🟡 Medium   | God component (833 lignes) — état local énorme, multiples responsabilités.                                                                                                                       | Extraire des sous-composants (`ProjectSelector`, `IterationPicker`, `SyncLogViewer`).                            |
+| QUAL-001 | Quality      | `backend_py/app/services/testmo.py:189-251`     | 🟡 Medium   | `aggregated["total"] or 1` et `aggregated["completed"] or 1` masquent les vrais zéros. Le completion rate devient 100 % si tout est à 0.                                                         | Gérer explicitement le cas zéro avec `0.0` plutôt que forcer le dénominateur à 1.                                |
+| QUAL-002 | Quality      | `backend_py/app/services/case_sync.py:168`      | 🟡 Medium   | `root_folder_id: int = 4514` hardcodé.                                                                                                                                                           | Déplacer dans `projects_config.py` ou `settings`.                                                                |
+| QUAL-003 | Quality      | `backend_py/app/services/gitlab.py:203`         | 🟡 Medium   | `todo_status_gid` hardcodé avec fallback magique.                                                                                                                                                | Déplacer dans `settings` ou un mapping explicite.                                                                |
+| QUAL-004 | Quality      | `backend_py/app/routers/sync.py:36`             | 🟡 Medium   | `db: DBMain = None` — mypy râle (PEP 484 interdit l'`Optional` implicite). Ce pattern est répété dans ~10 routers.                                                                               | Ajouter `                                                                                                        | None`explicite :`db: DBMain | None = None`. |
+| QUAL-005 | Quality      | `frontend/src/services/api.service.ts:61,74`    | 🟡 Medium   | `console.log` / `console.error` dans les intercepteurs Axios. Bruit en production.                                                                                                               | Remplacer par un logger conditionnel (`if (import.meta.env.DEV) ...`).                                           |
+| QUAL-006 | Quality      | `backend_py/app/routers/sync.py:94-101`         | 🟡 Medium   | `sync_execute` : `persist_run` est dans un `except Exception` large. Si la DB est down, l'erreur est juste logguée ; l'utilisateur pense que tout est OK.                                        | Séparer la persistance et renvoyer un warning dans le stream SSE si échec.                                       |
+| QUAL-007 | Quality      | `backend_py/app/services/case_sync.py:241-252`  | 🟡 Medium   | `dry_run` : `except Exception: pass` sur `_find_folder_by_name`. Les erreurs Testmo sont silencieusement ignorées.                                                                               | Logger au moins en `warning`.                                                                                    |
+| QUAL-008 | Quality      | `backend_py/app/services/status_sync.py:141`    | 🟡 Medium   | `sync_run_status_to_gitlab` utilise `run_id: int` mais est appelée depuis `sync.py` avec `run_id or 0` (ligne 361).                                                                              | Typer `run_id` comme `int                                                                                        | None`et gérer le cas`None`. |
+| TEST-001 | Tests        | `backend_py/tests/` (38 tests / 79 fichiers)    | 🟡 Medium   | Couverture faible. `retention.py`, `analytics.py`, `anomaly.py`, `backup.py`, `email.py` n'ont aucun test unitaire.                                                                              | Prioriser les tests sur les services de sync et les routers auth/admin.                                          |
+| TEST-002 | Tests        | `frontend/package.json:48`                      | 🟡 Medium   | Pas de script `lint`. `typecheck` passe sans erreurs malgré des types `any` massifs.                                                                                                             | Ajouter `eslint` + `@typescript-eslint/no-explicit-any`.                                                         |
+| TEST-003 | Tests        | `frontend/src/hooks/`                           | 🟢 Low      | Beaucoup de fichiers `.test.ts` mais très courts (< 40 lignes), souvent des mocks basiques.                                                                                                      | Augmenter la couverture des hooks critiques (`useAuth`, `useSyncProgress`).                                      |
+| LEG-001  | Legacy       | `backend/` Node.js                              | 🟢 Low      | Code legacy encore présent. Des routes Express non migrées (`dashboard`, `runs`, `projects`) peuvent encore être accidentellement lancées.                                                       | Documenter explicitement quels ports sont utilisés ; ajouter un health-check qui fail si Node écoute sur 3001.   |
 
 ---
 
-## Quick wins
+## Quick Wins (low effort, medium+ severity)
 
-- [x] **F007** : Forcer `uuid@^9` via `overrides` dans `backend/package.json` (2 min) — Livré P32
-- [x] **F005** : Utiliser `isApiSuccess()` dans `Dashboard6.tsx:316` et `:362` (5 min) — Livré P32
-- [x] **F019** : Ajouter validation Zod sur `runs.routes.ts:34` (10 min) — Livré P32
-- [x] **F010** : Ajouter `__init__.py` dans `backend_py/app/models/` pour mypy (5 min) — Livré P32
-- [x] **F021** : Documenter l'import `AppRouter` via path alias `~server` (monorepo) (15 min) — Livré P32
-- [x] **F026** : Upgrader `marked` et remplacer `yamljs` (20 min) — Livré P32
-- [x] **F008** : Ajouter `"@testing-library/jest-dom"` dans `frontend/tsconfig.json` types (5 min) — Livré P32
-
----
-
-## Things that look bad but are actually fine
-
-- **Le double backend** (Node legacy + Python actif) est une **migration intentionnelle et progressive**. Le cutover P34 a retiré le code sync Node.js. Les routes restantes (dashboard, runs, projects, reports) sont encore sur Node.js en attendant leur propre cutover. Le Node.js compile toujours (0 erreur TS) et ses tests passent (578/578). C'est une stratégie valide.
-- **Les 47 `any` dans le frontend** sont concentrés dans les tests et les composants admin (FeatureFlags, Retention, Dashboard6). Ce n'est pas idéal mais ce n'est pas critique car ce sont des zones à faible trafic utilisateur.
-- **`backend/services/featureFlags.service.d.ts`** existe à côté du `.ts`. C'est un pattern TypeScript valide pour séparer les types publics de l'implémentation, même si ici le fichier semble orphelin.
-- **Le `any` dans les middlewares du backend** est mauvais en soi, mais Express 5 + TypeScript 6 rend le typage des middlewares plus difficile qu'avec Fastify/FastAPI. Ce n'est pas une excuse, mais ce n'est pas un choix totalement irresponsable.
+1. **SEC-001** — Ajouter une vérification `if not settings.jwt_secret: raise RuntimeError(...)` dans `main.py` au startup. **~5 min.**
+2. **SEC-004, SEC-005** — Remplacer `str(exc)` par `"Internal error"` dans les réponses SSE et tRPC ; logger l'exception côté serveur. **~10 min.**
+3. **BUG-002** — Capturer `total_issues` avant la troncature dans `case_sync.py`. **~2 min.**
+4. **QUAL-005** — Wrapper les `console.log` avec `if (import.meta.env.DEV)`. **~5 min.**
+5. **PERF-001, PERF-002, PERF-003** — Ajouter `MAX_PAGES = 100` dans les boucles de pagination. **~10 min.**
+6. **BUG-003, BUG-004** — Ajouter des guards `if testmo_run_id is not None:` et `if iid is not None:` dans `sync.py`. **~5 min.**
+7. **QUAL-004** — Ajouter `| None` explicite sur tous les paramètres `db` des routers. **~10 min.**
+8. **ARCH-001, ARCH-002** — Ajouter un `lifespan` qui ferme les clients httpx. **~15 min.**
 
 ---
 
-## Open questions for the maintainer
+## Things That Look Bad But Are Actually Fine
 
-- **Migration Python** : Le cutover sync (P34) est terminé. Le calendrier pour les routes restantes (dashboard, runs, projects, reports) dépendra des priorités métier. Tous les équivalents Python existent déjà (`backend_py/app/routers/*.py`).
-- **Tests frontend** : Les tests avec `toBeInTheDocument` non reconnu sont-ils exécutés en CI ? Si non, pourquoi ?
-- **tRPC bridge** : Le `trpc_bridge.py` est-il utilisé en production ou est-ce un POC abandonné ? Le frontend utilise `api.service.ts` (REST) et non le tRPC client.
-- **Puppeteer vs Playwright** : Le backend Node utilise encore Puppeteer pour les routes survivantes (pdf, exports). Le backend Python utilise Playwright (testmo_browser, pdf). Quand le Node sera entièrement décommissionné, Puppeteer disparaîtra avec lui.
-- **`reports/generate_R06_pptx.js`** : Ce script est-il encore utilisé manuellement ou a-t-il été remplacé par le générateur PPTX du backend Python ?
-- **WebSockets** : Le `websocket/index.ts` est-il utilisé par le frontend actuellement ? Le dashboard semble utiliser SSE (Dashboard6) et REST polling.
+| ID     | What looks bad                                                    | Why it's actually fine                                                                                                                                                                    |
+| ------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OK-001 | `except Exception` dans `database.py:43,56`                       | C'est un contextmanager de session SQLAlchemy : rollback sur **toute** exception puis re-raise. C'est le pattern recommandé.                                                              |
+| OK-002 | `testmo_service = TestmoService()` singleton global               | FastAPI est single-process (sauf gunicorn). Le `TTLCache` + `_in_flight` partagés sont intentionnels pour la déduplication. La fuite de connexion est le vrai problème, pas le singleton. |
+| OK-003 | `backend_py` utilise SQLite en production                         | Documenté comme choix architecturel (zero-config, volume faible). WAL mode + busy timeout sont configurés. C'est acceptable pour un outil interne.                                        |
+| OK-004 | `console.log` en dev via les intercepteurs Axios                  | C'est du bruit mais pas une fuite de données sensibles (pas de token dans les logs, le header `Authorization` est masqué par Axios dans les erreurs).                                     |
+| OK-005 | `case_sync.py` fait `await asyncio.sleep(0.3)` entre chaque issue | C'est du rate-limiting client intentionnel vers Testmo. Pas idéal (pas de backoff) mais pas un bug.                                                                                       |
+| OK-006 | `git log --stat` montre très peu d'historique (7 commits récents) | Le repo a été re-créé/copié depuis `dashboard-by-kimi-2.0` (commit `a2ed963`). L'historique complet est dans l'ancien repo. Pas un problème de dette technique.                           |
+| OK-007 | `frontend` n'a pas de `package-lock.json` commité                 | Le projet utilise `node_modules` classique ; le lockfile peut être présent mais non affiché dans notre listing. Pas un risque immédiat si les versions sont pinnées dans `package.json`.  |
+| OK-008 | `ruff check` passe sans aucune erreur                             | Ruff est configuré avec des règles de base. Le fait qu'il passe ne signifie pas que le code est propre (mypy est catastrophique), mais ce n'est pas un faux négatif de ruff.              |

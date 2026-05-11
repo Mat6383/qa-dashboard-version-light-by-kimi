@@ -296,9 +296,10 @@ class CaseSyncService:
 
         # Limit preview to avoid timeouts on large projects
         MAX_PREVIEW_ISSUES = 20
-        if dry_run and len(issues) > MAX_PREVIEW_ISSUES:
+        total_issues_before_truncate = len(issues)
+        if dry_run and total_issues_before_truncate > MAX_PREVIEW_ISSUES:
             issues = issues[:MAX_PREVIEW_ISSUES]
-            result.details.append({"info": f"Preview limité à {MAX_PREVIEW_ISSUES} issues (total: {len(issues)}). Utilise un label ou une itération pour filtrer."})
+            result.details.append({"info": f"Preview limité à {MAX_PREVIEW_ISSUES} issues (total: {total_issues_before_truncate}). Utilise un label ou une itération pour filtrer."})
 
         # 5. Pre-fetch all notes in parallel
         note_tasks: list[Any] = []
@@ -396,7 +397,7 @@ class CaseSyncService:
                 logger.error("Failed to sync issue", extra={"iid": iid, "error": str(exc)})
                 result.errors += 1
                 detail["action"] = "error"
-                detail["error"] = str(exc)
+                detail["error"] = "Internal server error"
                 result.details.append(detail)
 
             await asyncio.sleep(0.3)

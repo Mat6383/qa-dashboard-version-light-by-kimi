@@ -95,6 +95,7 @@ export interface Run {
   passed: number;
   failed: number;
   blocked: number;
+  skipped: number;
   wip: number;
   untested: number;
   completionRate: number;

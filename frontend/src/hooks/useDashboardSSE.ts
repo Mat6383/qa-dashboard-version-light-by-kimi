@@ -73,7 +73,7 @@ export function useDashboardSSE({
     }
 
     const url = `${API_BASE}/dashboard/${projectId}/stream?${params.toString()}`;
-    const es = new EventSource(url);
+    const es = new EventSource(url, { withCredentials: true });
     esRef.current = es;
 
     es.onopen = () => {

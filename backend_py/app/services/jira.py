@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import json
+
 import httpx
 
 from app.utils.logger import get_logger
@@ -30,8 +32,8 @@ class JiraClient:
                 resp.raise_for_status()
             return {"success": True, "account_id": resp.json().get("accountId")}
         except Exception as exc:
-            logger.error("Jira connection test failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            logger.error("Jira connection test failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
     async def create_issue(
         self,
@@ -61,10 +63,10 @@ class JiraClient:
             return {"success": True, "issue_key": data.get("key"), "issue_id": data.get("id")}
         except httpx.HTTPStatusError as exc:
             logger.error("Jira create issue failed: %s — %s", exc.response.status_code, exc.response.text)
-            return {"success": False, "error": f"HTTP {exc.response.status_code}: {exc.response.text}"}
+            return {"success": False, "error": "HTTP error"}
         except Exception as exc:
-            logger.error("Jira create issue failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            logger.error("Jira create issue failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
 
 class IntegrationService:
@@ -110,7 +112,8 @@ class IntegrationService:
         body = json.dumps(payload, default=str)
         headers = {"Content-Type": "application/json"}
         if secret:
-            import hashlib, hmac
+            import hashlib
+            import hmac
             headers["X-Webhook-Signature"] = hmac.new(
                 secret.encode("utf-8"), body.encode("utf-8"), hashlib.sha256
             ).hexdigest()
@@ -120,7 +123,8 @@ class IntegrationService:
                 resp.raise_for_status()
             return {"success": True, "status_code": resp.status_code}
         except Exception as exc:
-            return {"success": False, "error": str(exc)}
+            logger.error("Webhook send failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
 
 integration_service = IntegrationService()

@@ -232,6 +232,7 @@ export default function Dashboard6({ isDark }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: ctrl.signal,
+      credentials: 'include',
     })
       .then(async (response) => {
         if (!response.ok) {

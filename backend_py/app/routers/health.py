@@ -5,11 +5,10 @@ from __future__ import annotations
 import shutil
 from typing import Any
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter
 
 from app.core.circuit_breaker import CircuitBreaker
-from app.deps import DBMain, require_admin_token
+from app.deps import DBMain
 from app.services.gitlab import gitlab_service
 from app.services.testmo import testmo_service
 
@@ -47,7 +46,6 @@ async def readiness(db: DBMain) -> dict[str, Any]:
 
 @router.get("/detailed")
 async def detailed_health(db: DBMain) -> dict[str, Any]:
-    import time
     total, used, free = shutil.disk_usage("/")
     return {
         "status": "OK",

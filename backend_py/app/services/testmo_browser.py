@@ -552,7 +552,8 @@ class TestmoBrowserService:
             await self.authenticate(page)
             return {"ok": True, "message": "Authenticated successfully"}
         except Exception as exc:
-            return {"ok": False, "message": str(exc)}
+            logger.error("Testmo browser health check failed: %s", exc, exc_info=True)
+            return {"ok": False, "message": "Internal server error"}
         finally:
             await page.close()
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hmac
-import secrets
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, status
@@ -49,8 +48,12 @@ async def require_auth(
 
     try:
         payload = decode_jwt(token)
-    except JWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+    except JWTError:
+        # Fallback to cookie if Bearer token is invalid
+        token = request.cookies.get("access_token")
+        if not token:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        payload = decode_jwt(token)
 
     user_id = int(payload.get("sub", 0))
     async with get_main_db() as db:

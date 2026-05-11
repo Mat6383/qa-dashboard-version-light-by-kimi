@@ -20,8 +20,8 @@ const DEFAULT_RATES = {
   bugsInProd: 0,
   bugsInTest: 0,
   totalBugs: 0,
-  preprodMilestone: 'N/A',
-  prodMilestone: 'N/A',
+  preprodMilestone: '—',
+  prodMilestone: '—',
   message: 'Indisponible',
 };
 

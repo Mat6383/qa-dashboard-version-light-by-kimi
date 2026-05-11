@@ -26,13 +26,12 @@ STATUS_PRIORITY = ["Bug", "Test::TODO"]
 
 def _has_label(issue: dict[str, Any], label: str) -> bool:
     labels = issue.get("labels", []) or []
-    return any(l.lower() == label.lower() for l in labels)
+    return any(lbl.lower() == label.lower() for lbl in labels)
 
 
 def map_issue_to_testmo_status(issue: dict[str, Any]) -> str:
     """Map a GitLab issue to a Testmo automation test status."""
     state = issue.get("state", "")
-    labels = issue.get("labels", []) or []
 
     if state == "closed":
         return STATUS_PASSED

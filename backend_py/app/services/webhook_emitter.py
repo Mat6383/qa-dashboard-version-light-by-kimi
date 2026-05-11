@@ -60,10 +60,10 @@ class WebhookEmitter:
             return {"success": True, "status_code": resp.status_code}
         except httpx.HTTPStatusError as exc:
             logger.warning("Webhook HTTP error %s → %s", sub.url, exc.response.status_code)
-            return {"success": False, "status_code": exc.response.status_code, "error": str(exc)}
+            return {"success": False, "status_code": exc.response.status_code, "error": "HTTP error"}
         except Exception as exc:
             logger.warning("Webhook failed %s → %s", sub.url, exc)
-            return {"success": False, "error": str(exc)}
+            return {"success": False, "error": "Internal server error"}
 
     def _matches_filters(self, payload: dict[str, Any], filters: dict[str, Any]) -> bool:
         for key, value in filters.items():

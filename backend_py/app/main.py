@@ -9,7 +9,6 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Histogram, make_asgi_app
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -45,6 +44,12 @@ from app.routers import (
     webhooks,
     websocket,
 )
+
+if not settings.jwt_secret or len(settings.jwt_secret) < 32:
+    raise RuntimeError(
+        "JWT_SECRET must be set and at least 32 characters long. "
+        f"Current value: {'<empty>' if not settings.jwt_secret else '<too short>'}"
+    )
 
 if settings.sentry_dsn and settings.environment == "production":
     sentry_sdk.init(

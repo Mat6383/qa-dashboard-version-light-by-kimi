@@ -1,6 +1,6 @@
 /**
  * ================================================
- * AUTH CALLBACK — Consomme le token OAuth retourné
+ * AUTH CALLBACK — Consomme le cookie de session
  * ================================================
  */
 
@@ -11,10 +11,9 @@ import { useAuth } from '../hooks/useAuth';
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { consumeCallbackToken } = useAuth();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
-    const token = searchParams.get('token');
     const error = searchParams.get('error');
 
     if (error) {
@@ -23,16 +22,11 @@ export default function AuthCallback() {
       return;
     }
 
-    if (token) {
-      const ok = consumeCallbackToken(token);
-      if (ok) {
-        navigate('/', { replace: true });
-        return;
-      }
-    }
-
-    navigate('/?error=auth_failed');
-  }, [searchParams, navigate, consumeCallbackToken]);
+    // Cookie-based auth: backend set an HttpOnly cookie before redirecting here
+    refreshUser()
+      .then(() => navigate('/', { replace: true }))
+      .catch(() => navigate('/?error=auth_failed', { replace: true }));
+  }, [searchParams, navigate, refreshUser]);
 
   return (
     <div className="loading-container">

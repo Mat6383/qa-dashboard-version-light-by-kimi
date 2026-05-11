@@ -37,8 +37,8 @@ async def create_manual_run(
         )
         return {"success": True, "data": result}
     except Exception as exc:
-        logger.error("[TestmoBrowserAPI] Create run error: %s", exc)
-        return {"success": False, "error": str(exc)}
+        logger.error("[TestmoBrowserAPI] Create run error: %s", exc, exc_info=True)
+        return {"success": False, "error": "Internal server error"}
 
 
 @router.post("/runs/{run_id}/results")
@@ -59,8 +59,8 @@ async def add_run_results(
         )
         return {"success": True, "data": stats}
     except Exception as exc:
-        logger.error("[TestmoBrowserAPI] Add results error: %s", exc)
-        return {"success": False, "error": str(exc)}
+        logger.error("[TestmoBrowserAPI] Add results error: %s", exc, exc_info=True)
+        return {"success": False, "error": "Internal server error"}
 
 
 @router.get("/health")

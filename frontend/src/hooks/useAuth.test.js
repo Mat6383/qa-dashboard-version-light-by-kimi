@@ -22,11 +22,13 @@ describe('useAuth', () => {
     localStorage.clear();
   });
 
-  it('starts unauthenticated without token', () => {
+  it('starts unauthenticated without token', async () => {
+    mockGet.mockRejectedValue({ response: { status: 401 } });
     const { result } = renderHook(() => useAuth());
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
-    expect(result.current.loading).toBe(false);
   });
 
   it('fetches user when token exists in localStorage', async () => {

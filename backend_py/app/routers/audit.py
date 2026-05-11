@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from app.deps import DBMain, require_admin
 from app.models.audit import AuditLog
-from app.schemas import AuditLogListResponse, AuditLogOut
+from app.schemas import AuditLogOut
 
 router = APIRouter()
 

@@ -35,6 +35,7 @@ export function useSyncProgress(endpoint) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: controller.signal,
+          credentials: 'include',
         });
 
         if (!res.ok) {

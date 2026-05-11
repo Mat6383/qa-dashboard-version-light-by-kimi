@@ -245,14 +245,14 @@ export default function PreprodSection({
               )}
 
               {(() => {
-                const progressValue = run.total > 0 ? Math.round(((run.passed + run.failed) / run.total) * 100) : 0;
+                const progressValue = run.total > 0 ? Math.round(((run.passed + run.failed + (run.skipped || 0)) / run.total) * 100) : 0;
                 const progressColor = getProgressColor(progressValue);
                 return (
                   <>
                     <div className="pp-campaign-metric" style={{ marginTop: run.isExploratory ? '0' : '0.4rem' }}>
                       <span className="pp-campaign-metric-label">{useBusiness ? 'Progression' : 'Progress'}</span>
                       <span className="pp-campaign-metric-value" style={{ color: progressColor }}>
-                        {run.passed + run.failed} / {run.total}
+                        {run.passed + run.failed + (run.skipped || 0)} / {run.total}
                       </span>
                     </div>
                     <div className="pp-progress-bar">

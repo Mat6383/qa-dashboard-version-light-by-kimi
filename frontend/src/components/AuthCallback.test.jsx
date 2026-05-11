@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AuthCallback from './AuthCallback';
 
 const mockNavigate = vi.fn();
-const mockConsumeCallbackToken = vi.fn().mockReturnValue(true);
+const mockRefreshUser = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
-    consumeCallbackToken: mockConsumeCallbackToken,
+    refreshUser: mockRefreshUser,
   }),
 }));
 
@@ -37,14 +37,14 @@ describe('AuthCallback', () => {
   }
 
   it('shows loading state', () => {
-    renderWithSearchParams('?token=abc');
+    renderWithSearchParams('');
     expect(screen.getByText(/Authentification en cours/i)).toBeInTheDocument();
   });
 
-  it('consumes token and redirects to home', async () => {
-    renderWithSearchParams('?token=valid-token');
+  it('calls refreshUser and redirects to home on success', async () => {
+    renderWithSearchParams('');
     await waitFor(() => {
-      expect(mockConsumeCallbackToken).toHaveBeenCalledWith('valid-token');
+      expect(mockRefreshUser).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
     });
   });
@@ -53,14 +53,6 @@ describe('AuthCallback', () => {
     renderWithSearchParams('?error=access_denied');
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/?error=oauth_failed');
-    });
-  });
-
-  it('redirects to error when token consumption fails', async () => {
-    mockConsumeCallbackToken.mockReturnValueOnce(false);
-    renderWithSearchParams('?token=bad-token');
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/?error=auth_failed');
     });
   });
 });

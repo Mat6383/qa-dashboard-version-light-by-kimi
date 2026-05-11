@@ -6,17 +6,15 @@ import json
 from typing import Any, AsyncGenerator
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
 from app.deps import DBMain, require_admin_token
 from app.schemas import (
-    AutoConfigResponse,
     SyncCasesExecutePayload,
     SyncCasesPreviewPayload,
     SyncExecutePayload,
-    SyncHistoryResponse,
     SyncPreviewPayload,
     SyncStatusPayload,
 )

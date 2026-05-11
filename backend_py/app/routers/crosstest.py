@@ -12,9 +12,6 @@ from app.schemas import (
     CrossTestCommentCreate,
     CrossTestCommentOut,
     CrossTestCommentUpdate,
-    CrossTestCommentsResponse,
-    CrossTestIssuesResponse,
-    CrossTestIterationsResponse,
 )
 from app.services.gitlab import gitlab_service
 

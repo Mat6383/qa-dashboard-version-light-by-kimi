@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -230,6 +230,7 @@ class SyncService:
         # ------------------------------------------------------------------
         # Find or create the target automation run
         # ------------------------------------------------------------------
+        created: dict[str, Any] | None = None
         if not dry_run:
             try:
                 if run_id:
@@ -269,7 +270,7 @@ class SyncService:
         # ------------------------------------------------------------------
         # Map issues to Testmo tests and push in batches
         # ------------------------------------------------------------------
-        created = updated = skipped = enriched = errors = 0
+        updated = skipped = enriched = errors = 0
         tests: list[dict[str, Any]] = []
         folder = iteration_name
         if version:
@@ -299,7 +300,7 @@ class SyncService:
                         "batch": batch_idx + 1,
                         "error": str(exc),
                     })
-                    yield {"level": "error", "message": f"Batch {batch_idx + 1}/{total_batches} failed: {exc}"}
+                    yield {"level": "error", "message": f"Batch {batch_idx + 1}/{total_batches} failed"}
                 await asyncio.sleep(0.1)
 
             # Complete thread and run
@@ -315,12 +316,18 @@ class SyncService:
         # ------------------------------------------------------------------
         for issue in issues:
             iid = issue.get("iid")
+            try:
+                iid_int = int(iid)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                logger.warning("Skipping issue with invalid iid %r: %s", iid, issue.get("title", ""))
+                skipped += 1
+                continue
             title = issue.get("title", "")
             try:
                 if not dry_run:
                     if issue.get("state") == "opened":
                         await gitlab_service.update_issue_label(
-                            project_id, iid, add_labels=["Sync-Updated"], remove_labels=[]
+                            project_id, iid_int, add_labels=["Sync-Updated"], remove_labels=[]
                         )
                         updated += 1
                     else:

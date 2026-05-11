@@ -46,8 +46,8 @@ class GitLabConnector:
             await self._get(url, params)
             return {"success": True, "message": "Connexion GitLab réussie"}
         except Exception as exc:
-            logger.error("GitLab connector test failed: %s", exc)
-            return {"success": False, "message": str(exc)}
+            logger.error("GitLab connector test failed: %s", exc, exc_info=True)
+            return {"success": False, "message": "Internal server error"}
 
     async def list_projects(self) -> list[dict[str, Any]]:
         data = await self._get("/projects", {"membership": "true", "per_page": 100})

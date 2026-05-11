@@ -32,6 +32,7 @@ export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: `${getBaseUrl()}/trpc`,
+      fetch: (input, init) => fetch(input, { ...init, credentials: 'include' }),
       headers() {
         const token = localStorage.getItem('qa_dashboard_token') || '';
         return {

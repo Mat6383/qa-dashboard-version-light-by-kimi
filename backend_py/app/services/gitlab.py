@@ -89,6 +89,7 @@ class GitLabService:
         page_params = dict(params or {})
         page_params.setdefault("per_page", 100)
         page = 1
+        MAX_PAGES = 100
         while True:
             page_params["page"] = page
             async with self.cb_rest:
@@ -106,6 +107,9 @@ class GitLabService:
                 if not next_page:
                     break
                 page = int(next_page)
+                if page > MAX_PAGES:
+                    logger.warning("Pagination limit reached for %s", path)
+                    break
         return all_items
 
     def _format_iteration_date(self, d: str | None) -> str:
@@ -133,7 +137,8 @@ class GitLabService:
                 if it.get("iid") == target_iid:
                     logger.info("GitLab: Itération trouvée par iid=%s (project %s, id=%s)", target_iid, project_id, it.get("id"))
                     return it
-        normalize = lambda s: re.sub(r"[-\s]+", "", s.lower())
+        def normalize(s: str) -> str:
+            return re.sub(r"[-\s]+", "", s.lower())
         normalized_search = normalize(iteration_name)
         for it in iterations:
             it_title = it.get("title") or self._iteration_fallback_title(it)

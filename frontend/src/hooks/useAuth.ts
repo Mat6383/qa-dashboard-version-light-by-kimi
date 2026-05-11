@@ -42,12 +42,7 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      fetchMe();
-    } else {
-      setLoading(false);
-    }
+    fetchMe();
   }, [fetchMe]);
 
   const loginWithGitLab = useCallback(() => {

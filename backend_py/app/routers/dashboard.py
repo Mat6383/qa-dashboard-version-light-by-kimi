@@ -129,8 +129,9 @@ async def stream_dashboard(request: Request, project_id: int):
                 metrics = await testmo_service.get_project_metrics(project_id)
                 payload = json.dumps({"project_id": project_id, **metrics})
                 yield f"data: {payload}\n\n"
-            except Exception as exc:
-                yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+            except Exception:
+                logger.error("SSE stream error", exc_info=True)
+                yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
             await asyncio.sleep(5)
 
     return StreamingResponse(

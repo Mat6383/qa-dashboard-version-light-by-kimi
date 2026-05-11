@@ -91,7 +91,7 @@ export default function ProductionSection({
                 <div className="prod-card-meta">
                   <span>
                     {useBusiness ? 'Jalon' : 'Milestone'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone}</strong>
+                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—'}</strong>
                   </span>
                   <span>
                     {useBusiness ? 'Objectif' : 'Target'}:{' '}
@@ -119,7 +119,7 @@ export default function ProductionSection({
                 <div className="prod-card-meta">
                   <span>
                     {useBusiness ? 'Lié' : 'Linked'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone}</strong>
+                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—'}</strong>
                   </span>
                   <span>
                     {useBusiness ? 'Objectif' : 'Target'}:{' '}

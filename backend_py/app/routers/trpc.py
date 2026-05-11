@@ -6,30 +6,18 @@ Compatible with @trpc/react-query httpBatchLink (v10, no transformer).
 from __future__ import annotations
 
 import json
-import traceback
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import delete, select
 
 from app.database import get_comments_db, get_main_db
-from app.deps import require_auth
 from app.models.comments import CrossTestComment
 from app.models.feature_flags import FeatureFlag
 from app.models.integrations import Integration
 from app.models.notifications import NotificationSetting
 from app.models.webhooks import WebhookSubscription
-from app.schemas import (
-    AnalyticsAnalyzePayload,
-    AnalyticsMarkReadPayload,
-    IntegrationCreate,
-    IntegrationUpdate,
-    JiraIssueCreate,
-    RetentionPolicyUpdate,
-    WebhookSubscriptionCreate,
-    WebhookSubscriptionUpdate,
-)
 from app.services.alerting import alerting_service
 from app.services.analytics import analytics_service
 from app.services.anomaly import anomaly_service
@@ -40,7 +28,6 @@ from app.services.retention import retention_service
 from app.services.case_sync import case_sync_service
 from app.services.sync import sync_service
 from app.services.testmo import testmo_service
-from app.services.webhook_emitter import webhook_emitter
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -708,8 +695,8 @@ async def _handle_batch(paths: list[str], inputs: dict[str, Any], db: Any) -> li
             result["id"] = call_id
             responses.append(result)
         except Exception as exc:
-            logger.error("tRPC error in %s: %s", path, exc)
-            responses.append({"error": {"message": str(exc), "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
+            logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
+            responses.append({"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
     return responses
 
 
@@ -736,8 +723,8 @@ async def trpc_batch(request: Request):
                 result["id"] = call_id
                 responses.append(result)
             except Exception as exc:
-                logger.error("tRPC error in %s: %s", path, exc)
-                responses.append({"error": {"message": str(exc), "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
+                logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
+                responses.append({"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
 
     return responses
 

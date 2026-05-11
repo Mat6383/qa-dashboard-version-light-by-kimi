@@ -48,8 +48,8 @@ Content-Type: text/html; charset=utf-8
             await smtp.quit()
             return {"success": True, "channel": "email", "destination": to}
         except Exception as exc:
-            logger.error("Email send failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            logger.error("Email send failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
     async def send_slack(
         self,
@@ -72,8 +72,8 @@ Content-Type: text/html; charset=utf-8
                 resp.raise_for_status()
             return {"success": True, "channel": "slack", "destination": webhook_url}
         except Exception as exc:
-            logger.error("Slack send failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            logger.error("Slack send failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
     async def send_teams(
         self,
@@ -103,8 +103,8 @@ Content-Type: text/html; charset=utf-8
                 resp.raise_for_status()
             return {"success": True, "channel": "teams", "destination": webhook_url}
         except Exception as exc:
-            logger.error("Teams send failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            logger.error("Teams send failed: %s", exc, exc_info=True)
+            return {"success": False, "error": "Internal server error"}
 
     async def send_test(
         self,

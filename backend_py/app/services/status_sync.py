@@ -68,7 +68,7 @@ def is_comment_duplicate(existing_notes: list[dict[str, Any]], comment_text: str
 def compute_label_changes(current_labels: list[str], new_label: str | None) -> dict[str, Any]:
     if not new_label:
         return {"add_label": None, "remove_labels": [], "action": "skip"}
-    labels_to_remove = [l for l in current_labels if l in ALL_TEST_LABELS and l != new_label]
+    labels_to_remove = [label for label in current_labels if label in ALL_TEST_LABELS and label != new_label]
     already_has_label = new_label in current_labels
     if already_has_label and not labels_to_remove:
         return {"add_label": new_label, "remove_labels": [], "action": "noop"}
@@ -315,16 +315,22 @@ class StatusSyncService:
                     issue.get("iid"), case_name, new_status
                 )
 
-                await self._post_comment_if_needed(
-                    gitlab_project_id, issue["iid"], case_name, run_name, status_id
-                )
+                issue_iid = issue.get("iid")
+                try:
+                    issue_iid_int = int(issue_iid)  # type: ignore[arg-type]
+                except (TypeError, ValueError):
+                    logger.warning("[StatusSync] Invalid iid %r for case '%s' — skipping comment", issue_iid, case_name)
+                else:
+                    await self._post_comment_if_needed(
+                        gitlab_project_id, issue_iid_int, case_name, run_name, status_id
+                    )
             except Exception as exc:
                 stats["errors"] += 1
                 yield {
                     "level": "error",
                     "caseName": case_name,
                     "issueIid": issue.get("iid"),
-                    "error": str(exc),
+                    "error": "Internal server error",
                 }
                 logger.error(
                     "[StatusSync] Erreur #%s \"%s\": %s",

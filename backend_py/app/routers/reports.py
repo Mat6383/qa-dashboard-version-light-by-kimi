@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.deps import DBMain, require_auth
-from app.schemas import ReportPayload, ReportResponse
+from app.schemas import ReportPayload
 from app.services.report import report_service
 
 router = APIRouter()

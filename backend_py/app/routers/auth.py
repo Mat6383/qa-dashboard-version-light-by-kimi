@@ -108,6 +108,15 @@ async def gitlab_oauth_callback(code: str, response: Response) -> RedirectRespon
     refresh = create_refresh_token(str(user.id))
 
     response.set_cookie(
+        key="access_token",
+        value=access,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        path="/",
+    )
+    response.set_cookie(
         key="refresh_token",
         value=refresh,
         httponly=True,
@@ -117,9 +126,7 @@ async def gitlab_oauth_callback(code: str, response: Response) -> RedirectRespon
         path="/",
     )
 
-    return RedirectResponse(
-        url=f"{settings.frontend_url}/auth/callback?token={access}"
-    )
+    return RedirectResponse(url=f"{settings.frontend_url}/auth/callback")
 
 
 @router.post("/refresh")
