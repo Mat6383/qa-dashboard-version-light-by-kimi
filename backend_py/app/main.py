@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 from contextlib import asynccontextmanager
 from time import time
 
@@ -13,6 +14,8 @@ from prometheus_client import Counter, Histogram, make_asgi_app
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
 from app.config import settings
 from app.database import init_databases
@@ -130,14 +133,33 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-Id", "X-Admin-Token"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # ── Metrics endpoint (Prometheus) ───────────────────────
+class MetricsAuthMiddleware:
+    """ASGI middleware protecting /metrics with a secret key."""
+
+    def __init__(self, app, secret: str | None = None):
+        self.app = app
+        self.secret = secret
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            request = StarletteRequest(scope, receive)
+            provided = request.query_params.get("key") or request.headers.get("x-metrics-key")
+            if self.secret:
+                if not provided or not hmac.compare_digest(self.secret, provided):
+                    response = Response("Forbidden", status_code=403)
+                    await response(scope, receive, send)
+                    return
+        await self.app(scope, receive, send)
+
+
 metrics_app = make_asgi_app()
-app.mount("/metrics", metrics_app)
+app.mount("/metrics", MetricsAuthMiddleware(metrics_app, secret=settings.admin_api_token))
 
 # ── Routers ─────────────────────────────────────────────
 app.include_router(health.router, prefix="/api/health", tags=["health"])

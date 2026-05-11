@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from email.message import EmailMessage
 from typing import Any
 
 import httpx
@@ -41,20 +42,23 @@ class AlertingService:
         if not settings.smtp_host or not settings.smtp_user or not settings.smtp_pass:
             return {"success": False, "error": "SMTP not configured"}
 
-        message = f"""Subject: {subject}
-From: {settings.smtp_from or settings.smtp_user}
-To: {to}
-Content-Type: text/html; charset=utf-8
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = settings.smtp_from or settings.smtp_user
+        msg["To"] = to
+        if html:
+            msg.set_content(body)
+            msg.add_alternative(html, subtype="html")
+        else:
+            msg.set_content(body)
 
-{html or body}
-"""
         smtp = self._get_smtp_client()
         if not smtp.is_connected:
             await smtp.connect()
             if settings.smtp_port == 587:
                 await smtp.starttls()
             await smtp.login(settings.smtp_user, settings.smtp_pass)
-        await smtp.sendmail(settings.smtp_from or settings.smtp_user, [to], message.encode("utf-8"))
+        await smtp.send_message(msg)
         return {"success": True, "channel": "email", "destination": to}
 
     @sanitize_errors(logger, msg="Slack send failed")

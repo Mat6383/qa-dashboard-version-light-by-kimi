@@ -816,7 +816,12 @@ async def trpc_batch(request: Request):
         for call in calls:
             call_id = call.get("id")
             path = call.get("path") or call.get("params", {}).get("path")
-            raw_input = call.get("input") or call.get("params", {}).get("input") or call.get("json", {})
+            if "input" in call:
+                raw_input = call["input"]
+            elif "params" in call and "input" in call["params"]:
+                raw_input = call["params"]["input"]
+            else:
+                raw_input = call.get("json", {})
             responses.append(await _run_procedure(path, raw_input, db, call_id))
 
     return responses

@@ -33,6 +33,10 @@ export interface Context {
   res: MinimalRes;
 }
 
-export function createTRPCContext({ req, res }: any): Context {
-  return { user: null, requestId: '', req, res };
+// NOTE: createTRPCContext is intentionally not implemented.
+// The real tRPC runtime lives in backend_py/app/routers/trpc.py.
+// This file is type-only; the SSR context would require decoding
+// the JWT from the incoming request headers.
+export function createTRPCContext(_opts: unknown): Context {
+  throw new Error('createTRPCContext is not implemented — tRPC SSR is stub-only');
 }

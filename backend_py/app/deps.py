@@ -52,11 +52,7 @@ async def require_auth(
     try:
         payload = decode_jwt(token)
     except jwt.InvalidTokenError:
-        # Fallback to cookie if Bearer token is invalid
-        token = request.cookies.get("access_token")
-        if not token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        payload = decode_jwt(token)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     try:
         user_id = int(payload.get("sub", 0))

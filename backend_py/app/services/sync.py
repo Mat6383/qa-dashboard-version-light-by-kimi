@@ -344,7 +344,7 @@ class SyncService:
         yield {"level": "info", "message": "Sync complete"}
         yield {
             "level": "summary",
-            "created": created,
+            "created": 1 if created else 0,
             "updated": updated,
             "skipped": skipped,
             "enriched": enriched,

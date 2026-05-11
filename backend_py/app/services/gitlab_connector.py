@@ -80,32 +80,35 @@ class GitLabConnector:
 class GitLabConnectorService:
     """High-level connector operations backed by integration configs."""
 
+    def __init__(self) -> None:
+        self._clients: dict[tuple[str, str, bool], GitLabConnector] = {}
+
+    def _get_connector(self, config: dict[str, Any]) -> GitLabConnector:
+        url = config.get("url") or config.get("baseUrl", "")
+        token = config.get("token", "")
+        verify = config.get("verifySsl", True)
+        key = (url, token, verify)
+        if key not in self._clients:
+            self._clients[key] = GitLabConnector(url, token, verify)
+        return self._clients[key]
+
     async def test_connection(self, config: dict[str, Any]) -> dict[str, Any]:
         url = config.get("url") or config.get("baseUrl", "")
         token = config.get("token", "")
         project_id = config.get("projectId") or config.get("project_id")
-        verify = config.get("verifySsl", True)
         if not url or not token:
             return {"success": False, "message": "URL et token requis"}
-        connector = GitLabConnector(url, token, verify)
+        connector = self._get_connector(config)
         return await connector.test_connection(project_id)
 
     async def list_projects(self, config: dict[str, Any]) -> list[dict[str, Any]]:
-        connector = GitLabConnector(
-            config.get("url") or config.get("baseUrl", ""),
-            config.get("token", ""),
-            config.get("verifySsl", True),
-        )
+        connector = self._get_connector(config)
         return await connector.list_projects()
 
     async def list_issues(
         self, config: dict[str, Any], project_id: str | int
     ) -> list[dict[str, Any]]:
-        connector = GitLabConnector(
-            config.get("url") or config.get("baseUrl", ""),
-            config.get("token", ""),
-            config.get("verifySsl", True),
-        )
+        connector = self._get_connector(config)
         return await connector.list_issues(project_id)
 
 
