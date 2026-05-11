@@ -28,6 +28,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import apiService from '../services/api.service';
+import { API_BASE_URL as API_BASE, fetchCredentials } from '../services/http.config';
 import { isApiSuccess } from '../types/api.types';
 import '../styles/Dashboard6.css';
 import { LogIcon, logLineClass, LogLineText } from './SyncLogParts';
@@ -208,8 +209,6 @@ export default function Dashboard6({ isDark }) {
     setFinalStats(null);
     setState('syncing');
 
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
     // SSE via EventSource ne supporte pas POST nativement.
     // On utilise fetch + ReadableStream pour simuler SSE avec POST.
     const ctrl = new AbortController();
@@ -232,7 +231,7 @@ export default function Dashboard6({ isDark }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: ctrl.signal,
-      credentials: 'include',
+      ...fetchCredentials,
     })
       .then(async (response) => {
         if (!response.ok) {

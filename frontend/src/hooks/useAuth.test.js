@@ -70,28 +70,6 @@ describe('useAuth', () => {
     expect(localStorage.getItem('qa_dashboard_token')).toBeNull();
   });
 
-  it('consumeCallbackToken stores token and fetches user', async () => {
-    mockGet.mockResolvedValue({
-      data: { success: true, data: { id: 2, email: 'callback@test.com', name: 'Callback', role: 'viewer' } },
-    });
-
-    const { result } = renderHook(() => useAuth());
-
-    const ok = result.current.consumeCallbackToken('new-token');
-    expect(ok).toBe(true);
-    expect(localStorage.getItem('qa_dashboard_token')).toBe('new-token');
-
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
-    expect(result.current.user?.email).toBe('callback@test.com');
-    expect(result.current.isAdmin).toBe(false);
-  });
-
-  it('consumeCallbackToken retourne false si pas de token', () => {
-    const { result } = renderHook(() => useAuth());
-    const ok = result.current.consumeCallbackToken(null);
-    expect(ok).toBe(false);
-  });
-
   it('loginWithGitLab redirige vers GitLab', () => {
     const hrefSpy = vi.fn();
     const originalLocation = window.location;
@@ -108,13 +86,6 @@ describe('useAuth', () => {
     result.current.loginWithGitLab();
     expect(hrefSpy).toHaveBeenCalled();
     Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
-  });
-
-  it('setToken supprime le token si null', () => {
-    localStorage.setItem('qa_dashboard_token', 'tok');
-    const { result } = renderHook(() => useAuth());
-    result.current.setToken(null);
-    expect(localStorage.getItem('qa_dashboard_token')).toBeNull();
   });
 
   it('fetchMe gère une réponse non-success', async () => {

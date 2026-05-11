@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DashboardMetrics, QualityRates } from '../types/api.types';
+import { API_BASE_URL as API_BASE, eventSourceCredentials } from '../services/http.config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const MAX_RECONNECT_DELAY = 30000;
 
 export interface UseDashboardSSEOptions {
@@ -73,7 +73,7 @@ export function useDashboardSSE({
     }
 
     const url = `${API_BASE}/dashboard/${projectId}/stream?${params.toString()}`;
-    const es = new EventSource(url, { withCredentials: true });
+    const es = new EventSource(url, { ...eventSourceCredentials });
     esRef.current = es;
 
     es.onopen = () => {

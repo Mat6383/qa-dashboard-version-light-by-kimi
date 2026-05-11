@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { API_BASE_URL as API_BASE, fetchCredentials } from '../services/http.config';
 
 /**
  * Hook générique pour consommer un endpoint SSE (streaming) via fetch + ReadableStream.
@@ -35,7 +34,7 @@ export function useSyncProgress(endpoint) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: controller.signal,
-          credentials: 'include',
+          ...fetchCredentials,
         });
 
         if (!res.ok) {

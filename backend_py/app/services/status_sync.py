@@ -181,6 +181,9 @@ class StatusSyncService:
             yield {"level": "error", "message": f"Erreur récupération résultats Testmo: {exc}"}
             return
 
+        if getattr(results, "truncated", False):
+            yield {"level": "warn", "message": "Résultats Testmo tronqués (limite de pagination atteinte)."}
+
         if not results:
             yield {"level": "warn", "message": "Aucun résultat trouvé dans ce run."}
             return

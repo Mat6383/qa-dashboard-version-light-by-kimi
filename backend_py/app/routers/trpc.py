@@ -21,11 +21,11 @@ from app.models.webhooks import WebhookSubscription
 from app.services.alerting import alerting_service
 from app.services.analytics import analytics_service
 from app.services.anomaly import anomaly_service
+from app.services.case_sync import case_sync_service
 from app.services.gitlab_connector import gitlab_connector_service
 from app.services.jira import integration_service
 from app.services.report import report_service
 from app.services.retention import retention_service
-from app.services.case_sync import case_sync_service
 from app.services.sync import sync_service
 from app.services.testmo import testmo_service
 from app.utils.logger import get_logger
@@ -679,6 +679,20 @@ PROCEDURES: dict[str, Any] = {
 }
 
 
+async def _run_procedure(path: str, raw_input: dict[str, Any], db: Any, call_id: Any) -> dict[str, Any]:
+    """Execute a single tRPC procedure with unified error handling."""
+    handler = PROCEDURES.get(path)
+    if not handler:
+        return {"error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"}, "id": call_id}
+    try:
+        result = await handler(raw_input, db)
+        result["id"] = call_id
+        return result
+    except Exception as exc:
+        logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
+        return {"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id}
+
+
 async def _handle_batch(paths: list[str], inputs: dict[str, Any], db: Any) -> list[dict[str, Any]]:
     responses = []
     for idx, path in enumerate(paths):
@@ -686,17 +700,7 @@ async def _handle_batch(paths: list[str], inputs: dict[str, Any], db: Any) -> li
         raw_input = inputs.get(str(idx), {})
         if isinstance(raw_input, dict) and "json" in raw_input:
             raw_input = raw_input["json"]
-        handler = PROCEDURES.get(path)
-        if not handler:
-            responses.append({"error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"}, "id": call_id})
-            continue
-        try:
-            result = await handler(raw_input, db)
-            result["id"] = call_id
-            responses.append(result)
-        except Exception as exc:
-            logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
-            responses.append({"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
+        responses.append(await _run_procedure(path, raw_input, db, call_id))
     return responses
 
 
@@ -712,19 +716,7 @@ async def trpc_batch(request: Request):
             call_id = call.get("id")
             path = call.get("path") or call.get("params", {}).get("path")
             raw_input = call.get("input") or call.get("params", {}).get("input") or call.get("json", {})
-
-            handler = PROCEDURES.get(path)
-            if not handler:
-                responses.append({"error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"}, "id": call_id})
-                continue
-
-            try:
-                result = await handler(raw_input, db)
-                result["id"] = call_id
-                responses.append(result)
-            except Exception as exc:
-                logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
-                responses.append({"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id})
+            responses.append(await _run_procedure(path, raw_input, db, call_id))
 
     return responses
 

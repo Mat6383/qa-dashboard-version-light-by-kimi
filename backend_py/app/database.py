@@ -69,7 +69,13 @@ async def init_databases() -> None:
     from app.models.integrations import Integration
     from app.models.notifications import AlertLog, NotificationSetting
     from app.models.retention import ArchivedSnapshot, RetentionPolicy
-    from app.models.sync_history import AutoSyncConfig, MetricSnapshot, ProjectGroup, SyncCaseRun, SyncRun
+    from app.models.sync_history import (
+        AutoSyncConfig,
+        MetricSnapshot,
+        ProjectGroup,
+        SyncCaseRun,
+        SyncRun,
+    )
     from app.models.users import User
     from app.models.webhooks import WebhookSubscription
 

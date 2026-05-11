@@ -10,9 +10,9 @@ from typing import Any
 from sqlalchemy import select
 
 from app.config import settings
-from app.projects_config import SYNC_PROJECTS, resolve_gitlab_project_id
 from app.database import get_main_db
 from app.models.sync_history import AutoSyncConfig, SyncRun
+from app.projects_config import SYNC_PROJECTS, resolve_gitlab_project_id
 from app.services.gitlab import gitlab_service
 from app.services.sync_mapper import (
     build_run_name,

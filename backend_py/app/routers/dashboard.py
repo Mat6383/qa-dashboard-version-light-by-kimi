@@ -94,6 +94,7 @@ async def get_trends(
     to_date: str | None = Query(None, alias="to"),
 ):
     from sqlalchemy import select
+
     from app.models.sync_history import MetricSnapshot
 
     stmt = select(MetricSnapshot).where(MetricSnapshot.project_id == project_id)

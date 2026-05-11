@@ -13,9 +13,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from playwright.async_api import async_playwright, Page
+from playwright.async_api import Page, async_playwright
 
 from app.config import settings
+from app.utils.api_helpers import sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -546,14 +547,12 @@ class TestmoBrowserService:
 
     # ── Health check ─────────────────────────────────────────────────────────
 
+    @sanitize_errors(logger, msg="Testmo browser health check failed", default_return={"ok": False, "message": "Internal server error"})
     async def health_check(self) -> dict[str, Any]:
         page = await self._new_page()
         try:
             await self.authenticate(page)
             return {"ok": True, "message": "Authenticated successfully"}
-        except Exception as exc:
-            logger.error("Testmo browser health check failed: %s", exc, exc_info=True)
-            return {"ok": False, "message": "Internal server error"}
         finally:
             await page.close()
 

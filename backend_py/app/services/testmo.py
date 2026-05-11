@@ -18,6 +18,11 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+class PaginatedList(list):
+    """A list that carries a ``truncated`` flag when pagination was capped."""
+    truncated: bool = False
+
+
 class TestmoService:
     __test__ = False  # Not a pytest test class
     def __init__(self) -> None:
@@ -130,11 +135,11 @@ class TestmoService:
         result: dict[str, Any] = await self._cached_request(key, lambda: self._get(f"/automation/runs/{run_id}"))
         return result
 
-    async def get_run_results_paginated(self, run_id: int) -> list[dict[str, Any]]:
+    async def get_run_results_paginated(self, run_id: int) -> PaginatedList:
         """Paginate through /runs/{run_id}/results and return only is_latest items."""
         all_results: list[dict[str, Any]] = []
         page = 1
-        MAX_PAGES = 100
+        max_pages = settings.max_pages
         while True:
             data = cast(dict[str, Any], await self._get(f"/runs/{run_id}/results", {"page": page}))
             batch = data.get("result", []) if isinstance(data, dict) else data
@@ -145,10 +150,12 @@ class TestmoService:
             if not next_page:
                 break
             page = next_page
-            if page > MAX_PAGES:
+            if page > max_pages:
                 logger.warning("Pagination limit reached for run %s results", run_id)
                 break
-        return [r for r in all_results if r.get("is_latest") is True]
+        result = PaginatedList([r for r in all_results if r.get("is_latest") is True])
+        result.truncated = page > max_pages
+        return result
 
     async def get_case_names(self, project_id: int, needed_ids: list[int]) -> dict[int, str]:
         """Resolve case names by paginating /projects/{project_id}/cases."""
@@ -182,13 +189,12 @@ class TestmoService:
         result: dict[str, Any] = await self._cached_request(key, _fetch)
         return result
 
-    @staticmethod
-    def _is_prod_run(name: str | None) -> bool:
+    def _is_prod_run(self, name: str | None) -> bool:
         n = (name or "").lower()
-        # TNR = Test de Non-Régression → c'est de la préprod, même si le nom contient "prod"
-        if "tnr" in n:
-            return False
-        return any(k in n for k in ("patch", "retour de prod", "retour", "prod"))
+        for k in settings.testmo_preprod_keywords:
+            if k in n:
+                return False
+        return any(k in n for k in settings.testmo_prod_keywords)
 
     async def get_project_metrics(self, project_id: int, milestone_ids: list[int] | None = None) -> dict[str, Any]:
         """Aggregate ISTQB/ITIL/LEAN KPIs from runs + sessions."""
@@ -360,97 +366,83 @@ class TestmoService:
             })
         return {"ok": len(alerts) == 0, "alerts": alerts}
 
-    async def get_escape_and_detection_rates(
-        self, project_id: int, preprod_milestones: list[int] | None = None, prod_milestones: list[int] | None = None
-    ) -> dict[str, Any]:
-        """Compare bugs found in preprod vs prod using milestone filters."""
+    # ── Private helpers for quality rates ────────────────────────────────────
 
-        # Utilise la méthode statique de la classe qui gère correctement les TNR
+    async def _count_prod_bugs(self, run_list: list[dict[str, Any]]) -> int:
+        """Count bugs linked to production runs (issues + fallback via results)."""
+        bugs = 0
+        fallback_runs: list[dict[str, Any]] = []
+        for run in run_list:
+            issues = run.get("issues", [])
+            if issues:
+                bugs += len(issues)
+            else:
+                fallback_runs.append(run)
+        if fallback_runs:
+            sem = asyncio.Semaphore(10)
 
-        # ── Helper: compter les bugs en prod (issues liées) ──────────────────────
-        async def _count_prod_bugs(run_list: list[dict[str, Any]]) -> int:
-            bugs = 0
-            fallback_runs: list[dict[str, Any]] = []
-            for run in run_list:
-                issues = run.get("issues", [])
-                if issues:
-                    bugs += len(issues)
-                else:
-                    fallback_runs.append(run)
-            if fallback_runs:
-                # Limit concurrency to avoid exhausting the connection pool
-                sem = asyncio.Semaphore(10)
+            async def _fetch(run: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | Exception:
+                run_id = run.get("id")
+                if not run_id:
+                    return Exception("Run without id")
+                async with sem:
+                    try:
+                        return await self._get(f"/runs/{run_id}/results", {"expands": "issues"})
+                    except Exception as exc:
+                        return exc
 
-                async def _fetch_run_results(run: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | Exception:
-                    run_id = run.get("id")
-                    if not run_id:
-                        return Exception("Run without id")
-                    async with sem:
-                        try:
-                            return await self._get(f"/runs/{run_id}/results", {"expands": "issues"})
-                        except Exception as exc:
-                            return exc
-
-                responses = await asyncio.gather(
-                    *[_fetch_run_results(run) for run in fallback_runs],
+            responses = await asyncio.gather(*[_fetch(run) for run in fallback_runs])
+            for resp in responses:
+                if isinstance(resp, Exception):
+                    continue
+                results = resp.get("result", []) if isinstance(resp, dict) else resp
+                bugs += sum(
+                    len(res.get("issues", []))
+                    for res in results
+                    if res.get("issues")
                 )
-                for resp in responses:
-                    if isinstance(resp, Exception):
-                        continue
-                    results = resp.get("result", []) if isinstance(resp, dict) else resp
-                    bugs += sum(
-                        len(res.get("issues", []))
-                        for res in results
-                        if res.get("issues")
-                    )
-            return bugs
+        return bugs
 
-        # ── Récupération des runs ────────────────────────────────────────────────
-        runs_data = await self.get_project_runs(project_id)
-        runs = runs_data.get("result", []) if isinstance(runs_data, dict) else runs_data
-        if not runs:
-            return {"escapeRate": 0.0, "detectionRate": 0.0, "projectId": project_id}
-
+    async def _rates_from_explicit_milestones(
+        self,
+        runs: list[dict[str, Any]],
+        preprod_milestones: list[int] | None,
+        prod_milestones: list[int] | None,
+        project_id: int,
+    ) -> dict[str, Any]:
         preprod_ids = set(preprod_milestones or [])
         prod_ids = set(prod_milestones or [])
+        preprod_runs = [r for r in runs if r.get("milestone_id") in preprod_ids] if preprod_ids else []
+        prod_runs = [r for r in runs if r.get("milestone_id") in prod_ids and self._is_prod_run(r.get("name"))] if prod_ids else []
 
-        # ════════════════════════════════════════════════════════════════════════
-        #  BRANCHE 1 : jalons explicitement sélectionnés
-        # ════════════════════════════════════════════════════════════════════════
-        if preprod_ids or prod_ids:
-            # Preprod = tous les runs des jalons preprod (pas de filtre isProdRunFn)
-            preprod_runs = [r for r in runs if r.get("milestone_id") in preprod_ids] if preprod_ids else []
-            # Prod = runs des jalons prod qui matchent isProdRunFn
-            prod_runs = [r for r in runs if r.get("milestone_id") in prod_ids and self._is_prod_run(r.get("name"))] if prod_ids else []
+        bugs_in_test = sum(r.get("status2_count", 0) for r in preprod_runs)
+        bugs_in_prod = await self._count_prod_bugs(prod_runs)
+        total_bugs = bugs_in_test + bugs_in_prod
 
-            bugs_in_test = sum(r.get("status2_count", 0) for r in preprod_runs)
-            bugs_in_prod = await _count_prod_bugs(prod_runs)
-            total_bugs = bugs_in_test + bugs_in_prod
+        milestones = await self.get_project_milestones(project_id)
+        milestone_names = {str(m.get("id")): m.get("name", "") for m in milestones}
+        preprod_name = milestone_names.get(str(preprod_milestones[0])) if preprod_milestones else "Sélection manuelle"
+        prod_name = milestone_names.get(str(prod_milestones[0])) if prod_milestones else "Sélection manuelle"
 
-            # Noms des milestones
-            milestones = await self.get_project_milestones(project_id)
-            milestone_names = {str(m.get("id")): m.get("name", "") for m in milestones}
-            preprod_name = milestone_names.get(str(preprod_milestones[0])) if preprod_milestones else "Sélection manuelle"
-            prod_name = milestone_names.get(str(prod_milestones[0])) if prod_milestones else "Sélection manuelle"
+        return {
+            "escapeRate": round((bugs_in_prod / total_bugs * 100) if total_bugs else 0.0, 2),
+            "detectionRate": round((bugs_in_test / total_bugs * 100) if total_bugs else 0.0, 2),
+            "projectId": project_id,
+            "bugsInTest": bugs_in_test,
+            "bugsInProd": bugs_in_prod,
+            "totalBugs": total_bugs,
+            "preprodMilestone": preprod_name or "Sélection manuelle",
+            "prodMilestone": prod_name or "Sélection manuelle",
+            "message": None,
+        }
 
-            return {
-                "escapeRate": round((bugs_in_prod / total_bugs * 100) if total_bugs else 0.0, 2),
-                "detectionRate": round((bugs_in_test / total_bugs * 100) if total_bugs else 0.0, 2),
-                "projectId": project_id,
-                "bugsInTest": bugs_in_test,
-                "bugsInProd": bugs_in_prod,
-                "totalBugs": total_bugs,
-                "preprodMilestone": preprod_name or "Sélection manuelle",
-                "prodMilestone": prod_name or "Sélection manuelle",
-                "message": None,
-            }
-
-        # ════════════════════════════════════════════════════════════════════════
-        #  BRANCHE 2 : logique par défaut automatique
-        # ════════════════════════════════════════════════════════════════════════
+    async def _rates_from_auto_milestones(
+        self,
+        runs: list[dict[str, Any]],
+        project_id: int,
+    ) -> dict[str, Any]:
         milestones = await self.get_project_milestones(project_id)
         active_milestones = [m for m in milestones if not m.get("is_completed")]
-        # Trier par ID desc (approximation de l'ordre chronologique)
         active_milestones.sort(key=lambda m: m.get("id", 0), reverse=True)
 
         if len(active_milestones) < 3:
@@ -466,7 +458,6 @@ class TestmoService:
                 "message": "Pas assez de milestones actives pour comparer (3 requises).",
             }
 
-        # Déterminer la 1ère et 3ème milestone avec des runs
         preprod_milestone = None
         prod_milestone = None
         prod_runs_auto: list[dict[str, Any]] = []
@@ -496,13 +487,11 @@ class TestmoService:
                 "message": "Impossible de trouver 3 milestones avec de l'activité (runs/sessions).",
             }
 
-        # Bugs en TEST = failures dans les runs non-prod de la milestone prod (3ème)
         test_runs = [r for r in prod_runs_auto if not self._is_prod_run(r.get("name"))]
         bugs_in_test = sum(r.get("status2_count", 0) for r in test_runs)
 
-        # Bugs en PROD = issues dans les runs prod de la milestone prod (3ème)
         patch_runs = [r for r in prod_runs_auto if self._is_prod_run(r.get("name"))]
-        bugs_in_prod = await _count_prod_bugs(patch_runs)
+        bugs_in_prod = await self._count_prod_bugs(patch_runs)
 
         total_bugs = bugs_in_test + bugs_in_prod
 
@@ -517,6 +506,22 @@ class TestmoService:
             "prodMilestone": prod_milestone.get("name", "Sélection manuelle"),
             "message": None,
         }
+
+    async def get_escape_and_detection_rates(
+        self, project_id: int, preprod_milestones: list[int] | None = None, prod_milestones: list[int] | None = None
+    ) -> dict[str, Any]:
+        """Compare bugs found in preprod vs prod using milestone filters."""
+        runs_data = await self.get_project_runs(project_id)
+        runs = runs_data.get("result", []) if isinstance(runs_data, dict) else runs_data
+        if not runs:
+            return {"escapeRate": 0.0, "detectionRate": 0.0, "projectId": project_id}
+
+        preprod_ids = set(preprod_milestones or [])
+        prod_ids = set(prod_milestones or [])
+
+        if preprod_ids or prod_ids:
+            return await self._rates_from_explicit_milestones(runs, preprod_milestones, prod_milestones, project_id)
+        return await self._rates_from_auto_milestones(runs, project_id)
 
     async def get_annual_quality_trends(self, project_id: int) -> list[dict[str, Any]]:
         """Aggregate metrics per year from runs."""
@@ -689,12 +694,12 @@ class TestmoService:
         folder_id: int | None = None,
         per_page: int = 100,
         expands: str | None = "tags",
-    ) -> list[dict[str, Any]]:
+    ) -> PaginatedList:
         """List all cases in a project, optionally filtered by folder.
         Paginates until exhaustion."""
         all_cases: list[dict[str, Any]] = []
         page = 1
-        MAX_PAGES = 100
+        max_pages = settings.max_pages
         while True:
             params: dict[str, Any] = {"per_page": per_page, "page": page}
             if folder_id is not None:
@@ -710,10 +715,12 @@ class TestmoService:
             if not next_page:
                 break
             page += 1
-            if page > MAX_PAGES:
+            if page > max_pages:
                 logger.warning("Pagination limit reached for project %s cases", project_id)
                 break
-        return all_cases
+        result = PaginatedList(all_cases)
+        result.truncated = page > max_pages
+        return result
 
     async def find_case_by_name(
         self,

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 
 from app.deps import require_admin
 from app.services.testmo_browser import testmo_browser_service
+from app.utils.api_helpers import sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -15,6 +16,7 @@ router = APIRouter()
 
 
 @router.post("/runs")
+@sanitize_errors(logger, msg="[TestmoBrowserAPI] Create run error")
 async def create_manual_run(
     payload: dict[str, Any],
     _admin: Any = Depends(require_admin),
@@ -25,23 +27,20 @@ async def create_manual_run(
         return {"success": False, "error": "projectId and name are required"}
 
     logger.info('[TestmoBrowserAPI] Creating manual run "%s" in project %s', name, project_id)
-    try:
-        result = await testmo_browser_service.create_manual_run(
-            int(project_id),
-            {
-                "name": str(name),
-                "milestoneId": payload.get("milestoneId"),
-                "configId": payload.get("configId"),
-                "caseIds": payload.get("caseIds"),
-            },
-        )
-        return {"success": True, "data": result}
-    except Exception as exc:
-        logger.error("[TestmoBrowserAPI] Create run error: %s", exc, exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+    result = await testmo_browser_service.create_manual_run(
+        int(project_id),
+        {
+            "name": str(name),
+            "milestoneId": payload.get("milestoneId"),
+            "configId": payload.get("configId"),
+            "caseIds": payload.get("caseIds"),
+        },
+    )
+    return {"success": True, "data": result}
 
 
 @router.post("/runs/{run_id}/results")
+@sanitize_errors(logger, msg="[TestmoBrowserAPI] Add results error")
 async def add_run_results(
     run_id: int,
     payload: dict[str, Any],
@@ -53,14 +52,10 @@ async def add_run_results(
         return {"success": False, "error": "runId, projectId and results[] are required"}
 
     logger.info("[TestmoBrowserAPI] Adding %s results to run %s", len(results), run_id)
-    try:
-        stats = await testmo_browser_service.add_run_results(
-            int(project_id), run_id, results
-        )
-        return {"success": True, "data": stats}
-    except Exception as exc:
-        logger.error("[TestmoBrowserAPI] Add results error: %s", exc, exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+    stats = await testmo_browser_service.add_run_results(
+        int(project_id), run_id, results
+    )
+    return {"success": True, "data": stats}
 
 
 @router.get("/health")

@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import html
+import re
 from dataclasses import dataclass, field
 from typing import Any, cast
 
 from app.models.sync_history import SyncCaseRun
-import re
-
 from app.projects_config import resolve_gitlab_integration_info, resolve_testmo_repo_id
 from app.services.gitlab import gitlab_service
 from app.services.sync_mapper import extract_steps_from_notes
@@ -278,6 +277,9 @@ class CaseSyncService:
         else:
             try:
                 existing_cases = await testmo_service.get_cases(testmo_project_id, folder_id=folder_id)
+                if getattr(existing_cases, "truncated", False):
+                    logger.warning("Case list truncated for project %s (MAX_PAGES reached)", testmo_project_id)
+                    result.details.append({"warning": "Case list truncated — some existing cases may be missed."})
             except Exception as exc:
                 logger.error("Failed to fetch existing cases", extra={"error": str(exc)})
                 result.errors += len(issues)

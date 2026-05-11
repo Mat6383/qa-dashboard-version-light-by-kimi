@@ -53,6 +53,8 @@ export default function ProductionSection({
   const escapeColor = getMetricColor('escapeRate', rates.escapeRate);
   const ddpColor = getMetricColor('detectionRate', rates.detectionRate);
 
+  const milestoneDisplay = rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—';
+
   return (
     <div className="prod-section">
       <div className="prod-header">
@@ -91,7 +93,7 @@ export default function ProductionSection({
                 <div className="prod-card-meta">
                   <span>
                     {useBusiness ? 'Jalon' : 'Milestone'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—'}</strong>
+                    <strong style={{ color: 'var(--text-color)' }}>{milestoneDisplay}</strong>
                   </span>
                   <span>
                     {useBusiness ? 'Objectif' : 'Target'}:{' '}
@@ -119,7 +121,7 @@ export default function ProductionSection({
                 <div className="prod-card-meta">
                   <span>
                     {useBusiness ? 'Lié' : 'Linked'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—'}</strong>
+                    <strong style={{ color: 'var(--text-color)' }}>{milestoneDisplay}</strong>
                   </span>
                   <span>
                     {useBusiness ? 'Objectif' : 'Target'}:{' '}

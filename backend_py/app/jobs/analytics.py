@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 async def analytics_job() -> None:
     """Generate insights for all projects with recent snapshots."""
     from sqlalchemy import select
+
     from app.models.sync_history import MetricSnapshot
 
     async with get_main_db() as db:

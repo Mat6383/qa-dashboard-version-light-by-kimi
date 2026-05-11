@@ -89,7 +89,7 @@ class GitLabService:
         page_params = dict(params or {})
         page_params.setdefault("per_page", 100)
         page = 1
-        MAX_PAGES = 100
+        max_pages = settings.max_pages
         while True:
             page_params["page"] = page
             async with self.cb_rest:
@@ -107,7 +107,7 @@ class GitLabService:
                 if not next_page:
                     break
                 page = int(next_page)
-                if page > MAX_PAGES:
+                if page > max_pages:
                     logger.warning("Pagination limit reached for %s", path)
                     break
         return all_items

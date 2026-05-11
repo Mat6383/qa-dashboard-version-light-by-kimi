@@ -9,6 +9,7 @@ import httpx
 from aiosmtplib import SMTP
 
 from app.config import settings
+from app.utils.api_helpers import sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +18,7 @@ logger = get_logger(__name__)
 class AlertingService:
     """Send alerts via email, Slack, or Teams."""
 
+    @sanitize_errors(logger, msg="Email send failed")
     async def send_email(
         self,
         to: str,
@@ -34,23 +36,20 @@ Content-Type: text/html; charset=utf-8
 
 {html or body}
 """
-        try:
-            smtp = SMTP(
-                hostname=settings.smtp_host,
-                port=settings.smtp_port,
-                use_tls=settings.smtp_port == 465,
-            )
-            await smtp.connect()
-            if settings.smtp_port == 587:
-                await smtp.starttls()
-            await smtp.login(settings.smtp_user, settings.smtp_pass)
-            await smtp.sendmail(settings.smtp_from or settings.smtp_user, [to], message.encode("utf-8"))
-            await smtp.quit()
-            return {"success": True, "channel": "email", "destination": to}
-        except Exception as exc:
-            logger.error("Email send failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
+        smtp = SMTP(
+            hostname=settings.smtp_host,
+            port=settings.smtp_port,
+            use_tls=settings.smtp_port == 465,
+        )
+        await smtp.connect()
+        if settings.smtp_port == 587:
+            await smtp.starttls()
+        await smtp.login(settings.smtp_user, settings.smtp_pass)
+        await smtp.sendmail(settings.smtp_from or settings.smtp_user, [to], message.encode("utf-8"))
+        await smtp.quit()
+        return {"success": True, "channel": "email", "destination": to}
 
+    @sanitize_errors(logger, msg="Slack send failed")
     async def send_slack(
         self,
         webhook_url: str,
@@ -66,15 +65,12 @@ Content-Type: text/html; charset=utf-8
                 payload = {"text": message}
         else:
             payload = {"text": message}
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(webhook_url, json=payload)
-                resp.raise_for_status()
-            return {"success": True, "channel": "slack", "destination": webhook_url}
-        except Exception as exc:
-            logger.error("Slack send failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(webhook_url, json=payload)
+            resp.raise_for_status()
+        return {"success": True, "channel": "slack", "destination": webhook_url}
 
+    @sanitize_errors(logger, msg="Teams send failed")
     async def send_teams(
         self,
         webhook_url: str,
@@ -97,14 +93,10 @@ Content-Type: text/html; charset=utf-8
                 "@context": "https://schema.org/extensions",
                 "text": message,
             }
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(webhook_url, json=payload)
-                resp.raise_for_status()
-            return {"success": True, "channel": "teams", "destination": webhook_url}
-        except Exception as exc:
-            logger.error("Teams send failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(webhook_url, json=payload)
+            resp.raise_for_status()
+        return {"success": True, "channel": "teams", "destination": webhook_url}
 
     async def send_test(
         self,

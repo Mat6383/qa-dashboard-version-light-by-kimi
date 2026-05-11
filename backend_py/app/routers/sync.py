@@ -11,6 +11,11 @@ from fastapi.responses import StreamingResponse
 
 from app.config import settings
 from app.deps import DBMain, require_admin_token
+from app.projects_config import (
+    get_sync_project,
+    resolve_gitlab_project_id,
+    resolve_testmo_project_id,
+)
 from app.schemas import (
     SyncCasesExecutePayload,
     SyncCasesPreviewPayload,
@@ -18,8 +23,7 @@ from app.schemas import (
     SyncPreviewPayload,
     SyncStatusPayload,
 )
-from app.projects_config import get_sync_project, resolve_gitlab_project_id, resolve_testmo_project_id
-from app.services.case_sync import case_sync_service, _parse_folder_hierarchy
+from app.services.case_sync import _parse_folder_hierarchy, case_sync_service
 from app.services.sync import sync_service
 from app.utils.logger import get_logger
 

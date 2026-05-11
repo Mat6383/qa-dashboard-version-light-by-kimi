@@ -7,19 +7,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../services/api.service';
 
+/** @deprecated Legacy token key — kept only to clean up old localStorage entries. */
 const TOKEN_KEY = 'qa_dashboard_token';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const setToken = useCallback((token) => {
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    } else {
-      localStorage.removeItem(TOKEN_KEY);
-    }
-  }, []);
 
   const fetchMe = useCallback(async () => {
     try {
@@ -60,18 +53,6 @@ export function useAuth() {
     window.location.reload();
   }, []);
 
-  const consumeCallbackToken = useCallback(
-    (token) => {
-      if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-        fetchMe();
-        return true;
-      }
-      return false;
-    },
-    [fetchMe]
-  );
-
   const isAdmin = user?.role === 'admin';
 
   return {
@@ -81,8 +62,6 @@ export function useAuth() {
     isAdmin,
     loginWithGitLab,
     logout,
-    consumeCallbackToken,
-    setToken,
     refreshUser: fetchMe,
   };
 }

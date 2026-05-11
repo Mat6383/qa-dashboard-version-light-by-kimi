@@ -109,6 +109,19 @@ class Settings(BaseSettings):
     sync_auto_gitlab_project_id: str | None = Field(default=None, alias="SYNC_AUTO_GITLAB_PROJECT_ID")
     sync_auto_version: str | None = Field(default=None, alias="SYNC_AUTO_VERSION")
 
+    # ── Business-logic keywords ─────────────────────────
+    testmo_prod_keywords: list[str] = Field(
+        default=["patch", "retour de prod", "retour", "prod"],
+        alias="TESTMO_PROD_KEYWORDS",
+    )
+    testmo_preprod_keywords: list[str] = Field(
+        default=["tnr"],
+        alias="TESTMO_PREPROD_KEYWORDS",
+    )
+
+    # ── Pagination limits ───────────────────────────────
+    max_pages: int = Field(default=100, alias="MAX_PAGES")
+
     @field_validator("sync_auto_run_id", mode="before")
     @classmethod
     def _empty_str_to_none(cls, v: Any) -> Any:

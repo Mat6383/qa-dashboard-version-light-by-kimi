@@ -33,10 +33,7 @@ import type {
   ApiErrorResponse,
   MultiProjectSummaryItem,
 } from '../types/api.types';
-
-// Configuration axios
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-const API_TIMEOUT = 30000; // 30 secondes pour compenser le chargement des multiples jalons
+import { API_BASE_URL, API_TIMEOUT, axiosCredentials } from './http.config';
 
 function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -48,7 +45,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  ...axiosCredentials,
 });
 
 apiClient.interceptors.request.use(

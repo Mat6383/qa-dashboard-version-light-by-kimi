@@ -8,6 +8,7 @@ import httpx
 
 from app.core.circuit_breaker import CircuitBreaker
 from app.core.resilience import with_resilience
+from app.utils.api_helpers import sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -37,17 +38,14 @@ class GitLabConnector:
         resp.raise_for_status()
         return resp.json()
 
+    @sanitize_errors(logger, msg="GitLab connector test failed")
     async def test_connection(
         self, project_id: str | int | None = None
     ) -> dict[str, Any]:
-        try:
-            url = f"/projects/{project_id}" if project_id else "/projects"
-            params = {} if project_id else {"per_page": 1}
-            await self._get(url, params)
-            return {"success": True, "message": "Connexion GitLab réussie"}
-        except Exception as exc:
-            logger.error("GitLab connector test failed: %s", exc, exc_info=True)
-            return {"success": False, "message": "Internal server error"}
+        url = f"/projects/{project_id}" if project_id else "/projects"
+        params = {} if project_id else {"per_page": 1}
+        await self._get(url, params)
+        return {"success": True, "message": "Connexion GitLab réussie"}
 
     async def list_projects(self) -> list[dict[str, Any]]:
         data = await self._get("/projects", {"membership": "true", "per_page": 100})

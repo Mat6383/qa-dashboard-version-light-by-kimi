@@ -5,9 +5,9 @@ describe('trpc/client', () => {
     localStorage.clear();
   });
 
-  it('getBaseUrl retourne chaîne vide côté client', async () => {
-    const { getBaseUrl } = await import('./client');
-    expect(getBaseUrl()).toBe('');
+  it('getTrpcBaseUrl retourne chaîne vide côté client', async () => {
+    const { getTrpcBaseUrl } = await import('../services/http.config');
+    expect(getTrpcBaseUrl()).toBe('');
   });
 
   it('generateRequestId retourne un string formaté', async () => {

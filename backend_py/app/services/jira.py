@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import json
+from typing import Any
 
 import httpx
 
+from app.utils.api_helpers import sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,18 +22,15 @@ class JiraClient:
         self.api_token = api_token
         self.auth = (email, api_token)
 
+    @sanitize_errors(logger, msg="Jira connection test failed")
     async def test_connection(self) -> dict[str, Any]:
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(
-                    f"{self.base_url}/rest/api/2/myself",
-                    auth=self.auth,
-                )
-                resp.raise_for_status()
-            return {"success": True, "account_id": resp.json().get("accountId")}
-        except Exception as exc:
-            logger.error("Jira connection test failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(
+                f"{self.base_url}/rest/api/2/myself",
+                auth=self.auth,
+            )
+            resp.raise_for_status()
+        return {"success": True, "account_id": resp.json().get("accountId")}
 
     async def create_issue(
         self,

@@ -18,8 +18,8 @@ from app.config import settings
 from app.database import init_databases
 from app.jobs.scheduler import start_scheduler, stop_scheduler
 from app.routers import (
-    anomalies,
     analytics,
+    anomalies,
     audit,
     auth,
     backups,
@@ -79,9 +79,10 @@ HTTP_ERRORS = Counter(
 async def lifespan(app: FastAPI):
     await init_databases()
     # Seed test-flag for E2E compatibility (Node.js persistent DB assumption)
+    from sqlalchemy import select
+
     from app.database import get_main_db
     from app.models.feature_flags import FeatureFlag
-    from sqlalchemy import select
     async with get_main_db() as db:
         result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == "test-flag"))
         if not result.scalar_one_or_none():
