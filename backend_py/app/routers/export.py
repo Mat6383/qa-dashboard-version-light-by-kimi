@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -16,10 +18,11 @@ router = APIRouter()
 async def export_csv(payload: ExportPayload, db: DBMain, user=Depends(require_auth)):
     csv_bytes = await export_service.generate_csv(payload.model_dump())
     filename = payload.filename or "export.csv"
+    safe_filename = quote(filename, safe="")
     return StreamingResponse(
         iter([csv_bytes]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f"attachment; filename={safe_filename}"},
     )
 
 
@@ -27,8 +30,9 @@ async def export_csv(payload: ExportPayload, db: DBMain, user=Depends(require_au
 async def export_excel(payload: ExportPayload, db: DBMain, user=Depends(require_auth)):
     xlsx_bytes = await export_service.generate_excel(payload.model_dump())
     filename = payload.filename or "export.xlsx"
+    safe_filename = quote(filename, safe="")
     return StreamingResponse(
         iter([xlsx_bytes]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f"attachment; filename={safe_filename}"},
     )
