@@ -219,6 +219,14 @@ class TestmoService:
         for run in runs:
             aggregated["total"] += run.get("total_count", 0)
             aggregated["untested"] += run.get("untested_count", 0)
+            # Testmo result status IDs (non-standard, business-critical):
+            #   status1 = Passed
+            #   status2 = Failed
+            #   status3 = Retest
+            #   status4 = Blocked
+            #   status5 = Skipped
+            #   status7 = WIP
+            # Note: status6 and status8 are unused in our Testmo config.
             aggregated["passed"] += run.get("status1_count", 0)
             aggregated["failed"] += run.get("status2_count", 0)
             aggregated["retest"] += run.get("status3_count", 0)
@@ -284,6 +292,7 @@ class TestmoService:
                     "name": run["name"],
                     "total": run.get("total_count", 0),
                     "completed": run.get("completed_count", 0),
+                    # See status ID mapping comment above (~line 223)
                     "passed": run.get("status1_count", 0),
                     "failed": run.get("status2_count", 0),
                     "blocked": run.get("status4_count", 0),
