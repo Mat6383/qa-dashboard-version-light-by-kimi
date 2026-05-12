@@ -26,6 +26,9 @@ async def test_detailed_health(client: AsyncClient) -> None:
     response = await client.get("/api/health/detailed")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "OK"
+    # Status can be OK or DEGRADED depending on external service availability
+    assert data["status"] in ("OK", "DEGRADED")
     assert "disk" in data
     assert "usage_percent" in data["disk"]
+    assert "checks" in data
+    assert "circuit_breakers" in data

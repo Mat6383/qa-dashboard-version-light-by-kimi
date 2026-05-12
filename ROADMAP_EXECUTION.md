@@ -14,6 +14,7 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
 | 6   | Docker Compose global — Makefile + .dockerignore backend | ✅ Fait | —       |
 | 7   | Splitter TestmoService (client + metrics)                | ✅ Fait | —       |
 | 8   | Health check complet (Testmo/GitLab, DB, disk, CB, 503)  | ✅ Fait | —       |
+| 9   | Support PostgreSQL (asyncpg + DATABASE_URL)              | ✅ Fait | —       |
 
 ---
 
@@ -91,6 +92,22 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
   - État des **circuit breakers**
   - Statut global : `OK` / `DEGRADED` / `DOWN`
 - Tests existants passent sans modification
+
+---
+
+### T9 — Support PostgreSQL
+
+- **`DATABASE_URL`** ajouté dans `Settings` (ex: `postgresql+asyncpg://user:pass@host/db`)
+- **`config.py`** — `db_main_url` / `db_comments_url` retournent `DATABASE_URL` si défini,
+  sinon fallback SQLite
+- **`database.py`** — détection automatique PostgreSQL vs SQLite :
+  - PostgreSQL : pool natif asyncpg, pas de PRAGMA SQLite
+  - SQLite : `NullPool` + `check_same_thread=False` + PRAGMAs WAL
+  - `init_databases()` crée les tables de manière idempotente (`checkfirst=True`)
+    dans les deux cas
+- **`pyproject.toml`** — dépendance `asyncpg>=0.30` ajoutée
+- **`.env.example`** — documentation de `DATABASE_URL`
+- Alembic fonctionne sans modification (utilise déjà `settings.db_main_url`)
 
 ---
 

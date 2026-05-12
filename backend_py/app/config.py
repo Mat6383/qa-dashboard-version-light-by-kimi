@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     # ── Database ────────────────────────────────────────
+    database_url: str | None = Field(default=None, alias="DATABASE_URL")
     db_data_dir: Path = Field(default=BASE_DIR / "db-data", alias="DB_DATA_DIR")
     db_main: str = "sync-history.db"
     db_comments: str = "crosstest-comments.db"
@@ -82,7 +83,9 @@ class Settings(BaseSettings):
     backup_s3_bucket: str | None = Field(default=None, alias="BACKUP_S3_BUCKET")
     backup_s3_region: str = Field(default="us-east-1", alias="BACKUP_S3_REGION")
     backup_s3_access_key_id: str | None = Field(default=None, alias="BACKUP_S3_ACCESS_KEY_ID")
-    backup_s3_secret_access_key: str | None = Field(default=None, alias="BACKUP_S3_SECRET_ACCESS_KEY")
+    backup_s3_secret_access_key: str | None = Field(
+        default=None, alias="BACKUP_S3_SECRET_ACCESS_KEY"
+    )
     backup_s3_endpoint: str | None = Field(default=None, alias="BACKUP_S3_ENDPOINT")
     backup_s3_retention_days: int = Field(default=30, alias="BACKUP_S3_RETENTION_DAYS")
     backup_rsync_enabled: bool = Field(default=False, alias="BACKUP_RSYNC_ENABLED")
@@ -106,7 +109,9 @@ class Settings(BaseSettings):
     sync_auto_enabled: bool = Field(default=False, alias="SYNC_AUTO_ENABLED")
     sync_auto_run_id: int | None = Field(default=None, alias="SYNC_AUTO_RUN_ID")
     sync_auto_iteration_name: str | None = Field(default=None, alias="SYNC_AUTO_ITERATION_NAME")
-    sync_auto_gitlab_project_id: str | None = Field(default=None, alias="SYNC_AUTO_GITLAB_PROJECT_ID")
+    sync_auto_gitlab_project_id: str | None = Field(
+        default=None, alias="SYNC_AUTO_GITLAB_PROJECT_ID"
+    )
     sync_auto_version: str | None = Field(default=None, alias="SYNC_AUTO_VERSION")
 
     # ── Business-logic keywords ─────────────────────────
@@ -131,10 +136,14 @@ class Settings(BaseSettings):
 
     @property
     def db_main_url(self) -> str:
+        if self.database_url:
+            return self.database_url
         return f"sqlite+aiosqlite:///{self.db_data_dir / self.db_main}"
 
     @property
     def db_comments_url(self) -> str:
+        if self.database_url:
+            return self.database_url
         return f"sqlite+aiosqlite:///{self.db_data_dir / self.db_comments}"
 
 
