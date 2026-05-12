@@ -301,3 +301,39 @@ class TestMetricsRouter:
         response = await client.get("/api/metrics", follow_redirects=True)
         assert response.status_code == 200
         assert "metrics" in response.json()
+
+
+@pytest.mark.asyncio
+class TestTrpcRouter:
+    async def test_trpc_unknown_procedure_returns_not_found(self) -> None:
+        ac, _ = await _make_auth_client("viewer")
+        async with ac:
+            response = await ac.post("/trpc/", json={"path": "unknown.foo", "id": 1})
+            assert response.status_code == 200
+            body = response.json()
+            assert isinstance(body, list)
+            assert body[0]["error"]["code"] == "NOT_FOUND"
+
+    async def test_trpc_dashboard_metrics(self) -> None:
+        ac, _ = await _make_auth_client("viewer")
+        async with ac:
+            with patch("app.routers.trpc.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock) as mock:
+                mock.return_value = {"pass_rate": 75.0, "total": 4, "passed": 3, "failed": 1}
+                response = await ac.post(
+                    "/trpc/",
+                    json={"path": "dashboard.metrics", "input": {"projectId": 1}, "id": 42},
+                )
+                assert response.status_code == 200
+                body = response.json()
+                assert body[0]["id"] == 42
+                assert body[0]["result"]["data"]["data"]["pass_rate"] == 75.0
+
+    async def test_trpc_batch_get_dashboard(self) -> None:
+        ac, _ = await _make_auth_client("viewer")
+        async with ac:
+            with patch("app.routers.trpc.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock) as mock:
+                mock.return_value = {"pass_rate": 88.0}
+                response = await ac.get("/trpc/dashboard.metrics?input=%7B%22projectId%22%3A1%7D")
+                assert response.status_code == 200
+                body = response.json()
+                assert body[0]["result"]["data"]["data"]["pass_rate"] == 88.0

@@ -7,8 +7,8 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
 | #   | Tâche                                                    | Statut        | Commit  |
 | --- | -------------------------------------------------------- | ------------- | ------- |
 | 1   | Documenter `frontend/src/server/` comme type-only legacy | ✅ Fait       | dc25191 |
-| 2   | Documenter mappings Testmo status IDs                    | 🔄 En cours   | —       |
-| 3   | Splitter `trpc.py` en domain routers                     | ⏳ En attente | —       |
+| 2   | Documenter mappings Testmo status IDs                    | ✅ Fait       | 2d5ff24 |
+| 3   | Splitter `trpc.py` en domain routers                     | 🔄 En cours   | —       |
 | 4   | Ajouter tests d'intégration API                          | ⏳ En attente | —       |
 | 5   | Compléter pre-commit hooks avec ruff                     | ⏳ En attente | —       |
 
