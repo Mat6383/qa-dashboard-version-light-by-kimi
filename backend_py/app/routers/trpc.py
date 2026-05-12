@@ -5,54 +5,72 @@ Compatible with @trpc/react-query httpBatchLink (v10, no transformer).
 
 from __future__ import annotations
 
-import asyncio
 import json
-from datetime import datetime, timezone
-from typing import Any, cast
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import ValidationError
-from sqlalchemy import delete, select
 
-from app.database import get_comments_db, get_main_db
+from app.database import get_main_db
 from app.deps import require_auth
-from app.models.comments import CrossTestComment
-from app.models.feature_flags import FeatureFlag
-from app.models.integrations import Integration
-from app.models.notifications import NotificationSetting
-from app.models.webhooks import WebhookSubscription
-from app.services.alerting import alerting_service
-from app.services.analytics import analytics_service
-from app.services.anomaly import anomaly_service
-from app.services.case_sync import case_sync_service
-from app.services.gitlab_connector import gitlab_connector_service
-from app.services.jira import integration_service
-from app.services.report import report_service
-from app.services.retention import retention_service
-from app.services.sync import sync_service
-from app.services.testmo import testmo_service
-from app.schemas_trpc import (
-    AnalyticsListInput,
-    AnalyticsMarkReadInput,
-    AnalyticsMarkAllReadInput,
-    AnalyticsAnalyzeInput,
-    AnomaliesListInput,
-    DashboardMetricsInput,
-    FeatureFlagGetInput,
-    FeatureFlagDeleteInput,
-    IntegrationIdInput,
-    IntegrationCreateJiraIssueInput,
-    GitlabIssuesInput,
-    NotificationSettingsInput,
-    NotificationSaveSettingsInput,
-    NotificationTestWebhookInput,
-    ReportGenerateInput,
-    RetentionUpdatePolicyInput,
-    RetentionArchivesInput,
-    SyncPreviewCasesInput,
-    SyncExecuteCasesInput,
-    WebhookIdInput,
-    WebhookUpdateInput,
+from app.routers.trpc._common import VALIDATORS
+from app.routers.trpc.analytics import (
+    _analytics_list,
+    _analytics_mark_read,
+    _analytics_mark_all_read,
+    _analytics_analyze,
+)
+from app.routers.trpc.anomalies import _anomalies_list, _anomalies_circuit_breakers
+from app.routers.trpc.cache import _cache_clear
+from app.routers.trpc.crosstest import _crosstest_save_comment, _crosstest_delete_comment
+from app.routers.trpc.dashboard import (
+    _dashboard_metrics,
+    _dashboard_quality_rates,
+    _dashboard_multi_project_summary,
+)
+from app.routers.trpc.feature_flags import (
+    _feature_flags_list,
+    _feature_flags_get,
+    _feature_flags_list_admin,
+    _feature_flags_create,
+    _feature_flags_update,
+    _feature_flags_delete,
+)
+from app.routers.trpc.integrations import (
+    _integrations_list,
+    _integrations_get,
+    _integrations_create,
+    _integrations_update,
+    _integrations_delete,
+    _integrations_test,
+    _integrations_create_jira_issue,
+    _integrations_gitlab_projects,
+    _integrations_gitlab_issues,
+)
+from app.routers.trpc.notifications import (
+    _notifications_settings,
+    _notifications_save_settings,
+    _notifications_test_webhook,
+)
+from app.routers.trpc.projects import _projects_list
+from app.routers.trpc.reports import _reports_generate
+from app.routers.trpc.retention import (
+    _retention_policies,
+    _retention_update_policy,
+    _retention_archives,
+    _retention_run_cycle,
+)
+from app.routers.trpc.sync import (
+    _sync_update_auto_config,
+    _sync_preview_cases,
+    _sync_execute_cases,
+    _sync_cases_history,
+)
+from app.routers.trpc.webhooks import (
+    _webhooks_list,
+    _webhooks_create,
+    _webhooks_update,
+    _webhooks_delete,
 )
 from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
@@ -66,651 +84,7 @@ async def _db():
         yield db
 
 
-def _ok(data: Any) -> dict[str, Any]:
-    return {"result": {"data": data}}
-
-
-def _err(message: str, code: str = "INTERNAL_SERVER_ERROR") -> dict[str, Any]:
-    return {"error": {"message": message, "code": code}}
-
-
-def _result(data: Any = None, **kwargs: Any) -> dict[str, Any]:
-    """Build a tRPC response compatible with the Node.js router format."""
-    payload: dict[str, Any] = {"success": True, **kwargs}
-    if data is not None:
-        payload["data"] = data
-    payload["timestamp"] = datetime.now(timezone.utc).isoformat()
-    return _ok(payload)
-
-
 # ── Procedure registry ──────────────────────────────────
-
-async def _analytics_list(input_data: dict[str, Any], db) -> dict[str, Any]:
-    insights = await analytics_service.get_insights(
-        db,
-        project_id=input_data.get("projectId"),
-        unread_only=input_data.get("unreadOnly", False),
-        limit=input_data.get("limit", 50),
-    )
-    return _ok(insights)
-
-
-async def _analytics_mark_read(input_data: dict[str, Any], db) -> dict[str, Any]:
-    ok = await analytics_service.mark_as_read(db, input_data["id"])
-    return _result({"success": ok})
-
-
-async def _analytics_mark_all_read(input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    count = await analytics_service.mark_all_as_read(
-        db, project_id=(input_data or {}).get("projectId")
-    )
-    return _result({"success": True, "count": count})
-
-
-async def _analytics_analyze(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await analytics_service.analyze_project(db, input_data["projectId"])
-    return _ok(result)
-
-
-async def _anomalies_list(input_data: dict[str, Any], db) -> dict[str, Any]:
-    project_id = input_data.get("projectId")
-    anomalies = await anomaly_service.detect(project_id)
-    return _result(anomalies)
-
-
-async def _anomalies_circuit_breakers(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    from app.routers.health import _CIRCUIT_BREAKERS
-
-    data = [
-        {
-            "name": name,
-            "state": cb.state.value,
-            "failure_count": cb._failure_count,
-        }
-        for name, cb in _CIRCUIT_BREAKERS.items()
-    ]
-    return _result(data)
-
-
-async def _cache_clear(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    testmo_service.clear_cache()
-    return _result({"success": True, "message": "Cache cleared successfully"})
-
-
-async def _crosstest_save_comment(input_data: dict[str, Any], db) -> dict[str, Any]:
-    async with get_comments_db() as cdb:
-        comment = CrossTestComment(
-            issue_iid=input_data["issue_iid"],
-            gitlab_project_id=input_data.get("gitlab_project_id", 63),
-            milestone_context=input_data.get("milestone_context"),
-            comment=input_data["comment"],
-        )
-        cdb.add(comment)
-        await cdb.commit()
-        await cdb.refresh(comment)
-        return _result(
-            {
-                "comment": {
-                    "id": comment.id,
-                    "issue_iid": comment.issue_iid,
-                    "comment": comment.comment,
-                    "milestone_context": comment.milestone_context,
-                    "created_at": comment.created_at.isoformat() if comment.created_at else None,
-                }
-            }
-        )
-
-
-async def _crosstest_delete_comment(input_data: dict[str, Any], db) -> dict[str, Any]:
-    async with get_comments_db() as cdb:
-        stmt = delete(CrossTestComment).where(CrossTestComment.id == input_data["iid"])
-        result = await cdb.execute(stmt)
-        await cdb.commit()
-        return _result({"success": True, "deleted": result.rowcount > 0})
-
-
-async def _dashboard_metrics(input_data: dict[str, Any], db) -> dict[str, Any]:
-    project_id = input_data.get("projectId")
-    preprod = input_data.get("preprodMilestones")
-    metrics = await testmo_service.get_project_metrics(project_id, milestone_ids=preprod)
-    return _result(metrics)
-
-
-async def _dashboard_quality_rates(input_data: dict[str, Any], db) -> dict[str, Any]:
-    project_id = input_data.get("projectId")
-    preprod = input_data.get("preprodMilestones")
-    prod = input_data.get("prodMilestones")
-    rates = await testmo_service.get_escape_and_detection_rates(project_id, preprod, prod)
-    return _result(rates)
-
-
-async def _dashboard_multi_project_summary(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    projects = await testmo_service.get_projects()
-
-    async def _summary_for_project(p: dict[str, Any]) -> dict[str, Any] | None:
-        try:
-            metrics = await testmo_service.get_project_metrics(p["id"])
-            return {
-                "projectId": p["id"],
-                "projectName": p.get("name"),
-                "passRate": metrics.get("pass_rate"),
-                "completionRate": metrics.get("completion_rate"),
-                "blockedRate": metrics.get("blocked_rate"),
-                "escapeRate": metrics.get("escape_rate"),
-                "detectionRate": metrics.get("detection_rate"),
-                "timestamp": metrics.get("timestamp"),
-            }
-        except Exception as exc:
-            logger.warning("Failed to fetch metrics for project %s: %s", p.get("id"), exc)
-            return None
-
-    summary_tasks = [_summary_for_project(p) for p in projects]
-    summaries = [s for s in await asyncio.gather(*summary_tasks) if s is not None]
-    return _result(summaries)
-
-
-async def _feature_flags_list(input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    result = await db.execute(select(FeatureFlag))
-    rows = result.scalars().all()
-    return _result(
-        {
-            "flags": [
-                {"key": r.key, "enabled": r.enabled, "rolloutPercentage": r.rollout_percentage}
-                for r in rows
-            ]
-        }
-    )
-
-
-async def _feature_flags_get(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Flag not found", "NOT_FOUND")
-    return _result(
-        {
-            "flag": {
-                "key": row.key,
-                "enabled": row.enabled,
-                "rolloutPercentage": row.rollout_percentage,
-                "description": row.description,
-            }
-        }
-    )
-
-
-async def _feature_flags_list_admin(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    result = await db.execute(select(FeatureFlag))
-    rows = result.scalars().all()
-    return _result(
-        {
-            "flags": [
-                {
-                    "key": r.key,
-                    "enabled": r.enabled,
-                    "description": r.description,
-                    "rolloutPercentage": r.rollout_percentage,
-                }
-                for r in rows
-            ]
-        }
-    )
-
-
-async def _feature_flags_create(input_data: dict[str, Any], db) -> dict[str, Any]:
-    existing = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
-    if existing.scalar_one_or_none():
-        return _err("Flag already exists", "CONFLICT")
-    flag = FeatureFlag(
-        key=input_data["key"],
-        enabled=input_data.get("enabled", False),
-        description=input_data.get("description"),
-        rollout_percentage=input_data.get("rolloutPercentage", 100.0),
-    )
-    db.add(flag)
-    await db.commit()
-    await db.refresh(flag)
-    return _result(
-        {
-            "flag": {
-                "key": flag.key,
-                "enabled": flag.enabled,
-                "description": flag.description,
-                "rolloutPercentage": flag.rollout_percentage,
-            }
-        }
-    )
-
-
-_FEATURE_FLAG_UPDATE_FIELDS = {
-    "enabled",
-    "description",
-    "rollout_percentage",
-    "rolloutPercentage",
-}
-
-
-async def _feature_flags_update(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
-    flag = result.scalar_one_or_none()
-    if not flag:
-        return _err("Flag not found", "NOT_FOUND")
-    for field in _FEATURE_FLAG_UPDATE_FIELDS & set(input_data.keys()):
-        if field == "rolloutPercentage":
-            flag.rollout_percentage = input_data[field]
-        else:
-            setattr(flag, field, input_data[field])
-    await db.commit()
-    await db.refresh(flag)
-    return _result(
-        {
-            "flag": {
-                "key": flag.key,
-                "enabled": flag.enabled,
-                "description": flag.description,
-                "rolloutPercentage": flag.rollout_percentage,
-            }
-        }
-    )
-
-
-async def _feature_flags_delete(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == input_data["key"]))
-    flag = result.scalar_one_or_none()
-    if not flag:
-        return _err("Flag not found", "NOT_FOUND")
-    await db.delete(flag)
-    await db.commit()
-    return _ok({"success": True})
-
-
-async def _notifications_settings(input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    project_id = (input_data or {}).get("projectId")
-    stmt = select(NotificationSetting).where(NotificationSetting.project_id == project_id)
-    result = await db.execute(stmt)
-    row = result.scalar_one_or_none()
-    return _result(
-        {
-            "id": row.id,
-            "project_id": row.project_id,
-            "email": row.email,
-            "slack_webhook": row.slack_webhook,
-            "teams_webhook": row.teams_webhook,
-            "enabled_sla_email": row.enabled_sla_email,
-            "enabled_sla_slack": row.enabled_sla_slack,
-            "enabled_sla_teams": row.enabled_sla_teams,
-        }
-        if row
-        else None
-    )
-
-
-async def _notifications_save_settings(input_data: dict[str, Any], db) -> dict[str, Any]:
-    project_id = input_data.get("projectId")
-    result = await db.execute(
-        select(NotificationSetting).where(NotificationSetting.project_id == project_id)
-    )
-    setting = result.scalar_one_or_none()
-    if setting:
-        for field in [
-            "email",
-            "slack_webhook",
-            "teams_webhook",
-            "enabled_sla_email",
-            "enabled_sla_slack",
-            "enabled_sla_teams",
-            "email_template",
-            "slack_template",
-            "teams_template",
-        ]:
-            if field in input_data:
-                setattr(setting, field, input_data[field])
-    else:
-        setting = NotificationSetting(
-            project_id=project_id,
-            **{k: v for k, v in input_data.items() if k != "projectId"},
-        )
-        db.add(setting)
-    await db.commit()
-    await db.refresh(setting)
-    return _result({"id": setting.id, "project_id": setting.project_id})
-
-
-async def _notifications_test_webhook(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await alerting_service.send_test(
-        input_data.get("channel", "email"),
-        input_data.get("url") or input_data.get("destination"),
-    )
-    return _result(result)
-
-
-async def _projects_list(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    projects = await testmo_service.get_projects()
-    return _result(projects)
-
-
-async def _reports_generate(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await report_service.generate(input_data)
-    return _result(result)
-
-
-async def _retention_policies(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    policies = await retention_service.get_policies(db)
-    return _ok(policies)
-
-
-async def _retention_update_policy(input_data: dict[str, Any], db) -> dict[str, Any]:
-    policy = await retention_service.update_policy(
-        db,
-        input_data["entityType"],
-        input_data.get("retentionDays"),
-        input_data.get("autoArchive"),
-        input_data.get("autoDelete"),
-    )
-    return _ok(policy)
-
-
-async def _retention_archives(input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    archives = await retention_service.get_archives(
-        db,
-        entity_type=(input_data or {}).get("entityType"),
-        limit=(input_data or {}).get("limit", 100),
-    )
-    return _ok(archives)
-
-
-async def _retention_run_cycle(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    result = await retention_service.run_retention_cycle(db)
-    return _ok(result)
-
-
-async def _integrations_list(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    result = await db.execute(select(Integration))
-    rows = result.scalars().all()
-    return _ok(
-        [
-            {"id": r.id, "name": r.name, "type": r.type, "config": r.config_json, "enabled": r.enabled}
-            for r in rows
-        ]
-    )
-
-
-async def _integrations_get(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    return _ok(
-        {"id": row.id, "name": row.name, "type": row.type, "config": row.config_json, "enabled": row.enabled}
-    )
-
-
-async def _integrations_create(input_data: dict[str, Any], db) -> dict[str, Any]:
-    integration = Integration(
-        name=input_data["name"],
-        type=input_data["type"],
-        config_json=input_data.get("config", {}),
-        enabled=input_data.get("enabled", True),
-    )
-    db.add(integration)
-    await db.commit()
-    await db.refresh(integration)
-    return _ok(
-        {"id": integration.id, "name": integration.name, "type": integration.type, "config": integration.config_json, "enabled": integration.enabled}
-    )
-
-
-async def _integrations_update(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    if "name" in input_data:
-        row.name = input_data["name"]
-    if "type" in input_data:
-        row.type = input_data["type"]
-    if "config" in input_data:
-        row.config_json = input_data["config"]
-    if "enabled" in input_data:
-        row.enabled = input_data["enabled"]
-    await db.commit()
-    await db.refresh(row)
-    return _ok(
-        {"id": row.id, "name": row.name, "type": row.type, "config": row.config_json, "enabled": row.enabled}
-    )
-
-
-async def _integrations_delete(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    await db.delete(row)
-    await db.commit()
-    return _result({"success": True})
-
-
-async def _integrations_test(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    if row.type == "jira":
-        resp = await integration_service.test_jira_connection(row.config_json)
-    elif row.type == "gitlab":
-        resp = await integration_service.test_gitlab_connection(row.config_json)
-    elif row.type == "generic_webhook":
-        from datetime import datetime, timezone
-        resp = await integration_service.send_generic_webhook(
-            row.config_json, {"event": "test", "timestamp": datetime.now(timezone.utc).isoformat()}
-        )
-    else:
-        return _err("Type not supported for test")
-    return _ok(resp)
-
-
-async def _integrations_create_jira_issue(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    if row.type != "jira":
-        return _err("Integration is not Jira", "BAD_REQUEST")
-    resp = await integration_service.create_jira_issue(
-        row.config_json,
-        input_data["summary"],
-        input_data["description"],
-        input_data.get("issueType", "Bug"),
-    )
-    if resp.get("success"):
-        from datetime import datetime, timezone
-        row.last_sync_at = datetime.now(timezone.utc)
-        await db.commit()
-    return _ok(resp)
-
-
-async def _integrations_gitlab_projects(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    if row.type != "gitlab":
-        return _err("Integration is not GitLab", "BAD_REQUEST")
-    projects = await gitlab_connector_service.list_projects(row.config_json)
-    return _result({"projects": projects})
-
-
-async def _integrations_gitlab_issues(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(Integration).where(Integration.id == input_data["id"]))
-    row = result.scalar_one_or_none()
-    if not row:
-        return _err("Integration not found", "NOT_FOUND")
-    if row.type != "gitlab":
-        return _err("Integration is not GitLab", "BAD_REQUEST")
-    issues = await gitlab_connector_service.list_issues(row.config_json, input_data.get("projectId"))
-    return _result({"issues": issues})
-
-
-async def _sync_update_auto_config(input_data: dict[str, Any], db) -> dict[str, Any]:
-    updated = await sync_service.update_auto_config(input_data)
-    return _result({"config": updated})
-
-
-async def _sync_preview_cases(input_data: dict[str, Any], db) -> dict[str, Any]:
-    from app.config import settings
-    result = await case_sync_service.preview_sync_iteration(
-        gitlab_project_id=cast(int, input_data.get("projectId")),
-        testmo_project_id=input_data.get("testmoProjectId") or settings.testmo_project_id,
-        iteration_name=cast(str, input_data.get("iterationName")),
-        label=cast(str, input_data.get("label", "Test::TODO")),
-        root_folder_id=cast(int, input_data.get("rootFolderId", 4514)),
-    )
-    return _result(result.to_dict())
-
-
-async def _sync_execute_cases(input_data: dict[str, Any], db) -> dict[str, Any]:
-    from app.config import settings
-    result = await case_sync_service.sync_iteration(
-        gitlab_project_id=cast(int, input_data.get("projectId")),
-        testmo_project_id=input_data.get("testmoProjectId") or settings.testmo_project_id,
-        iteration_name=cast(str, input_data.get("iterationName")),
-        label=cast(str, input_data.get("label", "Test::TODO")),
-        root_folder_id=cast(int, input_data.get("rootFolderId", 4514)),
-        dry_run=bool(input_data.get("dryRun", False)),
-    )
-    if not bool(input_data.get("dryRun", False)):
-        try:
-            await case_sync_service.persist_case_run(
-                db,
-                project_id=cast(int, input_data.get("projectId")),
-                iteration_name=cast(str, input_data.get("iterationName")),
-                folder_id=None,
-                result=result,
-            )
-        except Exception as exc:
-            logger.error("Failed to persist case sync run", extra={"error": str(exc)})
-    return _result(result.to_dict())
-
-
-async def _sync_cases_history(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    history = await case_sync_service.get_history(db)
-    return _result(history)
-
-
-async def _webhooks_list(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
-    result = await db.execute(select(WebhookSubscription))
-    rows = result.scalars().all()
-    return _result(
-        [
-            {"id": r.id, "url": r.url, "events": r.events, "secret": r.secret, "enabled": r.enabled}
-            for r in rows
-        ]
-    )
-
-
-async def _webhooks_create(input_data: dict[str, Any], db) -> dict[str, Any]:
-    sub = WebhookSubscription(
-        url=input_data["url"],
-        events=input_data.get("events", []),
-        secret=input_data.get("secret", ""),
-        enabled=input_data.get("enabled", True),
-        filters=input_data.get("filters"),
-    )
-    db.add(sub)
-    await db.commit()
-    await db.refresh(sub)
-    return _result(
-        {"id": sub.id, "url": sub.url, "events": sub.events, "secret": sub.secret, "enabled": sub.enabled}
-    )
-
-
-_WEBHOOK_UPDATE_FIELDS = {"url", "events", "secret", "enabled", "filters"}
-
-
-async def _webhooks_update(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(WebhookSubscription).where(WebhookSubscription.id == input_data["id"]))
-    sub = result.scalar_one_or_none()
-    if not sub:
-        return _err("Webhook not found", "NOT_FOUND")
-    for field in _WEBHOOK_UPDATE_FIELDS & set(input_data.keys()):
-        setattr(sub, field, input_data[field])
-    await db.commit()
-    await db.refresh(sub)
-    return _result(
-        {"id": sub.id, "url": sub.url, "events": sub.events, "secret": sub.secret, "enabled": sub.enabled}
-    )
-
-
-async def _webhooks_delete(input_data: dict[str, Any], db) -> dict[str, Any]:
-    result = await db.execute(select(WebhookSubscription).where(WebhookSubscription.id == input_data["id"]))
-    sub = result.scalar_one_or_none()
-    if not sub:
-        return _err("Webhook not found", "NOT_FOUND")
-    await db.delete(sub)
-    await db.commit()
-    return _result({"success": True})
-
-
-# Map "router.procedure" → Pydantic validator (None = no validation)
-VALIDATORS: dict[str, Any] = {
-    # analytics
-    "analytics.list": AnalyticsListInput,
-    "analytics.markRead": AnalyticsMarkReadInput,
-    "analytics.markAllRead": AnalyticsMarkAllReadInput,
-    "analytics.analyze": AnalyticsAnalyzeInput,
-    # anomalies
-    "anomalies.list": AnomaliesListInput,
-    "anomalies.circuitBreakers": None,
-    # cache
-    "cache.clear": None,
-    # crosstest
-    "crosstest.saveComment": None,  # uses snake_case fields; validated inside handler
-    "crosstest.deleteComment": None,
-    # dashboard
-    "dashboard.metrics": DashboardMetricsInput,
-    "dashboard.qualityRates": DashboardMetricsInput,
-    "dashboard.multiProjectSummary": None,
-    # featureFlags
-    "featureFlags.list": None,
-    "featureFlags.get": FeatureFlagGetInput,
-    "featureFlags.listAdmin": None,
-    "featureFlags.create": None,  # FeatureFlagCreate has camelCase aliases
-    "featureFlags.update": None,  # FeatureFlagUpdate has camelCase aliases
-    "featureFlags.delete": FeatureFlagDeleteInput,
-    # integrations
-    "integrations.list": None,
-    "integrations.get": IntegrationIdInput,
-    "integrations.create": None,  # IntegrationCreate fields match
-    "integrations.update": None,  # IntegrationUpdate fields match (plus id)
-    "integrations.delete": IntegrationIdInput,
-    "integrations.testConnection": IntegrationIdInput,
-    "integrations.createJiraIssue": IntegrationCreateJiraIssueInput,
-    "integrations.gitlabProjects": IntegrationIdInput,
-    "integrations.gitlabIssues": GitlabIssuesInput,
-    # notifications
-    "notifications.settings": NotificationSettingsInput,
-    "notifications.saveSettings": NotificationSaveSettingsInput,
-    "notifications.testWebhook": NotificationTestWebhookInput,
-    # projects
-    "projects.list": None,
-    # reports
-    "reports.generate": ReportGenerateInput,
-    # retention
-    "retention.policies": None,
-    "retention.updatePolicy": RetentionUpdatePolicyInput,
-    "retention.archives": RetentionArchivesInput,
-    "retention.runCycle": None,
-    # sync
-    "sync.previewCases": SyncPreviewCasesInput,
-    "sync.executeCases": SyncExecuteCasesInput,
-    "sync.casesHistory": None,
-    "sync.updateAutoConfig": None,
-    # webhooks
-    "webhooks.list": None,
-    "webhooks.create": None,  # WebhookSubscriptionCreate fields match
-    "webhooks.update": WebhookUpdateInput,
-    "webhooks.delete": WebhookIdInput,
-}
 
 PROCEDURES: dict[str, Any] = {
     # analytics
