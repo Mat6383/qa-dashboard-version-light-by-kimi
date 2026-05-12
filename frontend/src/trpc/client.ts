@@ -7,9 +7,9 @@
  */
 
 import { createTRPCReact, httpBatchLink } from '@trpc/react-query';
-// Le type AppRouter est importé directement depuis le backend via le path alias
-// `~server/*` défini dans tsconfig.json. Cette approche monorepo garantit la
-// cohérence des types tRPC entre le frontend et le backend Node.js.
+// Le type AppRouter est importé depuis le legacy Node.js server/.
+// Ce dossier est type-only (voir server/README.md). Le runtime tRPC
+// est servi par backend_py/app/routers/trpc.py.
 import type { AppRouter } from '~server/trpc/router';
 import { getTrpcBaseUrl, fetchCredentials } from '../services/http.config';
 
