@@ -4,15 +4,24 @@
  * ================================================
  * Liste les issues GitLab avec label CrossTest::OK
  * pour une itération sélectionnée.
- * Commentaires persistants en SQLite (full CRUD inline).
+ * Tableau basé sur @tanstack/react-table (filtrage global + virtualisation).
+ * Column reordering conservé via @dnd-kit.
  *
  * @author Matou - Neo-Logix QA Lead
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api.service';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  flexRender,
+  createColumnHelper,
+  type FilterFn,
+} from '@tanstack/react-table';
 
 import {
   Link2,
@@ -27,9 +36,10 @@ import {
 import '../styles/Dashboard7.css';
 import CommentCell from './CommentCell';
 import { useColumnOrder } from '../hooks/useColumnOrder';
-import SortableTableHeader, { type ColumnDef } from './SortableTableHeader';
+import SortableTableHeader from './SortableTableHeader';
+import type { CrosstestIssue } from '../types/api.types';
 
-const CROSS_TEST_COLUMNS: ColumnDef[] = [
+const CROSS_TEST_COLUMNS = [
   { key: 'iid', label: '#' },
   { key: 'title', label: 'Ticket' },
   { key: 'assignees', label: 'Assigné(s)' },
@@ -37,8 +47,24 @@ const CROSS_TEST_COLUMNS: ColumnDef[] = [
   { key: 'comments', label: 'Commentaires' },
 ];
 
+const columnHelper = createColumnHelper<CrosstestIssue>();
+
+const globalFilterFn: FilterFn<CrosstestIssue> = (row, _columnId, filterValue) => {
+  const search = String(filterValue).toLowerCase();
+  const issue = row.original;
+  const assigneeNames = issue.assignees.map((a) =>
+    typeof a === 'string' ? a : a.name
+  );
+  return (
+    String(issue.iid).includes(search) ||
+    issue.title.toLowerCase().includes(search) ||
+    assigneeNames.some((name) => name.toLowerCase().includes(search)) ||
+    issue.labels.some((l) => l.toLowerCase().includes(search))
+  );
+};
+
 /* =========================================
-   Sous-composant : tableau virtualisé
+   Sous-composant : tableau virtualisé TanStack
    ========================================= */
 function VirtualIssueTable({
   issues,
@@ -48,10 +74,114 @@ function VirtualIssueTable({
   onCommentDeleted,
   tableWrapperRef,
   columnOrder,
-  onReorder,
+  onColumnOrderChange,
+  globalFilter,
 }) {
+  const columns = React.useMemo(
+    () => [
+      columnHelper.accessor('iid', {
+        header: '#',
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor((row) => row, {
+        id: 'title',
+        header: 'Ticket',
+        cell: (info) => {
+          const issue = info.getValue();
+          return (
+            <>
+              <a
+                className="d7-issue-link"
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Ouvrir #${issue.iid} dans GitLab`}
+              >
+                <span className="d7-issue-iid">#{issue.iid}</span>
+                {issue.title}
+                <ExternalLink size={12} style={{ flexShrink: 0 }} />
+              </a>
+              {issue.labels && issue.labels.length > 0 && (
+                <div className="d7-labels">
+                  {issue.labels.map((label) => (
+                    <span key={label} className="d7-label-chip">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        },
+      }),
+      columnHelper.accessor(
+        (row) =>
+          row.assignees
+            .map((a) => (typeof a === 'string' ? a : a.name))
+            .join(', '),
+        {
+          id: 'assignees',
+          header: 'Assigné(s)',
+          cell: (info) =>
+            info.getValue() ? (
+              info.getValue()
+            ) : (
+              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Non assigné</span>
+            ),
+        }
+      ),
+      columnHelper.accessor('state', {
+        header: 'Statut',
+        cell: (info) =>
+          info.getValue() === 'closed' ? (
+            <span className="d7-badge d7-badge-closed">
+              <CheckCircle2 size={11} />
+              Fermé
+            </span>
+          ) : (
+            <span className="d7-badge d7-badge-open">
+              <Clock size={11} />
+              Ouvert
+            </span>
+          ),
+      }),
+      columnHelper.display({
+        id: 'comments',
+        header: 'Commentaires',
+        cell: ({ row }) => (
+          <CommentCell
+            issue={row.original}
+            comment={comments[row.original.iid] || null}
+            milestoneTitle={selectedIteration?.title}
+            onSaved={onCommentSaved}
+            onDeleted={onCommentDeleted}
+          />
+        ),
+      }),
+    ],
+    [comments, selectedIteration, onCommentSaved, onCommentDeleted]
+  );
+
+  const table = useReactTable({
+    data: issues,
+    columns,
+    state: {
+      columnOrder,
+      globalFilter,
+    },
+    onColumnOrderChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(columnOrder) : updater;
+      onColumnOrderChange(next);
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn,
+  });
+
+  const rows = table.getRowModel().rows;
+
   const rowVirtualizer = useVirtualizer({
-    count: issues.length,
+    count: rows.length,
     getScrollElement: () => tableWrapperRef.current,
     estimateSize: () => 64,
     overscan: 5,
@@ -64,97 +194,29 @@ function VirtualIssueTable({
           <SortableTableHeader
             columns={CROSS_TEST_COLUMNS}
             columnOrder={columnOrder}
-            onReorder={onReorder}
+            onReorder={(newOrder) => {
+              onColumnOrderChange(newOrder);
+              table.setColumnOrder(newOrder);
+            }}
             tableId="crosstest"
           />
         </thead>
         <tbody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const issue = issues[virtualRow.index];
+            const row = rows[virtualRow.index];
             return (
               <tr
-                key={virtualRow.key}
+                key={row.id}
                 style={{
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {columnOrder.map((colKey) => {
-                  switch (colKey) {
-                    case 'iid':
-                      return <td key={colKey}>{issue.iid}</td>;
-
-                    case 'title':
-                      return (
-                        <td key={colKey}>
-                          <a
-                            className="d7-issue-link"
-                            href={issue.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Ouvrir #${issue.iid} dans GitLab`}
-                          >
-                            <span className="d7-issue-iid">#{issue.iid}</span>
-                            {issue.title}
-                            <ExternalLink size={12} style={{ flexShrink: 0 }} />
-                          </a>
-                          {issue.labels && issue.labels.length > 0 && (
-                            <div className="d7-labels">
-                              {issue.labels.map((label) => (
-                                <span key={label} className="d7-label-chip">
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      );
-
-                    case 'assignees':
-                      return (
-                        <td key={colKey}>
-                          {issue.assignees && issue.assignees.length > 0 ? (
-                            issue.assignees.join(', ')
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Non assigné</span>
-                          )}
-                        </td>
-                      );
-
-                    case 'state':
-                      return (
-                        <td key={colKey}>
-                          {issue.state === 'closed' ? (
-                            <span className="d7-badge d7-badge-closed">
-                              <CheckCircle2 size={11} />
-                              Fermé
-                            </span>
-                          ) : (
-                            <span className="d7-badge d7-badge-open">
-                              <Clock size={11} />
-                              Ouvert
-                            </span>
-                          )}
-                        </td>
-                      );
-
-                    case 'comments':
-                      return (
-                        <td key={colKey} className="d7-comment-cell">
-                          <CommentCell
-                            issue={issue}
-                            comment={comments[issue.iid] || null}
-                            milestoneTitle={selectedIteration?.title}
-                            onSaved={onCommentSaved}
-                            onDeleted={onCommentDeleted}
-                          />
-                        </td>
-                      );
-
-                    default:
-                      return <td key={colKey} />;
-                  }
-                })}
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
               </tr>
             );
           })}
@@ -172,7 +234,7 @@ export default function Dashboard7({ isDark: _isDark }) {
   const [selectedIteration, setSelectedIteration] = useState(null);
   const [issues, setIssues] = useState([]);
   const [comments, setComments] = useState({}); // { [iid]: row }
-  const [filter, setFilter] = useState('');
+  const [globalFilter, setGlobalFilter] = useState('');
 
   const tableWrapperRef = useRef(null);
 
@@ -180,6 +242,11 @@ export default function Dashboard7({ isDark: _isDark }) {
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [iterationsError, setIterationsError] = useState(null);
   const [issuesError, setIssuesError] = useState(null);
+
+  const { columnOrder, setColumnOrder } = useColumnOrder(
+    'crosstest',
+    CROSS_TEST_COLUMNS.map((c) => c.key)
+  );
 
   /* ---- Chargement initial: itérations + commentaires ---- */
   useEffect(() => {
@@ -196,7 +263,6 @@ export default function Dashboard7({ isDark: _isDark }) {
         if (cancelled) return;
         setIterations(iters || []);
         setComments(cmts || {});
-        // Sélectionner automatiquement la première itération
         if (iters && iters.length > 0 && !selectedIteration) {
           setSelectedIteration(iters[0]);
         }
@@ -223,7 +289,7 @@ export default function Dashboard7({ isDark: _isDark }) {
     async function loadIssues() {
       setLoadingIssues(true);
       setIssuesError(null);
-      setFilter('');
+      setGlobalFilter('');
       try {
         const data = await apiService.getCrosstestIssues(selectedIteration.id);
         if (!cancelled) setIssues(data || []);
@@ -271,24 +337,6 @@ export default function Dashboard7({ isDark: _isDark }) {
       return next;
     });
   }, []);
-
-  /* ---- Filtrage ---- */
-  const filteredIssues = filter
-    ? issues.filter((issue) => {
-        const q = filter.toLowerCase();
-        return (
-          String(issue.iid).includes(q) ||
-          issue.title.toLowerCase().includes(q) ||
-          issue.assignees.join(' ').toLowerCase().includes(q) ||
-          issue.labels.join(' ').toLowerCase().includes(q)
-        );
-      })
-    : issues;
-
-  const { columnOrder, setColumnOrder } = useColumnOrder(
-    'crosstest',
-    CROSS_TEST_COLUMNS.map((c) => c.key)
-  );
 
   /* ---- Rendu ---- */
   return (
@@ -346,8 +394,8 @@ export default function Dashboard7({ isDark: _isDark }) {
           type="text"
           className="d7-filter-input"
           placeholder="Filtrer par titre, assigné, label..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
           aria-label="Filtrer les tickets"
         />
       </div>
@@ -355,9 +403,9 @@ export default function Dashboard7({ isDark: _isDark }) {
       {/* Résumé */}
       {selectedIteration && !loadingIssues && !issuesError && (
         <p className="d7-summary">
-          <strong>{filteredIssues.length}</strong>
-          {filter
-            ? ` ticket${filteredIssues.length !== 1 ? 's' : ''} correspondant au filtre (sur ${issues.length})`
+          <strong>{issues.length}</strong>
+          {globalFilter
+            ? ` ticket${issues.length !== 1 ? 's' : ''} affiché${issues.length !== 1 ? 's' : ''}`
             : ` ticket${issues.length !== 1 ? 's' : ''}`}{' '}
           avec <strong>CrossTest::OK</strong> pour <strong>{selectedIteration.title}</strong>
         </p>
@@ -406,25 +454,18 @@ export default function Dashboard7({ isDark: _isDark }) {
           </div>
         )}
 
-        {!loadingIssues && !issuesError && filteredIssues.length === 0 && issues.length > 0 && (
-          <div className="d7-state-box">
-            <MessageSquare size={36} />
-            <p className="d7-state-title">Aucun résultat</p>
-            <p className="d7-state-desc">Aucun ticket ne correspond au filtre &quot;{filter}&quot;.</p>
-          </div>
-        )}
-
         {/* Tableau principal */}
-        {!loadingIssues && !issuesError && filteredIssues.length > 0 && (
+        {!loadingIssues && !issuesError && selectedIteration && issues.length > 0 && (
           <VirtualIssueTable
-            issues={filteredIssues}
+            issues={issues}
             comments={comments}
             selectedIteration={selectedIteration}
             onCommentSaved={handleCommentSaved}
             onCommentDeleted={handleCommentDeleted}
             tableWrapperRef={tableWrapperRef}
             columnOrder={columnOrder}
-            onReorder={setColumnOrder}
+            onColumnOrderChange={setColumnOrder}
+            globalFilter={globalFilter}
           />
         )}
       </div>
