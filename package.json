@@ -25,7 +25,11 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,css}": "prettier --write"
+    "*.{json,md,css}": "prettier --write",
+    "backend_py/**/*.py": [
+      "backend_py/.venv/bin/ruff check --fix",
+      "backend_py/.venv/bin/ruff format"
+    ]
   },
   "overrides": {
     "uuid": "^11.1.0"
