@@ -12,6 +12,7 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
 | 4   | Ajouter tests d'intégration API (tRPC)                   | ✅ Fait | c3ce89f |
 | 5   | Compléter pre-commit hooks avec ruff                     | ✅ Fait | a635573 |
 | 6   | Docker Compose global — Makefile + .dockerignore backend | ✅ Fait | —       |
+| 7   | Splitter TestmoService (client + metrics)                | ✅ Fait | —       |
 
 ---
 
@@ -61,6 +62,20 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
   - `make build` — build images production
   - `make ps` / `make shell-backend` / `make shell-frontend` — introspection
 - **`backend_py/.dockerignore`** créé (manquant) — exclut `.venv`, `__pycache__`, `db-data/`, `logs/`, `tests/`, etc.
+
+---
+
+### T7 — Splitter TestmoService
+
+- **`testmo_client.py`** — `TestmoClient` : HTTP, cache, circuit breaker, CRUD
+  projects/runs/cases/folders/automation
+- **`testmo_metrics.py`** — `TestmoMetrics(client)` : KPIs (`get_project_metrics`),
+  SLA (`_check_sla`), trends (`get_annual_quality_trends`), escape/detection rates,
+  `compare_projects`
+- **`testmo.py`** — `TestmoService(TestmoClient)` façade avec `__getattr__` vers
+  `TestmoMetrics`
+  - Zéro changement dans les 15+ fichiers qui importent `testmo_service`
+  - Tests existants passent (211/212, 1 flaky préexistant sur DB SQLite concurrente)
 
 ---
 
