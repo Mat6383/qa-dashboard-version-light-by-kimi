@@ -13,6 +13,7 @@ from app.projects_config import resolve_gitlab_integration_info, resolve_testmo_
 from app.services.gitlab import gitlab_service
 from app.services.sync_mapper import extract_steps_from_notes
 from app.services.testmo import testmo_service
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -400,7 +401,7 @@ class CaseSyncService:
                 logger.error("Failed to sync issue", extra={"iid": iid, "error": str(exc)})
                 result.errors += 1
                 detail["action"] = "error"
-                detail["error"] = "Internal server error"
+                detail["error"] = SAFE_INTERNAL_ERROR
                 result.details.append(detail)
 
             await asyncio.sleep(0.3)

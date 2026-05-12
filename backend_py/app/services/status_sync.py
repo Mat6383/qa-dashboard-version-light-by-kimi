@@ -10,6 +10,7 @@ from typing import Any
 from app.config import settings
 from app.services.gitlab import gitlab_service
 from app.services.testmo import testmo_service
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -346,7 +347,7 @@ class StatusSyncService:
                     "level": "error",
                     "caseName": case_name,
                     "issueIid": issue.get("iid"),
-                    "error": "Internal server error",
+                    "error": SAFE_INTERNAL_ERROR,
                 }
                 logger.error(
                     "[StatusSync] Erreur #%s \"%s\": %s",

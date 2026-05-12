@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from app.deps import DBMain
 from app.services.testmo import testmo_service
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -132,7 +133,7 @@ async def stream_dashboard(request: Request, project_id: int):
                 yield f"data: {payload}\n\n"
             except Exception:
                 logger.error("SSE stream error", exc_info=True)
-                yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
+                yield f"data: {json.dumps({'error': SAFE_INTERNAL_ERROR})}\n\n"
             await asyncio.sleep(5)
 
     return StreamingResponse(

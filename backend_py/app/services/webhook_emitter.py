@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.webhooks import WebhookSubscription
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR, sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,6 +41,7 @@ class WebhookEmitter:
             sent.append({"webhook_id": sub.id, "url": sub.url, "status": status})
         return sent
 
+    @sanitize_errors(logger, msg="Webhook failed", default_return={"success": False, "error": SAFE_INTERNAL_ERROR})
     async def _send(
         self,
         sub: WebhookSubscription,
@@ -61,9 +63,6 @@ class WebhookEmitter:
         except httpx.HTTPStatusError as exc:
             logger.warning("Webhook HTTP error %s → %s", sub.url, exc.response.status_code)
             return {"success": False, "status_code": exc.response.status_code, "error": "HTTP error"}
-        except Exception as exc:
-            logger.warning("Webhook failed %s → %s", sub.url, exc)
-            return {"success": False, "error": "Internal server error"}
 
     def _matches_filters(self, payload: dict[str, Any], filters: dict[str, Any]) -> bool:
         for key, value in filters.items():

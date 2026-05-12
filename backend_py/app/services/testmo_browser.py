@@ -16,7 +16,7 @@ from typing import Any
 from playwright.async_api import Page, async_playwright
 
 from app.config import settings
-from app.utils.api_helpers import sanitize_errors
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR, sanitize_errors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -547,7 +547,7 @@ class TestmoBrowserService:
 
     # ── Health check ─────────────────────────────────────────────────────────
 
-    @sanitize_errors(logger, msg="Testmo browser health check failed", default_return={"ok": False, "message": "Internal server error"})
+    @sanitize_errors(logger, msg="Testmo browser health check failed", default_return={"ok": False, "message": SAFE_INTERNAL_ERROR})
     async def health_check(self) -> dict[str, Any]:
         page = await self._new_page()
         try:

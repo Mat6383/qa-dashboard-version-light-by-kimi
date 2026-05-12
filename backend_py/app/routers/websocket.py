@@ -8,6 +8,7 @@ import json
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.services.testmo import testmo_service
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 
 router = APIRouter()
 
@@ -43,7 +44,7 @@ async def dashboard_websocket(
             except Exception:
                 try:
                     await websocket.send_text(
-                        json.dumps({"type": "error", "message": "Internal server error"})
+                        json.dumps({"type": "error", "message": SAFE_INTERNAL_ERROR})
                     )
                 except (WebSocketDisconnect, RuntimeError):
                     break

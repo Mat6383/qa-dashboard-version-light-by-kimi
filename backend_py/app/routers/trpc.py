@@ -5,6 +5,7 @@ Compatible with @trpc/react-query httpBatchLink (v10, no transformer).
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Any, cast
@@ -53,6 +54,7 @@ from app.schemas_trpc import (
     WebhookIdInput,
     WebhookUpdateInput,
 )
+from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -791,7 +793,7 @@ async def _run_procedure(path: str, raw_input: dict[str, Any] | None, db: Any, c
         return result
     except Exception as exc:
         logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
-        return {"error": {"message": "Internal server error", "code": "INTERNAL_SERVER_ERROR"}, "id": call_id}
+        return {"error": {"message": SAFE_INTERNAL_ERROR, "code": "INTERNAL_SERVER_ERROR"}, "id": call_id}
 
 
 async def _handle_batch(paths: list[str], inputs: dict[str, Any], db: Any) -> list[dict[str, Any]]:

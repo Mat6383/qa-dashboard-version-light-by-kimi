@@ -11,16 +11,12 @@ import httpx
 from cachetools import TTLCache
 
 from app.config import settings
+from app.constants import PaginatedList
 from app.core.circuit_breaker import CircuitBreaker
 from app.core.resilience import with_resilience
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-
-class PaginatedList(list):
-    """A list that carries a ``truncated`` flag when pagination was capped."""
-    truncated: bool = False
 
 
 class TestmoService:

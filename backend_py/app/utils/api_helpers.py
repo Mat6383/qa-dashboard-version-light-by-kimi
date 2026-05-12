@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import ipaddress
 import logging
 from typing import Any, Callable
 from urllib.parse import urlparse
+
+SAFE_INTERNAL_ERROR = "Internal server error"
 
 
 def sanitize_errors(
@@ -18,26 +21,41 @@ def sanitize_errors(
 ) -> Callable[[Callable], Callable]:
     """Decorator that catches exceptions, logs them, and returns a safe default.
 
+    Supports both sync and async functions.
+
     Usage::
 
         @sanitize_errors(logger, msg="Email send failed")
         async def send_email(...) -> dict[str, Any]:
             ...
     """
-    safe = default_return if default_return is not None else {"success": False, "error": "Internal server error"}
+    safe = default_return if default_return is not None else {"success": False, "error": SAFE_INTERNAL_ERROR}
 
     def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            try:
-                return await func(*args, **kwargs)
-            except Exception as exc:
-                if reraise and isinstance(exc, reraise):
-                    raise
-                logger.error(msg, exc_info=True)
-                return safe
+        if inspect.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as exc:
+                    if reraise and isinstance(exc, reraise):
+                        raise
+                    logger.error(msg, exc_info=True)
+                    return safe
 
-        return async_wrapper
+            return async_wrapper
+        else:
+            @functools.wraps(func)
+            def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as exc:
+                    if reraise and isinstance(exc, reraise):
+                        raise
+                    logger.error(msg, exc_info=True)
+                    return safe
+
+            return sync_wrapper
 
     return decorator
 

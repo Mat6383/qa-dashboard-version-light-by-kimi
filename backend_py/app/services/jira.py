@@ -33,6 +33,7 @@ class JiraClient:
             resp.raise_for_status()
         return {"success": True, "account_id": resp.json().get("accountId")}
 
+    @sanitize_errors(logger, msg="Jira create issue failed")
     async def create_issue(
         self,
         project_key: str,
@@ -62,9 +63,6 @@ class JiraClient:
         except httpx.HTTPStatusError as exc:
             logger.error("Jira create issue failed: %s — %s", exc.response.status_code, exc.response.text)
             return {"success": False, "error": "HTTP error"}
-        except Exception as exc:
-            logger.error("Jira create issue failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
 
 
 class IntegrationService:
@@ -101,6 +99,7 @@ class IntegrationService:
         from app.services.gitlab_connector import gitlab_connector_service
         return await gitlab_connector_service.test_connection(config)
 
+    @sanitize_errors(logger, msg="Webhook send failed")
     async def send_generic_webhook(self, config: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
         import httpx
         url = config.get("url", "")
@@ -115,14 +114,10 @@ class IntegrationService:
             headers["X-Webhook-Signature"] = hmac.new(
                 secret.encode("utf-8"), body.encode("utf-8"), hashlib.sha256
             ).hexdigest()
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(url, content=body.encode("utf-8"), headers=headers)
-                resp.raise_for_status()
-            return {"success": True, "status_code": resp.status_code}
-        except Exception as exc:
-            logger.error("Webhook send failed: %s", exc, exc_info=True)
-            return {"success": False, "error": "Internal server error"}
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, content=body.encode("utf-8"), headers=headers)
+            resp.raise_for_status()
+        return {"success": True, "status_code": resp.status_code}
 
 
 integration_service = IntegrationService()

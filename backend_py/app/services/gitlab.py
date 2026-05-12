@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.constants import PaginatedList
 from app.core.circuit_breaker import CircuitBreaker
 from app.core.resilience import with_resilience
 from app.utils.logger import get_logger
@@ -82,7 +83,7 @@ class GitLabService:
                 )
             return data["data"]
 
-    async def _get_paginated(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    async def _get_paginated(self, path: str, params: dict[str, Any] | None = None) -> PaginatedList:
         """Follow x-next-page header, 100 items/page. Deduplicate by id."""
         seen_ids: set[int | str] = set()
         all_items: list[dict[str, Any]] = []
@@ -110,7 +111,9 @@ class GitLabService:
                 if page > max_pages:
                     logger.warning("Pagination limit reached for %s", path)
                     break
-        return all_items
+        result = PaginatedList(all_items)
+        result.truncated = page > max_pages
+        return result
 
     async def close(self) -> None:
         await self.rest.aclose()
@@ -153,9 +156,14 @@ class GitLabService:
         logger.warn('GitLab: Itération "%s" non trouvée dans project %s', iteration_name, project_id)
         return None
 
+    def _filtered(self, source: PaginatedList, items: list[dict[str, Any]]) -> PaginatedList:
+        result = PaginatedList(items)
+        result.truncated = getattr(source, "truncated", False)
+        return result
+
     async def get_issues_for_iteration(
         self, project_id: str | int, iteration_id: str | int, state: str = "all"
-    ) -> list[dict[str, Any]]:
+    ) -> PaginatedList:
         return await self._get_paginated(
             f"/projects/{project_id}/issues",
             {"iteration_id": iteration_id, "state": state, "scope": "all"},
@@ -163,7 +171,7 @@ class GitLabService:
 
     async def get_issues_by_version_and_iteration(
         self, project_id: str | int, version: str, iteration_id: str | int
-    ) -> list[dict[str, Any]]:
+    ) -> PaginatedList:
         all_issues = await self.get_issues_for_iteration(project_id, iteration_id)
         if not all_issues:
             return []
@@ -206,9 +214,9 @@ class GitLabService:
             'GitLab: %s/%s issue(s) avec Version Prod="%s" (project=%s)',
             len(filtered), len(all_issues), version, project_id,
         )
-        return filtered
+        return self._filtered(all_issues, filtered)
 
-    async def get_issues_by_version_only(self, project_id: str | int, version: str) -> list[dict[str, Any]]:
+    async def get_issues_by_version_only(self, project_id: str | int, version: str) -> PaginatedList:
         todo_status_gid = getattr(settings, "gitlab_status_todo", None) or "gid://gitlab/WorkItems::Statuses::Custom::Status/15"
         all_issues = await self._get_paginated(f"/projects/{project_id}/issues", {"state": "opened", "scope": "all"})
         if not all_issues:
@@ -288,7 +296,7 @@ class GitLabService:
         iteration_id: str | int | None = None,
         gitlab_status: str | None = None,
         version_prod: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> PaginatedList:
         params: dict[str, Any] = {"state": "all", "order_by": "created_at", "sort": "desc"}
         if label:
             params["labels"] = label
@@ -305,7 +313,7 @@ class GitLabService:
 
         # Batch GraphQL to read Status widget + CustomFields for each issue
         if not issues:
-            return []
+            return PaginatedList()
 
         full_path = await self._get_project_full_path(project_id)
         filtered: list[dict[str, Any]] = []
@@ -364,11 +372,11 @@ class GitLabService:
             'GitLab: %s/%s issue(s) après filtre custom fields (status=%s, version_prod=%s)',
             len(filtered), len(issues), gitlab_status, version_prod,
         )
-        return filtered
+        return self._filtered(issues, filtered)
 
-    async def get_issue_notes(self, project_id: str | int, issue_iid: int) -> list[dict[str, Any]]:
+    async def get_issue_notes(self, project_id: str | int, issue_iid: int) -> PaginatedList:
         notes = await self._get_paginated(f"/projects/{project_id}/issues/{issue_iid}/notes")
-        return [n for n in notes if not n.get("system")]
+        return self._filtered(notes, [n for n in notes if not n.get("system")])
 
     async def add_issue_comment(self, project_id: str | int, issue_iid: int, body: str) -> dict[str, Any]:
         return await self._rest_post(f"/projects/{project_id}/issues/{issue_iid}/notes", {"body": body})
@@ -477,7 +485,7 @@ class GitLabService:
     async def get_project(self, project_id: str | int) -> dict[str, Any]:
         return await self._rest_get(f"/projects/{project_id}")
 
-    async def get_project_iterations(self, project_id: str | int, search: str | None = None) -> list[dict[str, Any]]:
+    async def get_project_iterations(self, project_id: str | int, search: str | None = None) -> PaginatedList:
         params: dict[str, Any] = {"state": "all"}
         if search:
             params["search"] = search
@@ -485,7 +493,7 @@ class GitLabService:
 
     async def get_project_issues(
         self, project_id: str | int, state: str = "all", labels: list[str] | None = None, search: str | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> PaginatedList:
         params: dict[str, Any] = {"state": state}
         if labels:
             params["labels"] = labels
