@@ -26,6 +26,15 @@
 
 ---
 
+## ✅ Terminé (session 2026-05-12)
+
+| #   | Amélioration                                                                | Fichiers touchés           | Commit | Date       |
+| --- | --------------------------------------------------------------------------- | -------------------------- | ------ | ---------- |
+| 9   | **`Makefile` racine** — `make dev`, `make prod`, `make test`, `make lint`   | `Makefile`                 | —      | 2026-05-12 |
+| 10  | **`.dockerignore` backend Python** — exclut `.venv`, caches, données, tests | `backend_py/.dockerignore` | —      | 2026-05-12 |
+
+---
+
 ## 📋 Backlog (priorisé)
 
 ### 🔥 Haute priorité
