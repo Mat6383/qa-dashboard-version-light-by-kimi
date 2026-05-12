@@ -13,6 +13,7 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
 | 5   | Compléter pre-commit hooks avec ruff                     | ✅ Fait | a635573 |
 | 6   | Docker Compose global — Makefile + .dockerignore backend | ✅ Fait | —       |
 | 7   | Splitter TestmoService (client + metrics)                | ✅ Fait | —       |
+| 8   | Health check complet (Testmo/GitLab, DB, disk, CB, 503)  | ✅ Fait | —       |
 
 ---
 
@@ -76,6 +77,20 @@ Basé sur le plan : `docs/superpowers/plans/2026-05-12-qa-dashboard-improvements
   `TestmoMetrics`
   - Zéro changement dans les 15+ fichiers qui importent `testmo_service`
   - Tests existants passent (211/212, 1 flaky préexistant sur DB SQLite concurrente)
+
+---
+
+### T8 — Health check complet
+
+- **`/api/health/ready`** — probe Kubernetes-style :
+  - Vérifie `main_db` et `comments_db` avec `SELECT 1`
+  - Retourne **503** si une DB critique est down
+- **`/api/health/detailed`** — rapport complet monitoring :
+  - Ping **Testmo** (timeout 5s) + **GitLab** (timeout 5s)
+  - Check DB + **disk usage** (WARNING si > 90 %)
+  - État des **circuit breakers**
+  - Statut global : `OK` / `DEGRADED` / `DOWN`
+- Tests existants passent sans modification
 
 ---
 
