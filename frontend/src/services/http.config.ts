@@ -20,9 +20,7 @@ export const eventSourceCredentials = { withCredentials: true } as const;
  * Base URL for tRPC (strips `/api` suffix because the endpoint is `/trpc`).
  */
 export function getTrpcBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  if (typeof window !== 'undefined') {
-    return envUrl.replace('/api', '') || '';
-  }
-  return envUrl;
+  const viteApiUrl = import.meta.env.VITE_API_URL;
+  const base = (typeof viteApiUrl === 'string' ? viteApiUrl.replace('/api', '') : '') || 'http://localhost:3001';
+  return base;
 }

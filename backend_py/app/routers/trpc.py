@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import ValidationError
 
 from app.database import get_main_db
@@ -76,7 +76,14 @@ from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter(dependencies=[Depends(require_auth)])
+router = APIRouter()
+
+
+def _trpc_unauthorized(ids: list[int]) -> list[dict[str, Any]]:
+    """Return tRPC-format 401 errors so the client can parse them gracefully."""
+    return [
+        {"error": {"message": "Unauthorized", "code": "UNAUTHORIZED"}, "id": cid} for cid in ids
+    ]
 
 
 async def _db():
@@ -147,11 +154,16 @@ PROCEDURES: dict[str, Any] = {
 }
 
 
-async def _run_procedure(path: str, raw_input: dict[str, Any] | None, db: Any, call_id: Any) -> dict[str, Any]:
+async def _run_procedure(
+    path: str, raw_input: dict[str, Any] | None, db: Any, call_id: Any
+) -> dict[str, Any]:
     """Execute a single tRPC procedure with unified error handling."""
     handler = PROCEDURES.get(path)
     if not handler:
-        return {"error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"}, "id": call_id}
+        return {
+            "error": {"message": f"Unknown procedure: {path}", "code": "NOT_FOUND"},
+            "id": call_id,
+        }
 
     validator = VALIDATORS.get(path)
     if validator is not None:
@@ -167,7 +179,10 @@ async def _run_procedure(path: str, raw_input: dict[str, Any] | None, db: Any, c
         return result
     except Exception as exc:
         logger.error("tRPC error in %s: %s", path, exc, exc_info=True)
-        return {"error": {"message": SAFE_INTERNAL_ERROR, "code": "INTERNAL_SERVER_ERROR"}, "id": call_id}
+        return {
+            "error": {"message": SAFE_INTERNAL_ERROR, "code": "INTERNAL_SERVER_ERROR"},
+            "id": call_id,
+        }
 
 
 async def _handle_batch(paths: list[str], inputs: dict[str, Any], db: Any) -> list[dict[str, Any]]:
@@ -186,6 +201,13 @@ async def trpc_batch(request: Request):
     """Handle tRPC batch POST requests."""
     body = await request.json()
     calls = body if isinstance(body, list) else [body]
+
+    try:
+        await require_auth(request)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return _trpc_unauthorized([call.get("id", i) for i, call in enumerate(calls)])
+        raise
 
     async with get_main_db() as db:
         responses = []
@@ -212,6 +234,14 @@ async def trpc_batch_get(
 ):
     """Handle tRPC batch GET requests (httpBatchLink queries)."""
     paths = procedures.split(",")
+
+    try:
+        await require_auth(request)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return _trpc_unauthorized(list(range(len(paths))))
+        raise
+
     inputs: dict[str, Any] = {}
     if input_json:
         try:

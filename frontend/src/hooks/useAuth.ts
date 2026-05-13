@@ -26,6 +26,19 @@ export function useAuth() {
       }
     } catch (err) {
       if (err.response?.status === 401) {
+        // Try to refresh the access token using the refresh_token cookie
+        try {
+          await apiClient.post('/auth/refresh');
+          const retry = await apiClient.get('/auth/me');
+          const userData = retry.data?.data ?? retry.data;
+          if (userData && userData.id) {
+            setUser(userData);
+            setLoading(false);
+            return;
+          }
+        } catch (refreshErr) {
+          /* refresh failed, fall through to logout */
+        }
         setUser(null);
         localStorage.removeItem(TOKEN_KEY);
       } else {

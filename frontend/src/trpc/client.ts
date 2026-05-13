@@ -25,11 +25,14 @@ export const trpcClient = trpc.createClient({
       url: `${getTrpcBaseUrl()}/trpc`,
       fetch: (input, init) => fetch(input, { ...init, ...fetchCredentials }),
       headers() {
-        const token = localStorage.getItem('qa_dashboard_token') || '';
-        return {
+        const token = localStorage.getItem('qa_dashboard_token');
+        const headers: Record<string, string> = {
           'x-request-id': generateRequestId(),
-          Authorization: `Bearer ${token}`,
         };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        return headers;
       },
     }),
   ],

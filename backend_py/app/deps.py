@@ -47,6 +47,7 @@ async def require_auth(
         token = request.cookies.get("access_token")
 
     if not token:
+        logger.warning("[AUTH] No token. Cookies: %s", request.cookies)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
 
     try:
@@ -57,7 +58,9 @@ async def require_auth(
     try:
         user_id = int(payload.get("sub", 0))
     except (ValueError, TypeError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject"
+        )
     async with get_main_db() as db:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
