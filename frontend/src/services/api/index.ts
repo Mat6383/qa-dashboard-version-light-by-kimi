@@ -17,6 +17,7 @@ import * as crosstest from './crosstest';
 import * as notifications from './notifications';
 import * as exportModule from './export';
 import * as admin from './admin';
+import * as feedbackSync from './feedbackSync';
 import * as reports from './reports';
 
 const apiService = {
@@ -63,6 +64,11 @@ const apiService = {
   generateBackendPDF: exportModule.generateBackendPDF,
   generateCSV: exportModule.generateCSV,
   generateExcel: exportModule.generateExcel,
+
+  // Feedback Sync
+  runFeedbackScan: feedbackSync.runFeedbackScan,
+  getFeedbackSyncHistory: feedbackSync.getFeedbackSyncHistory,
+  getFeedbackSyncConfig: feedbackSync.getFeedbackSyncConfig,
 
   // Admin
   getAnomalies: admin.getAnomalies,

@@ -589,5 +589,36 @@ class GitLabService:
             resp.raise_for_status()
             return resp.content
 
+    async def get_milestone_by_title(
+        self, project_id: str | int, title: str
+    ) -> dict[str, Any] | None:
+        """Find a milestone by exact title match in a project."""
+        milestones = await self._get_paginated(
+            f"/projects/{project_id}/milestones", {"state": "all"}
+        )
+        for ms in milestones:
+            if (ms.get("title") or "").strip() == title.strip():
+                return ms
+        return None
+
+    async def create_issue(
+        self,
+        project_id: str | int,
+        title: str,
+        description: str,
+        labels: list[str] | None = None,
+        milestone_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Create a new issue in a GitLab project."""
+        payload: dict[str, Any] = {
+            "title": title,
+            "description": description,
+        }
+        if labels:
+            payload["labels"] = ",".join(labels)
+        if milestone_id is not None:
+            payload["milestone_id"] = milestone_id
+        return await self._rest_post(f"/projects/{project_id}/issues", payload)
+
 
 gitlab_service = GitLabService()

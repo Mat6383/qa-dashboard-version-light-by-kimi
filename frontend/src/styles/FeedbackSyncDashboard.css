@@ -1,0 +1,162 @@
+/**
+ * ================================================
+ * Feedback Sync Dashboard
+ * ================================================
+ */
+
+.fsd-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.fsd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.fsd-select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: var(--font-small);
+  min-width: 200px;
+}
+
+.fsd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: var(--font-small);
+  color: var(--text-secondary);
+}
+
+.fsd-toggle input {
+  cursor: pointer;
+}
+
+.fsd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.fsd-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.fsd-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fsd-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.fsd-stat-card {
+  padding: var(--spacing-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.fsd-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fsd-stat-label {
+  font-size: var(--font-caption);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+.fsd-history {
+  overflow-x: auto;
+}
+
+.fsd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-small);
+}
+
+.fsd-table th,
+.fsd-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.fsd-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-color);
+}
+
+.fsd-table tr:hover {
+  background: var(--surface-hover);
+}
+
+.fsd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-caption);
+  font-weight: 500;
+}
+
+.fsd-badge--created {
+  background: var(--color-success-bg, #dcfce7);
+  color: var(--color-success, #166534);
+}
+
+.fsd-badge--skipped {
+  background: var(--color-warning-bg, #fef9c3);
+  color: var(--color-warning, #854d0e);
+}
+
+.fsd-badge--error {
+  background: var(--color-error-bg, #fee2e2);
+  color: var(--color-error, #991b1b);
+}
+
+.fsd-empty {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-small);
+}
+
+.fsd-error {
+  padding: var(--spacing-md);
+  background: var(--color-error-bg, #fee2e2);
+  color: var(--color-error, #991b1b);
+  border-radius: var(--radius-md);
+  font-size: var(--font-small);
+}

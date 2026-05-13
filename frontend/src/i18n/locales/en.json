@@ -85,6 +85,7 @@
     "configuration": "⚙️ Cycle Configuration",
     "crosstest": "🔗 CrossTest OK",
     "autoSync": "🤖 Auto-Sync Testmo → GitLab",
+    "feedbackSync": "📝 Testmo Feedback",
     "notifications": "🔔 Notifications",
     "auditLogs": "🛡️ Audit Logs",
     "featureFlags": "🎛️ Feature Flags",
@@ -406,7 +407,8 @@
     "syncGitlabToTestmo": "Sync GitLab → Testmo",
     "configuration": "Cycle Configuration",
     "crosstest": "CrossTest OK",
-    "autoSync": "Auto-Sync Testmo → GitLab"
+    "autoSync": "Auto-Sync Testmo → GitLab",
+    "feedbackSync": "Testmo Feedback"
   },
   "dashboard4": {
     "overview": "Global View",

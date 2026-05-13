@@ -37,11 +37,15 @@ class SyncService:
                 "id": p["id"],
                 "label": p["label"],
                 "configured": p["configured"],
+                "testmo_project_id": p.get("testmo", {}).get("projectId"),
+                "gitlab_project_id": p.get("gitlab", {}).get("projectId"),
             }
             for p in SYNC_PROJECTS
         ]
 
-    async def list_iterations(self, project_id: str | int, search: str | None = None) -> list[dict[str, Any]]:
+    async def list_iterations(
+        self, project_id: str | int, search: str | None = None
+    ) -> list[dict[str, Any]]:
         gl_project_id = resolve_gitlab_project_id(project_id)
         if not gl_project_id:
             return []
@@ -63,13 +67,15 @@ class SyncService:
             if not title:
                 iid = it.get("iid") or it.get("sequence") or it.get("id")
                 title = f"Itération #{iid} ({_fmt_date(it.get('start_date'))} → {_fmt_date(it.get('due_date'))})"
-            result.append({
-                "id": it.get("id"),
-                "title": title,
-                "start_date": it.get("start_date"),
-                "due_date": it.get("due_date"),
-                "state": it.get("state"),
-            })
+            result.append(
+                {
+                    "id": it.get("id"),
+                    "title": title,
+                    "start_date": it.get("start_date"),
+                    "due_date": it.get("due_date"),
+                    "state": it.get("state"),
+                }
+            )
 
         # Trier par iid décroissant (plus récente en premier)
         result.sort(key=lambda x: x.get("id") or 0, reverse=True)
@@ -117,9 +123,7 @@ class SyncService:
         else:
             run_name = build_run_name(iteration_name, version)
             try:
-                existing = await testmo_service.find_automation_run(
-                    tmo_project, run_name, source
-                )
+                existing = await testmo_service.find_automation_run(tmo_project, run_name, source)
                 if existing:
                     target_run = existing
                     run_action = "use_existing"
@@ -149,12 +153,14 @@ class SyncService:
                 frontend_status = "create"
                 to_create += 1
 
-            preview_issues.append({
-                "iid": issue.get("iid"),
-                "url": issue.get("web_url", ""),
-                "title": issue.get("title", ""),
-                "status": frontend_status,
-            })
+            preview_issues.append(
+                {
+                    "iid": issue.get("iid"),
+                    "url": issue.get("web_url", ""),
+                    "title": issue.get("title", ""),
+                    "status": frontend_status,
+                }
+            )
 
         return {
             "iteration": {"name": iteration.get("title"), "id": iteration.get("id")},
@@ -169,7 +175,9 @@ class SyncService:
             "run_action": run_action,
             "target_run": {
                 "id": target_run.get("id") if target_run else None,
-                "name": target_run.get("name") if target_run else build_run_name(iteration_name, version),
+                "name": target_run.get("name")
+                if target_run
+                else build_run_name(iteration_name, version),
                 "source": source,
             },
             "status_breakdown": status_counts,
@@ -237,7 +245,10 @@ class SyncService:
                     # Verify automation run exists (will raise if not)
                     run_details = await testmo_service.get_automation_run_details(run_id)
                     testmo_run_id = run_details.get("id")
-                    yield {"level": "info", "message": f"Using existing automation run #{testmo_run_id}"}
+                    yield {
+                        "level": "info",
+                        "message": f"Using existing automation run #{testmo_run_id}",
+                    }
                 else:
                     run_name = build_run_name(iteration_name, version)
                     existing = await testmo_service.find_automation_run(
@@ -245,7 +256,10 @@ class SyncService:
                     )
                     if existing:
                         testmo_run_id = existing.get("id")
-                        yield {"level": "info", "message": f"Using existing automation run '{run_name}' (#{testmo_run_id})"}
+                        yield {
+                            "level": "info",
+                            "message": f"Using existing automation run '{run_name}' (#{testmo_run_id})",
+                        }
                     else:
                         created = await testmo_service.create_automation_run(
                             project_id=tmo_project,
@@ -254,14 +268,20 @@ class SyncService:
                             tags=["gitlab-sync", iteration_name],
                         )
                         testmo_run_id = created.get("id")
-                        yield {"level": "info", "message": f"Created automation run '{run_name}' (#{testmo_run_id})"}
+                        yield {
+                            "level": "info",
+                            "message": f"Created automation run '{run_name}' (#{testmo_run_id})",
+                        }
 
                 if testmo_run_id:
                     run_url = build_run_url(testmo_run_id)
                     # Create a thread for this sync execution
                     thread = await testmo_service.create_automation_thread(testmo_run_id)
                     testmo_thread_id = thread.get("id")
-                    yield {"level": "info", "message": f"Created thread #{testmo_thread_id} in run #{testmo_run_id}"}
+                    yield {
+                        "level": "info",
+                        "message": f"Created thread #{testmo_thread_id} in run #{testmo_run_id}",
+                    }
             except Exception as exc:
                 logger.error("Failed to prepare Testmo run", extra={"error": str(exc)})
                 yield {"level": "error", "message": f"Failed to prepare Testmo run: {exc}"}
@@ -296,11 +316,17 @@ class SyncService:
                     }
                 except Exception as exc:
                     errors += len(batch)
-                    logger.error("Failed to push test batch", extra={
-                        "batch": batch_idx + 1,
-                        "error": str(exc),
-                    })
-                    yield {"level": "error", "message": f"Batch {batch_idx + 1}/{total_batches} failed"}
+                    logger.error(
+                        "Failed to push test batch",
+                        extra={
+                            "batch": batch_idx + 1,
+                            "error": str(exc),
+                        },
+                    )
+                    yield {
+                        "level": "error",
+                        "message": f"Batch {batch_idx + 1}/{total_batches} failed",
+                    }
                 await asyncio.sleep(0.1)
 
             # Complete thread and run
@@ -319,7 +345,9 @@ class SyncService:
             try:
                 iid_int = int(iid)  # type: ignore[arg-type]
             except (TypeError, ValueError):
-                logger.warning("Skipping issue with invalid iid %r: %s", iid, issue.get("title", ""))
+                logger.warning(
+                    "Skipping issue with invalid iid %r: %s", iid, issue.get("title", "")
+                )
                 skipped += 1
                 continue
             title = issue.get("title", "")
@@ -364,6 +392,7 @@ class SyncService:
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Sync Testmo run status back to GitLab issues."""
         from app.services.status_sync import status_sync_service
+
         async for event in status_sync_service.sync_run_status_to_gitlab(
             run_id=run_id or 0,
             iteration_name=iteration_name,
@@ -375,7 +404,10 @@ class SyncService:
 
     async def get_history(self, db_session: Any) -> list[dict[str, Any]]:
         from sqlalchemy import select
-        result = await db_session.execute(select(SyncRun).order_by(SyncRun.executed_at.desc()).limit(50))
+
+        result = await db_session.execute(
+            select(SyncRun).order_by(SyncRun.executed_at.desc()).limit(50)
+        )
         rows = result.scalars().all()
         return [
             {
@@ -469,21 +501,35 @@ class SyncService:
             if "run_id" in payload:
                 config.run_id = int(payload["run_id"]) if payload["run_id"] is not None else None
             if "iteration_name" in payload:
-                config.iteration_name = str(payload["iteration_name"]) if payload["iteration_name"] else None
+                config.iteration_name = (
+                    str(payload["iteration_name"]) if payload["iteration_name"] else None
+                )
             if "gitlab_project_id" in payload:
-                config.gitlab_project_id = str(payload["gitlab_project_id"]) if payload["gitlab_project_id"] else None
+                config.gitlab_project_id = (
+                    str(payload["gitlab_project_id"]) if payload["gitlab_project_id"] else None
+                )
             if "testmo_project_id" in payload:
-                config.testmo_project_id = int(payload["testmo_project_id"]) if payload["testmo_project_id"] is not None else None
+                config.testmo_project_id = (
+                    int(payload["testmo_project_id"])
+                    if payload["testmo_project_id"] is not None
+                    else None
+                )
             if "version" in payload:
                 config.version = str(payload["version"]) if payload["version"] else None
             if "label" in payload:
                 config.label = str(payload["label"]) if payload["label"] else None
             if "gitlab_status" in payload:
-                config.gitlab_status = str(payload["gitlab_status"]) if payload["gitlab_status"] else None
+                config.gitlab_status = (
+                    str(payload["gitlab_status"]) if payload["gitlab_status"] else None
+                )
             if "version_prod" in payload:
-                config.version_prod = str(payload["version_prod"]) if payload["version_prod"] else None
+                config.version_prod = (
+                    str(payload["version_prod"]) if payload["version_prod"] else None
+                )
             if "version_test" in payload:
-                config.version_test = str(payload["version_test"]) if payload["version_test"] else None
+                config.version_test = (
+                    str(payload["version_test"]) if payload["version_test"] else None
+                )
             await db.commit()
             await db.refresh(config)
         return await self.get_auto_config()

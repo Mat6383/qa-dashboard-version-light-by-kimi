@@ -83,6 +83,19 @@ def build_testmo_test(
     if time_estimate:
         fields.append({"name": "Time Estimate", "type": 4, "value": str(time_estimate)})
 
+    # Feedback template injected in the Note field for testers to fill
+    feedback_template = (
+        "<h3>Base</h3><p>_ _ _</p>"
+        "<h3>Version</h3><p>_ _ _</p>"
+        "<h3>Utilisateur</h3><p>ID : _ _ _</p>"
+        "<h3>Ressources</h3><p>_ _ _</p>"
+        "<h3>Comment reproduire</h3><p>_ _ _</p>"
+        "<h3>Comportement observé</h3>"
+        "<p><em>Pensez à ajouter un screenshot / vidéo du bug</em></p><p>_ _ _</p>"
+        "<h3>Comportement voulu</h3><p>_ _ _</p>"
+    )
+    fields.append({"name": "Note", "type": 4, "value": feedback_template})
+
     test: dict[str, Any] = {
         "key": key,
         "name": f"[#{iid}] {title}",

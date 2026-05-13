@@ -79,6 +79,7 @@ async def init_databases() -> None:
     from app.models.audit import AuditLog
     from app.models.comments import CrossTestComment
     from app.models.feature_flags import FeatureFlag
+    from app.models.feedback_sync import FeedbackSyncRun
     from app.models.integrations import Integration
     from app.models.notifications import AlertLog, NotificationSetting
     from app.models.retention import ArchivedSnapshot, RetentionPolicy
@@ -113,6 +114,7 @@ async def init_databases() -> None:
         ProjectGroup,
         AuditLog,
         FeatureFlag,
+        FeedbackSyncRun,
         Integration,
         NotificationSetting,
         AlertLog,

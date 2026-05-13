@@ -32,6 +32,7 @@ from app.routers import (
     docs,
     export,
     feature_flags,
+    feedback_sync,
     health,
     integrations,
     metrics,
@@ -86,6 +87,7 @@ async def lifespan(app: FastAPI):
 
     from app.database import get_main_db
     from app.models.feature_flags import FeatureFlag
+
     async with get_main_db() as db:
         result = await db.execute(select(FeatureFlag).where(FeatureFlag.key == "test-flag"))
         if not result.scalar_one_or_none():
@@ -97,6 +99,7 @@ async def lifespan(app: FastAPI):
     from app.services.gitlab import gitlab_service
     from app.services.pdf import pdf_service
     from app.services.testmo import testmo_service
+
     await gitlab_service.close()
     await testmo_service.close()
     await pdf_service.shutdown()
@@ -110,6 +113,7 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # ── Middleware ──────────────────────────────────────────
 @app.middleware("http")
@@ -137,6 +141,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-Request-Id", "X-Admin-Token"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 
 # ── Metrics endpoint (Prometheus) ───────────────────────
 class MetricsAuthMiddleware:
@@ -186,4 +191,5 @@ app.include_router(retention.router, prefix="/api/retention", tags=["retention"]
 app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(trpc.router, prefix="/trpc", tags=["trpc"])
 app.include_router(testmo_browser.router, prefix="/api/testmo-browser", tags=["testmo-browser"])
+app.include_router(feedback_sync.router, prefix="/api/feedback-sync", tags=["feedback-sync"])
 app.include_router(websocket.router, prefix="/ws", tags=["websocket"])

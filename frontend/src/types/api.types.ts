@@ -160,6 +160,8 @@ export interface SyncProject {
   id: string;
   label: string;
   configured: boolean;
+  testmoProjectId?: number | null;
+  gitlabProjectId?: number | null;
 }
 
 export interface SyncIteration {
@@ -319,4 +321,32 @@ export interface Trend {
 
 export interface FeatureFlagAdminResponse {
   flags: FeatureFlag[];
+}
+
+
+// ─── Feedback Sync ───────────────────────────────────────────────────────────
+
+export interface FeedbackSyncRun {
+  id: number;
+  createdAt: string;
+  triggeredBy: string;
+  projectId: number;
+  runsScanned: number;
+  resultsChecked: number;
+  ticketsCreated: number;
+  ticketsSkipped: number;
+  details: Array<{
+    runId?: number;
+    runName?: string;
+    caseName?: string;
+    action: string;
+    reason?: string;
+    issueIid?: number;
+    issueUrl?: string;
+  }>;
+}
+
+export interface FeedbackSyncConfig {
+  intervalMinutes: number;
+  enabled: boolean;
 }

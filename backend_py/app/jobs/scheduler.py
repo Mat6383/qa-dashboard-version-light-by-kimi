@@ -9,6 +9,7 @@ from app.config import settings
 from app.jobs.analytics import analytics_job
 from app.jobs.auto_sync import auto_sync_job
 from app.jobs.backup import backup_job
+from app.jobs.feedback_sync import feedback_sync_job
 from app.jobs.metrics_snapshot import metrics_snapshot_job
 from app.jobs.retention import retention_job
 from app.utils.logger import get_logger
@@ -58,6 +59,14 @@ def start_scheduler() -> None:
         retention_job,
         CronTrigger(day_of_week="sun", hour=4, minute=0),
         id="retention",
+        replace_existing=True,
+    )
+
+    # Feedback sync : every 30 min
+    _scheduler.add_job(
+        feedback_sync_job,
+        CronTrigger(minute="*/30"),
+        id="feedback_sync",
         replace_existing=True,
     )
 

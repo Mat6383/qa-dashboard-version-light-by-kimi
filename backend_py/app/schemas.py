@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 # ── Generic ─────────────────────────────────────────────
 
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -18,6 +19,7 @@ class StatusResponse(BaseModel):
 
 
 # ── Auth ────────────────────────────────────────────────
+
 
 class TokenPair(BaseModel):
     access_token: str
@@ -36,6 +38,7 @@ class UserProfile(BaseModel):
 
 # ── Projects ────────────────────────────────────────────
 
+
 class ProjectListResponse(BaseModel):
     projects: list[dict[str, Any]]
 
@@ -53,6 +56,7 @@ class AutomationListResponse(BaseModel):
 
 
 # ── Dashboard ───────────────────────────────────────────
+
 
 class DashboardMetrics(BaseModel):
     project_id: int
@@ -92,11 +96,13 @@ class CompareResponse(BaseModel):
 
 # ── Runs ────────────────────────────────────────────────
 
+
 class RunResultsResponse(BaseModel):
     results: list[dict[str, Any]]
 
 
 # ── Sync ────────────────────────────────────────────────
+
 
 class SyncPreviewPayload(BaseModel):
     project_id: int | str
@@ -157,6 +163,7 @@ class AutoConfigResponse(BaseModel):
 
 
 # ── Crosstest ───────────────────────────────────────────
+
 
 class CrossTestCommentCreate(BaseModel):
     issue_iid: int
@@ -232,6 +239,7 @@ class FeatureFlagUpdate(BaseModel):
 
 # ── Webhooks ────────────────────────────────────────────
 
+
 class WebhookSubscriptionOut(BaseModel):
     id: int
     url: str
@@ -262,6 +270,7 @@ class WebhookSubscriptionUpdate(BaseModel):
 
 
 # ── Notifications ───────────────────────────────────────
+
 
 class NotificationSettingOut(BaseModel):
     id: int
@@ -301,6 +310,7 @@ class NotificationTestPayload(BaseModel):
 
 # ── Audit ───────────────────────────────────────────────
 
+
 class AuditLogOut(BaseModel):
     id: int
     timestamp: datetime
@@ -330,6 +340,7 @@ class AuditLogListResponse(BaseModel):
 
 # ── Anomalies ───────────────────────────────────────────
 
+
 class AnomalyOut(BaseModel):
     project_id: int
     metric: str
@@ -345,6 +356,7 @@ class AnomalyListResponse(BaseModel):
 
 
 # ── Exports ─────────────────────────────────────────────
+
 
 class ExportPayload(BaseModel):
     rows: list[dict[str, Any]] = Field(default_factory=list)
@@ -369,6 +381,7 @@ class ReportResponse(BaseModel):
 
 
 # ── Analytics ───────────────────────────────────────────
+
 
 class AnalyticsInsightOut(BaseModel):
     id: int
@@ -395,6 +408,7 @@ class AnalyticsAnalyzePayload(BaseModel):
 
 
 # ── Retention ───────────────────────────────────────────
+
 
 class RetentionPolicyOut(BaseModel):
     entity_type: str
@@ -427,6 +441,7 @@ class RetentionCycleResponse(BaseModel):
 
 
 # ── Integrations ────────────────────────────────────────
+
 
 class IntegrationOut(BaseModel):
     id: int
@@ -462,7 +477,25 @@ class JiraIssueCreate(BaseModel):
     issue_type: str = "Bug"
 
 
+# ── Feedback Sync ───────────────────────────────────────
+
+
+class FeedbackSyncRunPayload(BaseModel):
+    project_id: int
+    active_only: bool = True
+
+
+class FeedbackSyncHistoryResponse(BaseModel):
+    history: list[dict[str, Any]]
+
+
+class FeedbackSyncConfigResponse(BaseModel):
+    interval_minutes: int = 30
+    enabled: bool = True
+
+
 # ── Cache / Backup / Metrics ────────────────────────────
+
 
 class CacheClearResponse(BaseModel):
     status: str
