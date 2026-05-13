@@ -351,6 +351,14 @@ class StatusSyncService:
                 continue
 
             work_item_global_id = f"gid://gitlab/WorkItem/{issue['id']}"
+            issue_state = issue.get("state", "unknown")
+
+            if issue_state == "closed":
+                logger.info(
+                    '[StatusSync] Issue #%s "%s" is CLOSED — status update may fail or be ignored by GitLab',
+                    issue.get("iid"),
+                    case_name,
+                )
 
             if dry_run:
                 stats["updated"] += 1
