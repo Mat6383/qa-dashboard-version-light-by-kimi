@@ -64,7 +64,11 @@ def _is_case_identical(existing: dict[str, Any], payload: dict[str, Any]) -> boo
         return False
     existing_desc = html.unescape((existing.get("custom_description") or "").strip())
     payload_desc = html.unescape((payload.get("custom_description") or "").strip())
-    if _strip_img_tags(existing_desc) != _strip_img_tags(payload_desc):
+    if _extract_text_from_html(existing_desc) != _extract_text_from_html(payload_desc):
+        return False
+    # Force update when description has images but case has no attachments yet.
+    # This ensures images are uploaded to Testmo on the next sync.
+    if "<img" in payload_desc and not existing.get("attachments"):
         return False
     if existing.get("estimate") != payload.get("estimate"):
         return False
@@ -116,9 +120,11 @@ def replace_image_urls_in_html(html_text: str, url_map: dict[str, str]) -> str:
     return html_text
 
 
-def _strip_img_tags(html: str) -> str:
-    """Remove <img> tags to compare descriptions without image URLs."""
-    return re.sub(r"<img[^>]+>", "", html).strip()
+def _extract_text_from_html(html: str) -> str:
+    """Extract plain text from HTML for comparison (ignores all tags)."""
+    text = re.sub(r"<[^>]+>", "", html)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 
 def _normalize_attachment_url(path: str) -> str:

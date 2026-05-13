@@ -10,10 +10,11 @@ from app.services.case_sync import (
     CaseSyncService,
     build_case_payload,
     is_case_enriched,
+    _is_case_identical,
     _parse_folder_hierarchy,
     extract_image_urls,
     replace_image_urls_in_html,
-    _strip_img_tags,
+    _extract_text_from_html,
     _normalize_attachment_url,
 )
 
@@ -56,6 +57,23 @@ def test_is_case_enriched_custom_steps() -> None:
     assert is_case_enriched({"custom_steps": [{"text1": "<p>Step</p>"}]}) is True
     assert is_case_enriched({"custom_steps": [{"text1": ""}]}) is False
     assert is_case_enriched({"custom_steps": []}) is False
+
+
+# ------------------------------------------------------------------
+# _is_case_identical
+# ------------------------------------------------------------------
+
+
+def test_is_case_identical_force_update_when_images_missing_attachments() -> None:
+    existing = {"name": "T", "custom_description": "<p>foo</p>", "attachments": []}
+    payload = {"name": "T", "custom_description": "<p>foo <img src='/a.png'></p>"}
+    assert _is_case_identical(existing, payload) is False
+
+
+def test_is_case_identical_skips_when_images_already_uploaded() -> None:
+    existing = {"name": "T", "custom_description": "<p>foo</p>", "attachments": [{"id": 1}]}
+    payload = {"name": "T", "custom_description": "<p>foo <img src='/a.png'></p>"}
+    assert _is_case_identical(existing, payload) is True
 
 
 # ------------------------------------------------------------------
@@ -134,9 +152,8 @@ def test_replace_image_urls_in_html() -> None:
     assert result == '<p><img src="https://testmo.com/att/1" alt="x"></p>'
 
 
-def test_strip_img_tags_removes_images() -> None:
-    html = '<p>foo <img src="/a.png"> bar</p>'
-    assert _strip_img_tags(html) == "<p>foo  bar</p>"
+def test_extract_text_from_html() -> None:
+    assert _extract_text_from_html("<p>foo <img src='/a.png'> bar</p>") == "foo bar"
 
 
 # ------------------------------------------------------------------
