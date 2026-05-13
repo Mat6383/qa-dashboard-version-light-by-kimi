@@ -15,7 +15,7 @@ from app.config import settings
 from app.models.sync_history import SyncCaseRun
 from app.projects_config import resolve_gitlab_integration_info, resolve_testmo_repo_id
 from app.services.gitlab import gitlab_service
-from app.services.sync_mapper import extract_steps_from_notes
+from app.services.sync_mapper import extract_steps_from_notes, FEEDBACK_TEMPLATE
 from app.services.testmo import testmo_service
 from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
@@ -238,6 +238,9 @@ def build_case_payload(
     steps = extract_steps_from_notes(notes)
     if steps:
         payload["custom_steps"] = steps
+
+    # Feedback template injected in the Note field for testers to fill
+    payload["fields"] = [{"name": "Note", "type": 4, "value": FEEDBACK_TEMPLATE}]
 
     # Link case to GitLab issue
     if iid and gitlab_integration_id and gitlab_connection_project_id:
