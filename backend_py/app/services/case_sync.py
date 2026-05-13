@@ -91,8 +91,6 @@ def is_case_enriched(case: dict[str, Any]) -> bool:
         return True
     if case.get("custom_priority") and case.get("custom_priority") != "Normal":
         return True
-    if case.get("attachments"):
-        return True
     steps = case.get("custom_steps", []) or []
     if steps and any(s.get("text1") for s in steps):
         return True

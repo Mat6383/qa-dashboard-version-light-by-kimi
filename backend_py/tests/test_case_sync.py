@@ -52,10 +52,6 @@ def test_is_case_enriched_custom_priority() -> None:
     assert is_case_enriched({}) is False
 
 
-def test_is_case_enriched_attachments() -> None:
-    assert is_case_enriched({"attachments": [{"id": 1}]}) is True
-
-
 def test_is_case_enriched_custom_steps() -> None:
     assert is_case_enriched({"custom_steps": [{"text1": "<p>Step</p>"}]}) is True
     assert is_case_enriched({"custom_steps": [{"text1": ""}]}) is False
