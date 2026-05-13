@@ -17,8 +17,10 @@ export function useAuth() {
   const fetchMe = useCallback(async () => {
     try {
       const response = await apiClient.get('/auth/me');
-      if (response.data.success) {
-        setUser(response.data.data);
+      // Backend Python retourne l'objet user directement (pas de wrapper {success,data})
+      const userData = response.data?.data ?? response.data;
+      if (userData && userData.id) {
+        setUser(userData);
       } else {
         setUser(null);
       }

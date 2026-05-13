@@ -64,6 +64,7 @@ export default function TopBar({
   isAuthenticated,
   isAdmin,
   onLogin,
+  onDevLogin,
   onLogout,
   backendStatus,
 }) {
@@ -273,16 +274,30 @@ export default function TopBar({
             </button>
           </div>
         ) : (
-          <button
-            className="btn-toggle"
-            onClick={onLogin}
-            title={t('auth.login')}
-            type="button"
-            style={{ backgroundColor: 'var(--action-auth-bg)', color: 'var(--action-auth-text)', border: 'none' }}
-          >
-            <LogIn size={16} />
-            {t('layout.loginGitLab')}
-          </button>
+          <>
+            <button
+              className="btn-toggle"
+              onClick={onLogin}
+              title={t('auth.login')}
+              type="button"
+              style={{ backgroundColor: 'var(--action-auth-bg)', color: 'var(--action-auth-text)', border: 'none' }}
+            >
+              <LogIn size={16} />
+              {t('layout.loginGitLab')}
+            </button>
+            {import.meta.env.DEV && (
+              <button
+                className="btn-toggle"
+                onClick={onDevLogin}
+                title="Dev Login"
+                type="button"
+                style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none', marginLeft: '8px' }}
+              >
+                <LogIn size={16} />
+                Dev Login
+              </button>
+            )}
+          </>
         )}
 
         {/* Statut backend */}

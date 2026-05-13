@@ -78,12 +78,16 @@ async def gitlab_oauth_callback(
         )
         if token_resp.status_code != 200:
             logger.error("GitLab token exchange failed: %s", token_resp.text)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="GitLab OAuth failed")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="GitLab OAuth failed"
+            )
 
         token_data = token_resp.json()
         gitlab_access_token = token_data.get("access_token")
         if not gitlab_access_token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No access token from GitLab")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="No access token from GitLab"
+            )
 
         # 2. Fetch user profile
         user_resp = await client.get(
@@ -92,7 +96,9 @@ async def gitlab_oauth_callback(
         )
         if user_resp.status_code != 200:
             logger.error("GitLab user fetch failed: %s", user_resp.text)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to fetch GitLab user")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to fetch GitLab user"
+            )
 
         gitlab_user = user_resp.json()
 
@@ -133,16 +139,17 @@ async def gitlab_oauth_callback(
     access = create_access_token(str(user.id), user.email, user.role)
     refresh = create_refresh_token(str(user.id))
 
-    response.set_cookie(
+    redirect = RedirectResponse(url=f"{settings.frontend_url}/auth/callback")
+    redirect.set_cookie(
         key="access_token",
         value=access,
         httponly=True,
         secure=settings.environment == "production",
         samesite="lax",
-        max_age=settings.access_token_expire_minutes * 60,
+        max_age=8 * 60 * 60,  # 8h for dev convenience
         path="/",
     )
-    response.set_cookie(
+    redirect.set_cookie(
         key="refresh_token",
         value=refresh,
         httponly=True,
@@ -152,7 +159,7 @@ async def gitlab_oauth_callback(
         path="/",
     )
 
-    return RedirectResponse(url=f"{settings.frontend_url}/auth/callback")
+    return redirect
 
 
 @router.post("/refresh")
@@ -164,7 +171,9 @@ async def refresh_token(request: Request, response: Response) -> dict[str, Any]:
     try:
         payload = decode_jwt(refresh)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        ) from exc
 
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
@@ -196,6 +205,58 @@ async def logout(response: Response) -> dict[str, str]:
     return {"status": "logged_out"}
 
 
+@router.get("/dev-login")
+async def dev_login(request: Request, response: Response) -> RedirectResponse:
+    """Bypass GitLab OAuth for local development. Creates an admin user on first call."""
+    if settings.environment != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dev login only available in development",
+        )
+
+    async with get_main_db() as db:
+        result = await db.execute(select(User).where(User.email == "dev@local"))
+        user = result.scalar_one_or_none()
+        if user is None:
+            user = User(
+                gitlab_id=0,
+                email="dev@local",
+                name="Dev Admin",
+                role="admin",
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        else:
+            user.last_login = datetime.now(timezone.utc)
+            await db.commit()
+
+    access = create_access_token(str(user.id), user.email, user.role)
+    refresh = create_refresh_token(str(user.id))
+
+    redirect = RedirectResponse(url=f"{settings.frontend_url}/auth/callback")
+    redirect.set_cookie(
+        key="access_token",
+        value=access,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        path="/",
+    )
+    redirect.set_cookie(
+        key="refresh_token",
+        value=refresh,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=settings.refresh_token_expire_days * 86400,
+        path="/",
+    )
+
+    return redirect
+
+
 @router.get("/me")
 async def me(request: Request) -> dict[str, Any]:
     token: str | None = None
@@ -210,7 +271,9 @@ async def me(request: Request) -> dict[str, Any]:
     try:
         payload = decode_jwt(token)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        ) from exc
 
     if payload.get("type") == "refresh":
         raise HTTPException(

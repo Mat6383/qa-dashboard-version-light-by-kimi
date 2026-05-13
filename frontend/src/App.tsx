@@ -32,6 +32,9 @@ function App() {
   const { isDark, tvMode, toggleDark, toggleTv } = useTheme();
   const { compactMode, toggleCompactMode } = useCompactMode();
   const { user, isAuthenticated, isAdmin, loginWithGitLab, logout } = useAuth();
+  const devLogin = useCallback(() => {
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/dev-login`;
+  }, []);
   const { showToast } = useToast();
   const { useBusinessTerms, setUseBusinessTerms, autoRefresh, setAutoRefresh } = usePreferences();
   const {
@@ -153,7 +156,7 @@ function App() {
     }
   };
 
-  if (error && !metrics) {
+  if (error && !metrics && isAuthenticated) {
     return (
       <div className="app-error">
         <AlertCircle size={48} color="#EF4444" />
@@ -199,6 +202,7 @@ function App() {
       isAuthenticated={isAuthenticated}
       isAdmin={isAdmin}
       onLogin={loginWithGitLab}
+      onDevLogin={devLogin}
       onLogout={logout}
       onExportPdfBackend={handleExportPdfBackend}
       onExportCSV={handleExportCSV}

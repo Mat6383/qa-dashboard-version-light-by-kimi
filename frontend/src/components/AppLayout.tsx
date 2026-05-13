@@ -53,6 +53,7 @@ export default function AppLayout({
   isAuthenticated,
   isAdmin,
   onLogin,
+  onDevLogin,
   onLogout,
   onExportPdfBackend,
   onExportCSV,
@@ -165,6 +166,7 @@ export default function AppLayout({
           isAuthenticated={isAuthenticated}
           isAdmin={isAdmin}
           onLogin={onLogin}
+          onDevLogin={onDevLogin}
           onLogout={onLogout}
           backendStatus={backendStatus}
         />

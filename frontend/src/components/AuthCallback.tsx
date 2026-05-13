@@ -7,6 +7,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { queryClient } from '../lib/queryClient';
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
@@ -24,7 +25,13 @@ export default function AuthCallback() {
 
     // Cookie-based auth: backend set an HttpOnly cookie before redirecting here
     refreshUser()
-      .then(() => navigate('/', { replace: true }))
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        queryClient.invalidateQueries({ queryKey: ['anomalies'] });
+        queryClient.invalidateQueries({ queryKey: ['circuit-breakers'] });
+        navigate('/', { replace: true });
+      })
       .catch(() => navigate('/?error=auth_failed', { replace: true }));
   }, [searchParams, navigate, refreshUser]);
 

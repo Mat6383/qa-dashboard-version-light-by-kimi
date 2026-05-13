@@ -1,4 +1,5 @@
 import { trpc } from '../../trpc/client';
+import { useAuth } from '../useAuth';
 import type { DashboardMetrics } from '../../types/api.types';
 
 export interface UseDashboardMetricsOptions {
@@ -13,11 +14,12 @@ export function useDashboardMetrics(
   options: UseDashboardMetricsOptions = {}
 ) {
   const { autoRefresh = false, liveConnected = false } = options;
+  const { isAuthenticated } = useAuth();
 
   const metricsQuery = trpc.dashboard.metrics.useQuery(
     projectId ? { projectId, preprodMilestones: preprodMilestones || undefined, prodMilestones: prodMilestones || undefined } : undefined,
     {
-      enabled: !!projectId,
+      enabled: !!projectId && isAuthenticated,
       staleTime: 2 * 60 * 1000,
       refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
     }
@@ -26,7 +28,7 @@ export function useDashboardMetrics(
   const qualityQuery = trpc.dashboard.qualityRates.useQuery(
     projectId ? { projectId, preprodMilestones: preprodMilestones || undefined, prodMilestones: prodMilestones || undefined } : undefined,
     {
-      enabled: !!projectId,
+      enabled: !!projectId && isAuthenticated,
       staleTime: 2 * 60 * 1000,
       refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
     }
