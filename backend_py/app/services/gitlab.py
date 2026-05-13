@@ -323,7 +323,11 @@ class GitLabService:
     async def search_issue_by_title(
         self, project_id: str | int, title: str
     ) -> dict[str, Any] | None:
-        """Search for an issue by exact title match across the whole project."""
+        """Search for an issue by title match across the whole project.
+
+        Tries exact match first, then match after removing [#123] prefix,
+        then substring match.
+        """
         normalized_title = (title or "").lower().strip()
         if not normalized_title:
             return None
@@ -332,7 +336,16 @@ class GitLabService:
             {"search": title, "state": "all", "scope": "all", "per_page": 20},
         )
         for issue in issues:
-            if (issue.get("title") or "").lower().strip() == normalized_title:
+            issue_title = (issue.get("title") or "").lower().strip()
+            # 1. Exact match
+            if issue_title == normalized_title:
+                return issue
+            # 2. Match after removing [#123] or [#IID] prefix
+            cleaned = re.sub(r"^\s*\[#?\d+\]\s*", "", issue_title).strip()
+            if cleaned == normalized_title:
+                return issue
+            # 3. Substring match (search title contained in issue title)
+            if normalized_title in issue_title:
                 return issue
         return None
 

@@ -18,10 +18,10 @@ logger = get_logger(__name__)
 # ─── Constants ─────────────────────────────────────────────────────────────
 
 STATUS_TO_LABEL = {
-    2: "Test::OK",           # Passed
-    3: "Test::KO",           # Failed
+    2: "Test::OK",  # Passed
+    3: "Test::KO",  # Failed
     4: "DoubleTestNécessaire",  # Retest
-    8: "Test::WIP",          # WIP
+    8: "Test::WIP",  # WIP
 }
 
 STATUS_ID_TO_NAME = {
@@ -41,11 +41,21 @@ ALL_TEST_LABELS = [
     "Test::TODO",
 ]
 
-GITLAB_STATUS_TODO = os.getenv("GITLAB_STATUS_TODO", "gid://gitlab/WorkItems::Statuses::Custom::Status/15")
-GITLAB_STATUS_OK = os.getenv("GITLAB_STATUS_OK", "gid://gitlab/WorkItems::Statuses::Custom::Status/18")
-GITLAB_STATUS_KO = os.getenv("GITLAB_STATUS_KO", "gid://gitlab/WorkItems::Statuses::Custom::Status/17")
-GITLAB_STATUS_WIP = os.getenv("GITLAB_STATUS_WIP", "gid://gitlab/WorkItems::Statuses::Custom::Status/21")
-GITLAB_STATUS_RETEST = os.getenv("GITLAB_STATUS_RETEST", "gid://gitlab/WorkItems::Statuses::Custom::Status/19")
+GITLAB_STATUS_TODO = os.getenv(
+    "GITLAB_STATUS_TODO", "gid://gitlab/WorkItems::Statuses::Custom::Status/15"
+)
+GITLAB_STATUS_OK = os.getenv(
+    "GITLAB_STATUS_OK", "gid://gitlab/WorkItems::Statuses::Custom::Status/18"
+)
+GITLAB_STATUS_KO = os.getenv(
+    "GITLAB_STATUS_KO", "gid://gitlab/WorkItems::Statuses::Custom::Status/17"
+)
+GITLAB_STATUS_WIP = os.getenv(
+    "GITLAB_STATUS_WIP", "gid://gitlab/WorkItems::Statuses::Custom::Status/21"
+)
+GITLAB_STATUS_RETEST = os.getenv(
+    "GITLAB_STATUS_RETEST", "gid://gitlab/WorkItems::Statuses::Custom::Status/19"
+)
 
 STATUS_TO_GITLAB_STATUS = {
     2: GITLAB_STATUS_OK,
@@ -59,7 +69,9 @@ STATUS_TO_GITLAB_STATUS = {
 
 def build_comment_text(run_name: str, status_id: int) -> str:
     status_name = STATUS_ID_TO_NAME.get(status_id, str(status_id))
-    return f"Commentaire ajouté automatiquement - Test sur le run: {run_name} - Status {status_name}"
+    return (
+        f"Commentaire ajouté automatiquement - Test sur le run: {run_name} - Status {status_name}"
+    )
 
 
 def is_comment_duplicate(existing_notes: list[dict[str, Any]], comment_text: str) -> bool:
@@ -69,7 +81,9 @@ def is_comment_duplicate(existing_notes: list[dict[str, Any]], comment_text: str
 def compute_label_changes(current_labels: list[str], new_label: str | None) -> dict[str, Any]:
     if not new_label:
         return {"add_label": None, "remove_labels": [], "action": "skip"}
-    labels_to_remove = [label for label in current_labels if label in ALL_TEST_LABELS and label != new_label]
+    labels_to_remove = [
+        label for label in current_labels if label in ALL_TEST_LABELS and label != new_label
+    ]
     already_has_label = new_label in current_labels
     if already_has_label and not labels_to_remove:
         return {"add_label": new_label, "remove_labels": [], "action": "noop"}
@@ -121,21 +135,22 @@ class StatusSyncService:
             existing_notes = await gitlab_service.get_issue_notes(project_id, issue_iid)
             if is_comment_duplicate(existing_notes, comment_text):
                 logger.info(
-                    "[StatusSync] Commentaire déjà présent sur #%s pour run=\"%s\" status=%s — ignoré",
-                    issue_iid, run_name, status_id
+                    '[StatusSync] Commentaire déjà présent sur #%s pour run="%s" status=%s — ignoré',
+                    issue_iid,
+                    run_name,
+                    status_id,
                 )
                 return
             await gitlab_service.add_issue_comment(project_id, issue_iid, comment_text)
             logger.info(
                 '[StatusSync] Commentaire ajouté sur #%s "%s" : "%s"',
-                issue_iid, case_name, comment_text
+                issue_iid,
+                case_name,
+                comment_text,
             )
         except Exception as exc:
             # Non-bloquant
-            logger.error(
-                "[StatusSync] Erreur commentaire #%s \"%s\": %s",
-                issue_iid, case_name, exc
-            )
+            logger.error('[StatusSync] Erreur commentaire #%s "%s": %s', issue_iid, case_name, exc)
 
     # ─── Sync principale ─────────────────────────────────────────────────────
 
@@ -152,13 +167,15 @@ class StatusSyncService:
         yield {
             "level": "info",
             "message": (
-                f"Démarrage sync Testmo run #{run_id} → GitLab \"{iteration_name}\""
+                f'Démarrage sync Testmo run #{run_id} → GitLab "{iteration_name}"'
                 f"{' [DRY-RUN — aucune modif GitLab]' if dry_run else ''}"
             ),
         }
         logger.info(
-            "[StatusSync] run=%s, iteration=\"%s\", glProject=%s",
-            run_id, iteration_name, gitlab_project_id
+            '[StatusSync] run=%s, iteration="%s", glProject=%s',
+            run_id,
+            iteration_name,
+            gitlab_project_id,
         )
 
         # 0. Nom du run Testmo
@@ -169,10 +186,7 @@ class StatusSyncService:
             run_name = run_info.get("name") or run_name
             yield {"level": "info", "message": f'Run Testmo : "{run_name}"'}
         except Exception as exc:
-            logger.warning(
-                "[StatusSync] Impossible de récupérer le nom du run %s: %s",
-                run_id, exc
-            )
+            logger.warning("[StatusSync] Impossible de récupérer le nom du run %s: %s", run_id, exc)
 
         # 1. Résultats Testmo (is_latest)
         yield {"level": "info", "message": "Récupération des résultats Testmo…"}
@@ -183,7 +197,10 @@ class StatusSyncService:
             return
 
         if getattr(results, "truncated", False):
-            yield {"level": "warn", "message": "Résultats Testmo tronqués (limite de pagination atteinte)."}
+            yield {
+                "level": "warn",
+                "message": "Résultats Testmo tronqués (limite de pagination atteinte).",
+            }
 
         if not results:
             yield {"level": "warn", "message": "Aucun résultat trouvé dans ce run."}
@@ -194,13 +211,18 @@ class StatusSyncService:
         yield {"level": "info", "message": "Résolution des noms de cases Testmo…"}
         needed_ids = list({r.get("case_id") for r in results if r.get("case_id")})
         case_names = await self._get_case_names(needed_ids)
-        yield {"level": "info", "message": f"{len(case_names)}/{len(needed_ids)} noms de cases résolus."}
+        yield {
+            "level": "info",
+            "message": f"{len(case_names)}/{len(needed_ids)} noms de cases résolus.",
+        }
 
         # 2. Issues GitLab — mode itération ou mode version-seule
         issues: list[dict[str, Any]] = []
         if iteration_name:
             yield {"level": "info", "message": f'Recherche itération GitLab "{iteration_name}"…'}
-            iteration = await gitlab_service.find_iteration_for_project(gitlab_project_id, iteration_name)
+            iteration = await gitlab_service.find_iteration_for_project(
+                gitlab_project_id, iteration_name
+            )
             if not iteration:
                 yield {
                     "level": "error",
@@ -240,6 +262,11 @@ class StatusSyncService:
 
         if not issues:
             yield {"level": "warn", "message": "Aucune issue GitLab trouvée."}
+            logger.warning(
+                "[StatusSync] Aucune issue trouvée (version=%s, project=%s)",
+                version,
+                gitlab_project_id,
+            )
             return
 
         # Index issues par titre normalisé
@@ -250,6 +277,10 @@ class StatusSyncService:
         for issue in issues:
             issue_by_title[_normalize(issue.get("title"))] = issue
         yield {"level": "info", "message": f"{len(issues)} issue(s) GitLab indexée(s)."}
+        logger.info(
+            "[StatusSync] Issues trouvées : %s",
+            ", ".join(f"#{i.get('iid')} '{i.get('title')}'" for i in issues),
+        )
 
         # 3. Appliquer les statuts Work Item via GraphQL
         stats["total"] = len(results)
@@ -262,6 +293,10 @@ class StatusSyncService:
                 missing_case_names.append(case_name)
 
         if missing_case_names:
+            logger.info(
+                "[StatusSync] %s case(s) non trouvées par titre exact, lancement fallback search…",
+                len(missing_case_names),
+            )
             search_tasks = [
                 gitlab_service.search_issue_by_title(gitlab_project_id, name)
                 for name in missing_case_names
@@ -274,9 +309,12 @@ class StatusSyncService:
                 if found:
                     issue_by_title[_normalize(name)] = found
                     logger.info(
-                        "[StatusSync] Case \"%s\" retrouvé hors itération via fallback (issue #%s)",
-                        name, found.get("iid")
+                        '[StatusSync] Case "%s" retrouvé hors itération via fallback (issue #%s)',
+                        name,
+                        found.get("iid"),
                     )
+                else:
+                    logger.info('[StatusSync] Case "%s" introuvable même via fallback search', name)
 
         for result in results:
             status_id = result.get("status_id")
@@ -290,10 +328,17 @@ class StatusSyncService:
             issue = issue_by_title.get(_normalize(case_name))
             if not issue:
                 logger.info(
-                    "[StatusSync] Pas d'issue GitLab pour case \"%s\" — ignoré",
-                    case_name
+                    '[StatusSync] Pas d\'issue GitLab pour case "%s" — ignoré '
+                    "(titres indexés : %s)",
+                    case_name,
+                    list(issue_by_title.keys()),
                 )
                 stats["skipped"] += 1
+                yield {
+                    "level": "skip",
+                    "caseName": case_name,
+                    "reason": "aucune issue GitLab ne correspond à ce titre",
+                }
                 continue
 
             if not new_status:
@@ -328,15 +373,18 @@ class StatusSyncService:
                     "newStatus": new_status,
                 }
                 logger.info(
-                    "[StatusSync] #%s \"%s\" → status:%s",
-                    issue.get("iid"), case_name, new_status
+                    '[StatusSync] #%s "%s" → status:%s', issue.get("iid"), case_name, new_status
                 )
 
                 issue_iid = issue.get("iid")
                 try:
                     issue_iid_int = int(issue_iid)  # type: ignore[arg-type]
                 except (TypeError, ValueError):
-                    logger.warning("[StatusSync] Invalid iid %r for case '%s' — skipping comment", issue_iid, case_name)
+                    logger.warning(
+                        "[StatusSync] Invalid iid %r for case '%s' — skipping comment",
+                        issue_iid,
+                        case_name,
+                    )
                 else:
                     await self._post_comment_if_needed(
                         gitlab_project_id, issue_iid_int, case_name, run_name, status_id
@@ -349,17 +397,16 @@ class StatusSyncService:
                     "issueIid": issue.get("iid"),
                     "error": SAFE_INTERNAL_ERROR,
                 }
-                logger.error(
-                    "[StatusSync] Erreur #%s \"%s\": %s",
-                    issue.get("iid"), case_name, exc
-                )
+                logger.error('[StatusSync] Erreur #%s "%s": %s', issue.get("iid"), case_name, exc)
 
             await self._delay()
 
         yield {"level": "done", **stats}
         logger.info(
             "[StatusSync] Terminé — updated=%s skipped=%s errors=%s",
-            stats["updated"], stats["skipped"], stats["errors"]
+            stats["updated"],
+            stats["skipped"],
+            stats["errors"],
         )
 
 
