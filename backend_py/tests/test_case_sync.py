@@ -64,15 +64,23 @@ def test_is_case_enriched_custom_steps() -> None:
 # ------------------------------------------------------------------
 
 
-def test_is_case_identical_force_update_when_images_missing_attachments() -> None:
-    existing = {"name": "T", "custom_description": "<p>foo</p>", "attachments": []}
-    payload = {"name": "T", "custom_description": "<p>foo <img src='/a.png'></p>"}
+def test_is_case_identical_force_update_when_old_testmo_urls_present() -> None:
+    from app.config import settings
+
+    existing = {
+        "name": "T",
+        "custom_description": f'<p>foo <img src="{settings.testmo_url}/attachments/view/10"></p>',
+    }
+    payload = {
+        "name": "T",
+        "custom_description": f'<p>foo <img src="{settings.gitlab_url}/uploads/a.png"></p>',
+    }
     assert _is_case_identical(existing, payload) is False
 
 
-def test_is_case_identical_skips_when_images_already_uploaded() -> None:
-    existing = {"name": "T", "custom_description": "<p>foo</p>", "attachments": [{"id": 1}]}
-    payload = {"name": "T", "custom_description": "<p>foo <img src='/a.png'></p>"}
+def test_is_case_identical_skips_when_text_unchanged() -> None:
+    existing = {"name": "T", "custom_description": "<p>foo</p>"}
+    payload = {"name": "T", "custom_description": "<p>foo</p>"}
     assert _is_case_identical(existing, payload) is True
 
 

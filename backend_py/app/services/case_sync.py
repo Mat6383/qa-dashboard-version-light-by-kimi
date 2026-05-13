@@ -66,9 +66,10 @@ def _is_case_identical(existing: dict[str, Any], payload: dict[str, Any]) -> boo
     payload_desc = html.unescape((payload.get("custom_description") or "").strip())
     if _extract_text_from_html(existing_desc) != _extract_text_from_html(payload_desc):
         return False
-    # Force update when description has images but case has no attachments yet.
-    # This ensures images are uploaded to Testmo on the next sync.
-    if "<img" in payload_desc and not existing.get("attachments"):
+    # Force update once for cases that still have old Testmo attachment URLs
+    # in their description (from previous sync iterations) so they get
+    # replaced with absolute GitLab URLs.
+    if settings.testmo_url in existing_desc and settings.gitlab_url in payload_desc:
         return False
     if existing.get("estimate") != payload.get("estimate"):
         return False
@@ -141,17 +142,36 @@ def _normalize_attachment_url(path: str) -> str:
     return path
 
 
+def _absolutize_gitlab_urls(html: str) -> str:
+    """Convert relative GitLab /uploads/ URLs to absolute URLs.
+
+    Testmo displays the description HTML in its own domain, so relative
+    GitLab paths would 404. We make them absolute so they work when the
+    user is authenticated with GitLab.
+    """
+    base = settings.gitlab_url.rstrip("/")
+    # Match src="/uploads/..." or src='/uploads/...'
+    html = re.sub(r'src="(/uploads/[^"]+)"', rf'src="{base}\1"', html)
+    html = re.sub(r"src='(/uploads/[^']+)'", rf"src='{base}\1'", html)
+    return html
+
+
 async def _sync_case_images(
     case_id: int,
     description_md: str,
     current_html: str,
 ) -> str:
-    """Download images from GitLab and upload them as Testmo attachments."""
+    """Download images from GitLab and upload them as Testmo attachments.
+
+    Returns the description HTML unchanged. We keep the original GitLab
+    URLs in the description (made absolute by _absolutize_gitlab_urls)
+    because Testmo attachment URLs require authentication and cannot be
+    displayed inline in <img> tags.
+    """
     image_urls = extract_image_urls(description_md)
     if not image_urls:
         return current_html
 
-    url_map: dict[str, str] = {}
     for url in image_urls:
         try:
             file_bytes = await gitlab_service.download_upload(url)
@@ -166,19 +186,10 @@ async def _sync_case_images(
                 ".svg": "image/svg+xml",
             }.get(ext, "image/png")
 
-            attachment_resp = await testmo_service.upload_attachment(
-                case_id, file_bytes, filename, mime_type
-            )
-            result = attachment_resp.get("result", [])
-            if result and len(result) > 0:
-                new_url = _normalize_attachment_url(result[0].get("path", ""))
-                if new_url:
-                    url_map[url] = new_url
+            await testmo_service.upload_attachment(case_id, file_bytes, filename, mime_type)
         except Exception as exc:
             logger.warning("Failed to sync image", extra={"url": url, "error": str(exc)})
 
-    if url_map:
-        return replace_image_urls_in_html(current_html, url_map)
     return current_html
 
 
@@ -220,7 +231,9 @@ def build_case_payload(
     if description:
         max_desc = 2000
         truncated = description[:max_desc] + "…" if len(description) > max_desc else description
-        payload["custom_description"] = markdown.markdown(truncated.strip())
+        payload["custom_description"] = _absolutize_gitlab_urls(
+            markdown.markdown(truncated.strip())
+        )
 
     steps = extract_steps_from_notes(notes)
     if steps:
@@ -512,18 +525,14 @@ class CaseSyncService:
                     if created_cases:
                         detail["case_id"] = created_cases[0].get("id")
 
-                # Upload images to Testmo and update description with attachment URLs
+                # Upload images as Testmo attachments (description keeps GitLab URLs)
                 case_id = detail.get("case_id")
                 description_md = issue.get("description") or ""
                 if case_id and description_md:
                     try:
-                        updated_html = await _sync_case_images(
+                        await _sync_case_images(
                             case_id, description_md, payload.get("custom_description", "")
                         )
-                        if updated_html != payload.get("custom_description", ""):
-                            await testmo_service.update_case(
-                                testmo_project_id, case_id, {"custom_description": updated_html}
-                            )
                     except Exception as exc:
                         logger.warning(
                             "Failed to sync case images", extra={"iid": iid, "error": str(exc)}
