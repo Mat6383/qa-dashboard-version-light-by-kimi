@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import html
+import markdown  # type: ignore[import-untyped]
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, cast
+from urllib.parse import urlparse
 
+from app.config import settings
 from app.models.sync_history import SyncCaseRun
 from app.projects_config import resolve_gitlab_integration_info, resolve_testmo_repo_id
 from app.services.gitlab import gitlab_service
@@ -60,11 +64,13 @@ def _is_case_identical(existing: dict[str, Any], payload: dict[str, Any]) -> boo
         return False
     existing_desc = html.unescape((existing.get("custom_description") or "").strip())
     payload_desc = html.unescape((payload.get("custom_description") or "").strip())
-    if existing_desc != payload_desc:
+    if _strip_img_tags(existing_desc) != _strip_img_tags(payload_desc):
         return False
     if existing.get("estimate") != payload.get("estimate"):
         return False
-    if _normalize_steps(existing.get("custom_steps")) != _normalize_steps(payload.get("custom_steps")):
+    if _normalize_steps(existing.get("custom_steps")) != _normalize_steps(
+        payload.get("custom_steps")
+    ):
         return False
     return True
 
@@ -77,7 +83,8 @@ def is_case_enriched(case: dict[str, Any]) -> bool:
         return True
     tags = case.get("tags", []) or []
     manual_tags = [
-        t for t in tags
+        t
+        for t in tags
         if not any(str(t).startswith(p) for p in ("gitlab-", "iteration-", "sync-auto"))
     ]
     if manual_tags:
@@ -90,6 +97,85 @@ def is_case_enriched(case: dict[str, Any]) -> bool:
     if steps and any(s.get("text1") for s in steps):
         return True
     return False
+
+
+# ------------------------------------------------------------------
+# Image extraction from markdown descriptions
+# ------------------------------------------------------------------
+
+IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+
+
+def extract_image_urls(md_text: str) -> list[str]:
+    """Extract image URLs from markdown text."""
+    return [m.group(2).strip() for m in IMAGE_RE.finditer(md_text)]
+
+
+def replace_image_urls_in_html(html_text: str, url_map: dict[str, str]) -> str:
+    """Replace image URLs in HTML with their mapped counterparts."""
+    for old_url, new_url in url_map.items():
+        html_text = html_text.replace(old_url, new_url)
+    return html_text
+
+
+def _strip_img_tags(html: str) -> str:
+    """Remove <img> tags to compare descriptions without image URLs."""
+    return re.sub(r"<img[^>]+>", "", html).strip()
+
+
+def _normalize_attachment_url(path: str) -> str:
+    """Ensure Testmo attachment URL is absolute and usable."""
+    if not path:
+        return path
+    if path.startswith("/"):
+        return f"{settings.testmo_url.rstrip('/')}{path}"
+    # Some Testmo instances return localhost in the path field when
+    # the APP_URL is misconfigured. Try to fix it gracefully.
+    for bad in ("http://localhost", "https://localhost"):
+        if path.startswith(bad):
+            return settings.testmo_url.rstrip("/") + path[len(bad) :]
+    return path
+
+
+async def _sync_case_images(
+    case_id: int,
+    description_md: str,
+    current_html: str,
+) -> str:
+    """Download images from GitLab and upload them as Testmo attachments."""
+    image_urls = extract_image_urls(description_md)
+    if not image_urls:
+        return current_html
+
+    url_map: dict[str, str] = {}
+    for url in image_urls:
+        try:
+            file_bytes = await gitlab_service.download_upload(url)
+            parsed = urlparse(url)
+            filename = os.path.basename(parsed.path) or "image.png"
+            ext = os.path.splitext(filename)[1].lower()
+            mime_type = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".svg": "image/svg+xml",
+            }.get(ext, "image/png")
+
+            attachment_resp = await testmo_service.upload_attachment(
+                case_id, file_bytes, filename, mime_type
+            )
+            result = attachment_resp.get("result", [])
+            if result and len(result) > 0:
+                new_url = _normalize_attachment_url(result[0].get("path", ""))
+                if new_url:
+                    url_map[url] = new_url
+        except Exception as exc:
+            logger.warning("Failed to sync image", extra={"url": url, "error": str(exc)})
+
+    if url_map:
+        return replace_image_urls_in_html(current_html, url_map)
+    return current_html
 
 
 def build_case_payload(
@@ -130,7 +216,7 @@ def build_case_payload(
     if description:
         max_desc = 2000
         truncated = description[:max_desc] + "…" if len(description) > max_desc else description
-        payload["custom_description"] = truncated.strip()
+        payload["custom_description"] = markdown.markdown(truncated.strip())
 
     steps = extract_steps_from_notes(notes)
     if steps:
@@ -138,11 +224,13 @@ def build_case_payload(
 
     # Link case to GitLab issue
     if iid and gitlab_integration_id and gitlab_connection_project_id:
-        payload["issues"] = [{
-            "display_id": str(iid),
-            "integration_id": gitlab_integration_id,
-            "connection_project_id": gitlab_connection_project_id,
-        }]
+        payload["issues"] = [
+            {
+                "display_id": str(iid),
+                "integration_id": gitlab_integration_id,
+                "connection_project_id": gitlab_connection_project_id,
+            }
+        ]
 
     return payload
 
@@ -176,7 +264,11 @@ class CaseSyncService:
         result = SyncCaseResult()
 
         # Resolve GitLab integration info for Testmo issue linking
-        integration_info = resolve_gitlab_integration_info(logical_project_id) if logical_project_id else {"integration_id": None, "connection_project_id": None}
+        integration_info = (
+            resolve_gitlab_integration_info(logical_project_id)
+            if logical_project_id
+            else {"integration_id": None, "connection_project_id": None}
+        )
         gitlab_integration_id = integration_info.get("integration_id")
         gitlab_connection_project_id = integration_info.get("connection_project_id")
 
@@ -187,7 +279,9 @@ class CaseSyncService:
         iteration_id = None
         if iteration_name and iteration_name.strip():
             try:
-                iteration = await gitlab_service.find_iteration_for_project(gitlab_project_id, iteration_name)
+                iteration = await gitlab_service.find_iteration_for_project(
+                    gitlab_project_id, iteration_name
+                )
             except Exception as exc:
                 logger.error("Failed to find iteration", extra={"error": str(exc)})
                 result.errors += 1
@@ -203,8 +297,11 @@ class CaseSyncService:
         # 2. Fetch issues
         try:
             issues = await gitlab_service.get_issues_by_label_and_iteration(
-                gitlab_project_id, label, iteration_id,
-                gitlab_status=gitlab_status, version_prod=version_prod,
+                gitlab_project_id,
+                label,
+                iteration_id,
+                gitlab_status=gitlab_status,
+                version_prod=version_prod,
             )
         except Exception as exc:
             logger.error("Failed to fetch issues", extra={"error": str(exc)})
@@ -213,11 +310,15 @@ class CaseSyncService:
             return result
 
         if not issues:
-            logger.info("No issues to sync", extra={"iteration_name": iteration_name, "run_name": run_name})
+            logger.info(
+                "No issues to sync", extra={"iteration_name": iteration_name, "run_name": run_name}
+            )
             return result
 
         # 3. Folder hierarchy
-        folder_base_name = (run_name or "").strip() or iteration_name.strip() or label.strip() or "sync"
+        folder_base_name = (
+            (run_name or "").strip() or iteration_name.strip() or label.strip() or "sync"
+        )
         parent_name, child_name = _parse_folder_hierarchy(folder_base_name)
         try:
             if dry_run:
@@ -229,11 +330,17 @@ class CaseSyncService:
                     result.folder_name = f"{parent_name} / {child_name}"
                     try:
                         parent_folder = await testmo_service._find_folder_by_name(
-                            testmo_project_id, parent_name, parent_id=root_folder_id, repo_id=testmo_repo_id
+                            testmo_project_id,
+                            parent_name,
+                            parent_id=root_folder_id,
+                            repo_id=testmo_repo_id,
                         )
                         if parent_folder:
                             target_folder = await testmo_service._find_folder_by_name(
-                                testmo_project_id, child_name, parent_id=parent_folder.get("id"), repo_id=testmo_repo_id
+                                testmo_project_id,
+                                child_name,
+                                parent_id=parent_folder.get("id"),
+                                repo_id=testmo_repo_id,
                             )
                             if target_folder:
                                 folder_id = target_folder.get("id")
@@ -243,7 +350,10 @@ class CaseSyncService:
                 else:
                     try:
                         target_folder = await testmo_service._find_folder_by_name(
-                            testmo_project_id, child_name, parent_id=root_folder_id, repo_id=testmo_repo_id
+                            testmo_project_id,
+                            child_name,
+                            parent_id=root_folder_id,
+                            repo_id=testmo_repo_id,
                         )
                         if target_folder:
                             folder_id = target_folder.get("id")
@@ -253,7 +363,10 @@ class CaseSyncService:
             else:
                 if parent_name:
                     parent_folder = await testmo_service.get_or_create_folder(
-                        testmo_project_id, parent_name, parent_id=root_folder_id, repo_id=testmo_repo_id
+                        testmo_project_id,
+                        parent_name,
+                        parent_id=root_folder_id,
+                        repo_id=testmo_repo_id,
                     )
                     parent_id = parent_folder.get("id")
                 else:
@@ -277,10 +390,16 @@ class CaseSyncService:
             existing_cases: list[dict[str, Any]] = []
         else:
             try:
-                existing_cases = await testmo_service.get_cases(testmo_project_id, folder_id=folder_id)
+                existing_cases = await testmo_service.get_cases(
+                    testmo_project_id, folder_id=folder_id
+                )
                 if getattr(existing_cases, "truncated", False):
-                    logger.warning("Case list truncated for project %s (MAX_PAGES reached)", testmo_project_id)
-                    result.details.append({"warning": "Case list truncated — some existing cases may be missed."})
+                    logger.warning(
+                        "Case list truncated for project %s (MAX_PAGES reached)", testmo_project_id
+                    )
+                    result.details.append(
+                        {"warning": "Case list truncated — some existing cases may be missed."}
+                    )
             except Exception as exc:
                 logger.error("Failed to fetch existing cases", extra={"error": str(exc)})
                 result.errors += len(issues)
@@ -302,7 +421,11 @@ class CaseSyncService:
         total_issues_before_truncate = len(issues)
         if dry_run and total_issues_before_truncate > MAX_PREVIEW_ISSUES:
             issues = issues[:MAX_PREVIEW_ISSUES]
-            result.details.append({"info": f"Preview limité à {MAX_PREVIEW_ISSUES} issues (total: {total_issues_before_truncate}). Utilise un label ou une itération pour filtrer."})
+            result.details.append(
+                {
+                    "info": f"Preview limité à {MAX_PREVIEW_ISSUES} issues (total: {total_issues_before_truncate}). Utilise un label ou une itération pour filtrer."
+                }
+            )
 
         # 5. Pre-fetch all notes in parallel
         note_tasks: list[Any] = []
@@ -330,7 +453,11 @@ class CaseSyncService:
             notes = notes_by_iid.get(cast(int, iid), [])
 
             payload = build_case_payload(
-                issue, notes, cast(int, folder_id), gitlab_project_id, iteration_name,
+                issue,
+                notes,
+                cast(int, folder_id),
+                gitlab_project_id,
+                iteration_name,
                 folder_name=folder_base_name,
                 gitlab_integration_id=gitlab_integration_id,
                 gitlab_connection_project_id=gitlab_connection_project_id,
@@ -342,8 +469,7 @@ class CaseSyncService:
                 if existing:
                     existing_issues = existing.get("issues", []) or []
                     has_issue_link = any(
-                        str(issue.get("display_id", "")) == str(iid)
-                        for issue in existing_issues
+                        str(issue.get("display_id", "")) == str(iid) for issue in existing_issues
                     )
                     if has_issue_link and is_case_enriched(existing):
                         result.skipped += 1
@@ -381,6 +507,23 @@ class CaseSyncService:
                     detail["action"] = "created"
                     if created_cases:
                         detail["case_id"] = created_cases[0].get("id")
+
+                # Upload images to Testmo and update description with attachment URLs
+                case_id = detail.get("case_id")
+                description_md = issue.get("description") or ""
+                if case_id and description_md:
+                    try:
+                        updated_html = await _sync_case_images(
+                            case_id, description_md, payload.get("custom_description", "")
+                        )
+                        if updated_html != payload.get("custom_description", ""):
+                            await testmo_service.update_case(
+                                testmo_project_id, case_id, {"custom_description": updated_html}
+                            )
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to sync case images", extra={"iid": iid, "error": str(exc)}
+                        )
 
                 # Label GitLab
                 try:
@@ -458,6 +601,7 @@ class CaseSyncService:
 
     async def get_history(self, db_session: Any, limit: int = 50) -> list[dict[str, Any]]:
         from sqlalchemy import select
+
         result = await db_session.execute(
             select(SyncCaseRun).order_by(SyncCaseRun.created_at.desc()).limit(limit)
         )

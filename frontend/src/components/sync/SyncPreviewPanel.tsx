@@ -24,7 +24,7 @@ export default function SyncPreviewPanel({
     <div className="d6-section">
       <div className="d6-section-header">
         <Search size={14} />
-        Aperçu — {preview.iteration?.name}
+        Aperçu {preview.iteration?.name ? `— ${preview.iteration.name}` : ''}
       </div>
       <div className="d6-section-body">
         {/* Chemin du dossier */}
@@ -120,7 +120,7 @@ export default function SyncPreviewPanel({
         {preview.issues?.length === 0 && (
           <div className="d6-alert d6-alert-info">
             <AlertCircle size={14} />
-            Aucun ticket trouvé pour cette itération.
+            Aucun ticket trouvé pour ces critères.
           </div>
         )}
 

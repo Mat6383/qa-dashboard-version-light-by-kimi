@@ -78,6 +78,30 @@ class TestmoClient:
                 return {}
             return resp.json() if resp.text else {}
 
+    @with_resilience(breaker=None, max_attempts=3, base_delay_ms=500)
+    async def _post_multipart(self, path: str, files: dict[str, Any]) -> Any:
+        async with self.cb:
+            resp = await self.client.post(path, files=files)
+            resp.raise_for_status()
+            return resp.json() if resp.text else {}
+
+    # ------------------------------------------------------------------
+    # Attachments
+    # ------------------------------------------------------------------
+
+    async def upload_attachment(
+        self,
+        case_id: int,
+        file_bytes: bytes,
+        filename: str,
+        mime_type: str = "application/octet-stream",
+    ) -> dict[str, Any]:
+        """Upload a single file attachment to a Testmo case."""
+        return await self._post_multipart(
+            f"/cases/{case_id}/attachments/single",
+            files={"file": (filename, file_bytes, mime_type)},
+        )
+
     # ------------------------------------------------------------------
     # Projects & runs (read)
     # ------------------------------------------------------------------

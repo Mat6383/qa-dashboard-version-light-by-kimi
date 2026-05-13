@@ -38,7 +38,9 @@ async def sync_projects(db: DBMain):
 
 
 @router.get("/{project_id}/iterations")
-async def get_iterations(project_id: int | str, search: str | None = Query(None), db: DBMain = None):
+async def get_iterations(
+    project_id: int | str, search: str | None = Query(None), db: DBMain = None
+):
     try:
         iterations = await sync_service.list_iterations(project_id, search)
     except httpx.HTTPStatusError as exc:
@@ -70,7 +72,14 @@ async def sync_preview(payload: SyncPreviewPayload, db: DBMain):
 @router.post("/execute")
 async def sync_execute(request: Request, payload: SyncExecutePayload, db: DBMain):
     async def event_generator() -> AsyncGenerator[str, None]:
-        stats = {"created": 0, "updated": 0, "skipped": 0, "enriched": 0, "errors": 0, "total_issues": 0}
+        stats = {
+            "created": 0,
+            "updated": 0,
+            "skipped": 0,
+            "enriched": 0,
+            "errors": 0,
+            "total_issues": 0,
+        }
         async for event in sync_service.execute_sync(
             payload.project_id,
             payload.iteration_name,
@@ -111,14 +120,20 @@ async def sync_execute(request: Request, payload: SyncExecutePayload, db: DBMain
 async def sync_status_to_gitlab(request: Request, payload: SyncStatusPayload, db: DBMain):
     gl_project_id = resolve_gitlab_project_id(payload.project_id)
     if not gl_project_id:
+
         async def _error_generator() -> AsyncGenerator[str, None]:
             yield f"data: {json.dumps({'level': 'error', 'message': f'Project {payload.project_id} not configured'})}\n\n"
             yield f"data: {json.dumps({'level': 'done'})}\n\n"
+
         return StreamingResponse(_error_generator(), media_type="text/event-stream")
 
     async def event_generator() -> AsyncGenerator[str, None]:
         async for event in sync_service.sync_status_to_gitlab(
-            gl_project_id, payload.iteration_name, payload.run_id, dry_run=payload.dry_run, version=payload.version
+            gl_project_id,
+            payload.iteration_name,
+            payload.run_id,
+            dry_run=payload.dry_run,
+            version=payload.version,
         ):
             if await request.is_disconnected():
                 break
@@ -147,6 +162,7 @@ async def update_auto_config(payload: dict, db: DBMain):
 
 # ── Case Sync (P31) ─────────────────────────────────────
 
+
 @router.post("/cases/preview")
 async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> dict[str, Any]:
     gl_project_id = resolve_gitlab_project_id(payload.project_id)
@@ -154,12 +170,16 @@ async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> di
         return {"success": False, "error": f"Project '{payload.project_id}' not configured"}
 
     project_cfg = get_sync_project(payload.project_id)
-    root_folder_id = project_cfg["testmo"]["rootFolderId"] if project_cfg else payload.root_folder_id
+    root_folder_id = (
+        project_cfg["testmo"]["rootFolderId"] if project_cfg else payload.root_folder_id
+    )
 
     try:
         result = await case_sync_service.preview_sync_iteration(
             gitlab_project_id=gl_project_id,
-            testmo_project_id=payload.testmo_project_id or resolve_testmo_project_id(payload.project_id) or settings.testmo_project_id,
+            testmo_project_id=payload.testmo_project_id
+            or resolve_testmo_project_id(payload.project_id)
+            or settings.testmo_project_id,
             iteration_name=payload.iteration_name,
             logical_project_id=payload.project_id,
             label=payload.label,
@@ -180,18 +200,21 @@ async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> di
         ) from exc
 
     # Map to frontend-compatible format
-    parent_name, child_name = _parse_folder_hierarchy(payload.iteration_name)
+    folder_name = result.folder_name or (payload.iteration_name or payload.label or "sync")
+    parent_name, child_name = _parse_folder_hierarchy(folder_name)
     issues = []
     to_create = to_update = to_skip = 0
     for d in result.details:
         # Skip error entries (not real issues)
         if "error" in d:
-            issues.append({
-                "iid": None,
-                "url": "",
-                "title": d["error"],
-                "status": "error",
-            })
+            issues.append(
+                {
+                    "iid": None,
+                    "url": "",
+                    "title": d["error"],
+                    "status": "error",
+                }
+            )
             to_skip += 1
             continue
         action = d.get("action")
@@ -204,12 +227,14 @@ async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> di
         else:
             frontend_status = "skip"
             to_skip += 1
-        issues.append({
-            "iid": d.get("iid"),
-            "url": d.get("url", ""),
-            "title": d.get("title", ""),
-            "status": frontend_status,
-        })
+        issues.append(
+            {
+                "iid": d.get("iid"),
+                "url": d.get("url", ""),
+                "title": d.get("title", ""),
+                "status": frontend_status,
+            }
+        )
 
     data = {
         "iteration": {"name": payload.iteration_name, "id": None},
@@ -234,22 +259,31 @@ async def sync_cases_preview(payload: SyncCasesPreviewPayload, db: DBMain) -> di
 
 
 @router.post("/cases/execute")
-async def sync_cases_execute(request: Request, payload: SyncCasesExecutePayload, db: DBMain) -> StreamingResponse:
+async def sync_cases_execute(
+    request: Request, payload: SyncCasesExecutePayload, db: DBMain
+) -> StreamingResponse:
     gl_project_id = resolve_gitlab_project_id(payload.project_id)
     if not gl_project_id:
+
         async def _error_generator() -> AsyncGenerator[str, None]:
             yield f"data: {json.dumps({'level': 'error', 'message': f'Project {payload.project_id} not configured'})}\n\n"
+
         return StreamingResponse(_error_generator(), media_type="text/event-stream")
 
     async def event_generator() -> AsyncGenerator[str, None]:
-        yield f"data: {json.dumps({'level': 'info', 'message': f'Starting case sync for iteration {payload.iteration_name}'})}\n\n"
+        scope = payload.iteration_name or payload.label or "all issues"
+        yield f"data: {json.dumps({'level': 'info', 'message': f'Starting case sync for {scope}'})}\n\n"
 
         project_cfg = get_sync_project(payload.project_id)
-        root_folder_id = project_cfg["testmo"]["rootFolderId"] if project_cfg else payload.root_folder_id
+        root_folder_id = (
+            project_cfg["testmo"]["rootFolderId"] if project_cfg else payload.root_folder_id
+        )
 
         result = await case_sync_service.sync_iteration(
             gitlab_project_id=gl_project_id,
-            testmo_project_id=payload.testmo_project_id or resolve_testmo_project_id(payload.project_id) or settings.testmo_project_id,
+            testmo_project_id=payload.testmo_project_id
+            or resolve_testmo_project_id(payload.project_id)
+            or settings.testmo_project_id,
             iteration_name=payload.iteration_name,
             logical_project_id=payload.project_id,
             label=payload.label,
@@ -270,17 +304,21 @@ async def sync_cases_execute(request: Request, payload: SyncCasesExecutePayload,
             yield f"data: {json.dumps({'level': 'debug', 'message': msg})}\n\n"
 
         # Summary event
-        yield f"data: {json.dumps({
-            'level': 'summary',
-            'created': result.created,
-            'updated': result.updated,
-            'skipped': result.skipped,
-            'enriched': 0,
-            'errors': result.errors,
-            'total_issues': len(result.details),
-            'testmo_run_id': None,
-            'testmo_run_url': None,
-        })}\n\n"
+        yield f"data: {
+            json.dumps(
+                {
+                    'level': 'summary',
+                    'created': result.created,
+                    'updated': result.updated,
+                    'skipped': result.skipped,
+                    'enriched': 0,
+                    'errors': result.errors,
+                    'total_issues': len(result.details),
+                    'testmo_run_id': None,
+                    'testmo_run_url': None,
+                }
+            )
+        }\n\n"
 
         # Persist to DB after stream ends
         if not payload.dry_run:

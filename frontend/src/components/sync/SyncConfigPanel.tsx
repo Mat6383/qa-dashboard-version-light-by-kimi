@@ -124,7 +124,7 @@ export default function SyncConfigPanel({
                   onChange={(e) => onIterChange(e.target.value)}
                   disabled={state === 'syncing' || state === 'analyzing' || loadingIters}
                 >
-                  <option value="">Choisir une itération...</option>
+                  <option value="">Toutes les itérations (optionnel)</option>
                   {iterations.map((it) => (
                     <option key={it.id} value={it.title}>
                       {it.title}

@@ -77,7 +77,9 @@ def build_testmo_test(
         {"name": "Labels", "type": 4, "value": ", ".join(labels) or "—"},
     ]
     if truncated_desc:
-        fields.append({"name": "Description", "type": 4, "value": truncated_desc})
+        fields.append(
+            {"name": "Description", "type": 4, "value": markdown.markdown(truncated_desc)}
+        )
     if time_estimate:
         fields.append({"name": "Time Estimate", "type": 4, "value": str(time_estimate)})
 
@@ -157,7 +159,9 @@ def extract_steps_from_notes(notes: list[dict[str, Any]]) -> list[dict[str, Any]
 
     # Non-TEST sections: from the longest note (most complete)
     best = max(structured, key=lambda n: len(n.get("body", "")))
-    other_sections = [s for s in _parse_sections(best.get("body", "")) if not TEST_RE.match(s["label"])]
+    other_sections = [
+        s for s in _parse_sections(best.get("body", "")) if not TEST_RE.match(s["label"])
+    ]
 
     # TEST sections: collect from ALL notes in chronological order
     all_test_sections: list[dict[str, str]] = []
@@ -172,10 +176,12 @@ def extract_steps_from_notes(notes: list[dict[str, Any]]) -> list[dict[str, Any]
     steps: list[dict[str, Any]] = []
     for i, s in enumerate(other_sections + all_test_sections, start=1):
         md_source = f"**[{s['label']}]**\n\n{s['content']}"
-        steps.append({
-            "text1": markdown.markdown(md_source),
-            "text3": TESTMO_EXPECTED,
-            "display_order": i,
-        })
+        steps.append(
+            {
+                "text1": markdown.markdown(md_source),
+                "text3": TESTMO_EXPECTED,
+                "display_order": i,
+            }
+        )
 
     return steps

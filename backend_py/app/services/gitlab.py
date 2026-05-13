@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 class GitLabService:
     __test__ = False  # Not a pytest test class
+
     def __init__(self) -> None:
         base = settings.gitlab_url.rstrip("/")
         verify = settings.gitlab_verify_ssl
@@ -41,8 +42,12 @@ class GitLabService:
             verify=verify,
         )
 
-        self.cb_rest = CircuitBreaker(name="gitlab_rest", failure_threshold=5, recovery_timeout=30.0)
-        self.cb_graphql = CircuitBreaker(name="gitlab_graphql", failure_threshold=5, recovery_timeout=30.0)
+        self.cb_rest = CircuitBreaker(
+            name="gitlab_rest", failure_threshold=5, recovery_timeout=30.0
+        )
+        self.cb_graphql = CircuitBreaker(
+            name="gitlab_graphql", failure_threshold=5, recovery_timeout=30.0
+        )
         self._project_path_cache: dict[str | int, str] = {}
 
     @with_resilience(breaker=None, max_attempts=3, base_delay_ms=600)
@@ -83,7 +88,9 @@ class GitLabService:
                 )
             return data["data"]
 
-    async def _get_paginated(self, path: str, params: dict[str, Any] | None = None) -> PaginatedList:
+    async def _get_paginated(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> PaginatedList:
         """Follow x-next-page header, 100 items/page. Deduplicate by id."""
         seen_ids: set[int | str] = set()
         all_items: list[dict[str, Any]] = []
@@ -125,6 +132,7 @@ class GitLabService:
             return "?"
         try:
             from datetime import datetime
+
             dt = datetime.fromisoformat(d.replace("Z", "+00:00"))
             return dt.strftime("%d/%m")
         except ValueError:
@@ -135,25 +143,43 @@ class GitLabService:
         iid = it.get("iid") or it.get("sequence") or it.get("id")
         return f"Itération #{iid} ({self._format_iteration_date(it.get('start_date'))} → {self._format_iteration_date(it.get('due_date'))})"
 
-    async def find_iteration_for_project(self, project_id: str | int, iteration_name: str) -> dict[str, Any] | None:
+    async def find_iteration_for_project(
+        self, project_id: str | int, iteration_name: str
+    ) -> dict[str, Any] | None:
         """Find iteration by iid (generated iterations) or normalized title (including fallback titles)."""
-        iterations = await self._get_paginated(f"/projects/{project_id}/iterations", {"state": "all"})
+        iterations = await self._get_paginated(
+            f"/projects/{project_id}/iterations", {"state": "all"}
+        )
         generated_match = re.search(r"#(\d+)", iteration_name)
         if generated_match and re.search(r"it.ration", iteration_name, re.IGNORECASE):
             target_iid = int(generated_match.group(1))
             for it in iterations:
                 if it.get("iid") == target_iid:
-                    logger.info("GitLab: Itération trouvée par iid=%s (project %s, id=%s)", target_iid, project_id, it.get("id"))
+                    logger.info(
+                        "GitLab: Itération trouvée par iid=%s (project %s, id=%s)",
+                        target_iid,
+                        project_id,
+                        it.get("id"),
+                    )
                     return it
+
         def normalize(s: str) -> str:
             return re.sub(r"[-\s]+", "", s.lower())
+
         normalized_search = normalize(iteration_name)
         for it in iterations:
             it_title = it.get("title") or self._iteration_fallback_title(it)
             if normalize(it_title) == normalized_search:
-                logger.info('GitLab: Itération trouvée (project %s) - "%s" (id=%s)', project_id, it_title, it.get("id"))
+                logger.info(
+                    'GitLab: Itération trouvée (project %s) - "%s" (id=%s)',
+                    project_id,
+                    it_title,
+                    it.get("id"),
+                )
                 return it
-        logger.warn('GitLab: Itération "%s" non trouvée dans project %s', iteration_name, project_id)
+        logger.warn(
+            'GitLab: Itération "%s" non trouvée dans project %s', iteration_name, project_id
+        )
         return None
 
     def _filtered(self, source: PaginatedList, items: list[dict[str, Any]]) -> PaginatedList:
@@ -197,7 +223,12 @@ class GitLabService:
         version_by_gid: dict[str, str | None] = {}
         for node in data.get("nodes", []):
             cf_widget = next(
-                (w for w in node.get("widgets", []) if isinstance(w.get("customFieldValues"), list)), None
+                (
+                    w
+                    for w in node.get("widgets", [])
+                    if isinstance(w.get("customFieldValues"), list)
+                ),
+                None,
             )
             version_prod = None
             if cf_widget:
@@ -207,18 +238,29 @@ class GitLabService:
                         break
             version_by_gid[node["id"]] = version_prod
         filtered = [
-            issue for issue in all_issues
+            issue
+            for issue in all_issues
             if version_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}") == version
         ]
         logger.info(
             'GitLab: %s/%s issue(s) avec Version Prod="%s" (project=%s)',
-            len(filtered), len(all_issues), version, project_id,
+            len(filtered),
+            len(all_issues),
+            version,
+            project_id,
         )
         return self._filtered(all_issues, filtered)
 
-    async def get_issues_by_version_only(self, project_id: str | int, version: str) -> PaginatedList:
-        todo_status_gid = getattr(settings, "gitlab_status_todo", None) or "gid://gitlab/WorkItems::Statuses::Custom::Status/15"
-        all_issues = await self._get_paginated(f"/projects/{project_id}/issues", {"state": "opened", "scope": "all"})
+    async def get_issues_by_version_only(
+        self, project_id: str | int, version: str
+    ) -> PaginatedList:
+        todo_status_gid = (
+            getattr(settings, "gitlab_status_todo", None)
+            or "gid://gitlab/WorkItems::Statuses::Custom::Status/15"
+        )
+        all_issues = await self._get_paginated(
+            f"/projects/{project_id}/issues", {"state": "opened", "scope": "all"}
+        )
         if not all_issues:
             return []
         ids = [f"gid://gitlab/WorkItem/{issue['id']}" for issue in all_issues]
@@ -257,13 +299,18 @@ class GitLabService:
                             version_val = cf.get("selectedOptions", [{}])[0].get("value")
             info_by_gid[node["id"]] = {"version": version_val, "status_gid": status_gid}
         filtered = [
-            issue for issue in all_issues
+            issue
+            for issue in all_issues
             if info_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}", {}).get("version") == version
-            and info_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}", {}).get("status_gid") == todo_status_gid
+            and info_by_gid.get(f"gid://gitlab/WorkItem/{issue['id']}", {}).get("status_gid")
+            == todo_status_gid
         ]
         logger.info(
             'GitLab: %s/%s issue(s) avec Version Prod="%s" + status TODO (project=%s)',
-            len(filtered), len(all_issues), version, project_id,
+            len(filtered),
+            len(all_issues),
+            version,
+            project_id,
         )
         return filtered
 
@@ -358,7 +405,10 @@ class GitLabService:
                                 opts = cf.get("selectedOptions")
                                 if opts:
                                     node_version = opts[0].get("value")
-                info_by_iid[str(node["iid"])] = {"status": node_status, "version_prod": node_version}
+                info_by_iid[str(node["iid"])] = {
+                    "status": node_status,
+                    "version_prod": node_version,
+                }
 
             for issue in batch:
                 info = info_by_iid.get(str(issue["iid"]), {})
@@ -369,8 +419,11 @@ class GitLabService:
                 filtered.append(issue)
 
         logger.info(
-            'GitLab: %s/%s issue(s) après filtre custom fields (status=%s, version_prod=%s)',
-            len(filtered), len(issues), gitlab_status, version_prod,
+            "GitLab: %s/%s issue(s) après filtre custom fields (status=%s, version_prod=%s)",
+            len(filtered),
+            len(issues),
+            gitlab_status,
+            version_prod,
         )
         return self._filtered(issues, filtered)
 
@@ -378,8 +431,12 @@ class GitLabService:
         notes = await self._get_paginated(f"/projects/{project_id}/issues/{issue_iid}/notes")
         return self._filtered(notes, [n for n in notes if not n.get("system")])
 
-    async def add_issue_comment(self, project_id: str | int, issue_iid: int, body: str) -> dict[str, Any]:
-        return await self._rest_post(f"/projects/{project_id}/issues/{issue_iid}/notes", {"body": body})
+    async def add_issue_comment(
+        self, project_id: str | int, issue_iid: int, body: str
+    ) -> dict[str, Any]:
+        return await self._rest_post(
+            f"/projects/{project_id}/issues/{issue_iid}/notes", {"body": body}
+        )
 
     async def update_issue_label(
         self, project_id: str | int, issue_iid: int, add_labels: list[str], remove_labels: list[str]
@@ -389,7 +446,9 @@ class GitLabService:
             {"add_labels": ",".join(add_labels), "remove_labels": ",".join(remove_labels)},
         )
 
-    async def update_work_item_status(self, work_item_global_id: str, status_global_id: str) -> dict[str, Any]:
+    async def update_work_item_status(
+        self, work_item_global_id: str, status_global_id: str
+    ) -> dict[str, Any]:
         """Update a Work Item status via GraphQL (status widget)."""
         query = """
         mutation UpdateWorkItemStatus($id: WorkItemID!, $statusId: WorkItemsStatusesStatusID!) {
@@ -410,7 +469,10 @@ class GitLabService:
         async with self.cb_graphql:
             resp = await self.graphql.post(
                 "/api/graphql",
-                json={"query": query, "variables": {"id": work_item_global_id, "statusId": status_global_id}},
+                json={
+                    "query": query,
+                    "variables": {"id": work_item_global_id, "statusId": status_global_id},
+                },
             )
             resp.raise_for_status()
             result = resp.json()
@@ -434,7 +496,7 @@ class GitLabService:
                 if widget.get("type") == "STATUS" and widget.get("status"):
                     status_name = widget["status"]["name"]
                     break
-            logger.info("GitLab: Work item %s → status \"%s\"", work_item_global_id, status_name)
+            logger.info('GitLab: Work item %s → status "%s"', work_item_global_id, status_name)
             return work_item
 
     async def health_check(self) -> bool:
@@ -485,14 +547,20 @@ class GitLabService:
     async def get_project(self, project_id: str | int) -> dict[str, Any]:
         return await self._rest_get(f"/projects/{project_id}")
 
-    async def get_project_iterations(self, project_id: str | int, search: str | None = None) -> PaginatedList:
+    async def get_project_iterations(
+        self, project_id: str | int, search: str | None = None
+    ) -> PaginatedList:
         params: dict[str, Any] = {"state": "all"}
         if search:
             params["search"] = search
         return await self._get_paginated(f"/projects/{project_id}/iterations", params)
 
     async def get_project_issues(
-        self, project_id: str | int, state: str = "all", labels: list[str] | None = None, search: str | None = None
+        self,
+        project_id: str | int,
+        state: str = "all",
+        labels: list[str] | None = None,
+        search: str | None = None,
     ) -> PaginatedList:
         params: dict[str, Any] = {"state": state}
         if labels:
@@ -511,6 +579,15 @@ class GitLabService:
             if exc.response.status_code == 404:
                 return None
             raise
+
+    async def download_upload(self, url: str) -> bytes:
+        """Download a file from GitLab (handles relative /uploads/ paths)."""
+        if url.startswith("/"):
+            url = f"{settings.gitlab_url.rstrip('/')}{url}"
+        async with self.cb_rest:
+            resp = await self.graphql.get(url)
+            resp.raise_for_status()
+            return resp.content
 
 
 gitlab_service = GitLabService()
