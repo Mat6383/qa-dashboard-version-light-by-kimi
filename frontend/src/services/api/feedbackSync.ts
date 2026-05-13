@@ -12,11 +12,16 @@ function mapFeedbackSyncRun(row: Record<string, any>): FeedbackSyncRun {
   } as FeedbackSyncRun;
 }
 
-export async function runFeedbackScan(projectId: number, activeOnly = true): Promise<FeedbackSyncRun> {
+export async function runFeedbackScan(
+  projectId: number,
+  activeOnly = true,
+  runIds?: number[]
+): Promise<FeedbackSyncRun> {
   return apiCall('Run Feedback Sync', async () => {
     const response = await apiClient.post('/feedback-sync/run', {
       project_id: projectId,
       active_only: activeOnly,
+      run_ids: runIds,
     });
     return mapFeedbackSyncRun(response.data.data);
   });

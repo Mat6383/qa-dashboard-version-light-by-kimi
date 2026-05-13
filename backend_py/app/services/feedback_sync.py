@@ -63,6 +63,7 @@ class FeedbackSyncService:
         testmo_project_id: int,
         gitlab_project_id: int | str,
         active_only: bool = True,
+        run_ids: list[int] | None = None,
         triggered_by: str = "manual",
         db: AsyncSession | None = None,
     ) -> dict[str, Any]:
@@ -84,13 +85,22 @@ class FeedbackSyncService:
         )
 
         try:
-            runs = await testmo_service.get_project_runs(testmo_project_id, active_only)
+            all_runs = await testmo_service.get_project_runs(testmo_project_id, active_only)
         except Exception as exc:
             logger.error("[FeedbackSync] Failed to fetch runs: %s", exc)
             raise
 
+        if run_ids:
+            runs = [r for r in all_runs if r.get("id") in run_ids]
+        else:
+            runs = all_runs
+
         stats["runs_scanned"] = len(runs)
-        logger.info("[FeedbackSync] %s run(s) to scan", len(runs))
+        logger.info(
+            "[FeedbackSync] %s run(s) to scan (selected from %s total)",
+            len(runs),
+            len(all_runs),
+        )
 
         for run in runs:
             run_id = run.get("id")

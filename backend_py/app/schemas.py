@@ -483,6 +483,7 @@ class JiraIssueCreate(BaseModel):
 class FeedbackSyncRunPayload(BaseModel):
     project_id: int
     active_only: bool = True
+    run_ids: list[int] | None = None
 
 
 class FeedbackSyncHistoryResponse(BaseModel):

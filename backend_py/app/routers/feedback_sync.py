@@ -41,6 +41,7 @@ async def run_feedback_sync(payload: FeedbackSyncRunPayload, db: DBMain) -> dict
             testmo_project_id=payload.project_id,
             gitlab_project_id=gitlab_project_id,
             active_only=payload.active_only,
+            run_ids=payload.run_ids,
             triggered_by="manual",
             db=db,
         )
