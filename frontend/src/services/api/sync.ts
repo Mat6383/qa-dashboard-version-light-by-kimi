@@ -14,7 +14,7 @@ import { apiClient, apiCall, mapSnakeToCamel, mapCamelToSnake } from './core';
 export async function getSyncProjects(): Promise<SyncProject[]> {
   return apiCall('Get Sync Projects', async () => {
     const response = await apiClient.get('/sync/projects');
-    return response.data.data;
+    return (response.data.data as any[]).map(mapSnakeToCamel) as SyncProject[];
   });
 }
 
