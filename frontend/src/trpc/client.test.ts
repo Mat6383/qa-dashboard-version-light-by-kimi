@@ -5,9 +5,9 @@ describe('trpc/client', () => {
     localStorage.clear();
   });
 
-  it('getTrpcBaseUrl retourne chaîne vide côté client', async () => {
+  it('getTrpcBaseUrl retourne http://localhost:3001 par défaut côté client', async () => {
     const { getTrpcBaseUrl } = await import('../services/http.config');
-    expect(getTrpcBaseUrl()).toBe('');
+    expect(getTrpcBaseUrl()).toBe('http://localhost:3001');
   });
 
   it('generateRequestId retourne un string formaté', async () => {
