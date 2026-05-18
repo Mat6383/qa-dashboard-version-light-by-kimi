@@ -77,6 +77,15 @@ describe('AppLayout mobile', () => {
     renderAppLayout();
     expect(screen.queryByText(/ISTQB Compliant \| LEAN Optimized/i)).not.toBeInTheDocument();
   });
+
+  it('shows degraded mode banner when circuit breaker is OPEN', async () => {
+    renderAppLayout({
+      circuitBreakers: [{ name: 'Testmo', state: 'OPEN' }],
+    });
+    const banner = await screen.findByRole('alert');
+    expect(banner).toHaveTextContent(/Mode dégradé/i);
+    expect(banner).toHaveTextContent(/Testmo/);
+  });
 });
 
 describe('AppLayout desktop', () => {

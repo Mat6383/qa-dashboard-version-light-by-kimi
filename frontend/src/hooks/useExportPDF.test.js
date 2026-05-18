@@ -40,6 +40,12 @@ vi.mock('jspdf', () => ({
 describe('useExportPDF', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(html2canvas).mockReset();
+    vi.mocked(html2canvas).mockResolvedValue({
+      toDataURL: () => 'data:image/png;base64,xxx',
+      height: 1000,
+      width: 2000,
+    });
   });
 
   it('exporte un PDF en mode portrait par défaut', async () => {
@@ -120,10 +126,21 @@ describe('useExportPDF', () => {
     const element = document.createElement('div');
     element.style.display = 'none';
 
+    let displayDuringCapture;
+    vi.mocked(html2canvas).mockImplementationOnce((el) => {
+      displayDuringCapture = el.style.display;
+      return Promise.resolve({
+        toDataURL: () => 'data:image/png;base64,xxx',
+        height: 1000,
+        width: 2000,
+      });
+    });
+
     await act(async () => {
       await result.current.exportPDF(element, 'hidden.pdf');
     });
 
+    expect(displayDuringCapture).toBe('block');
     expect(element.style.display).toBe('none'); // restauré
   });
 
@@ -146,5 +163,6 @@ describe('useExportPDF', () => {
       await result.current.exportPDF(null, 'null.pdf');
     });
     expect(html2canvas).not.toHaveBeenCalled();
+    expect(result.current.isExporting).toBe(false);
   });
 });

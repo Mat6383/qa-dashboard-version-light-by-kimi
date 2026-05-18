@@ -138,10 +138,10 @@ describe('Dashboard4', () => {
     expect(await screen.findByText(/TENDANCES ANNUELLES DE QUALITÉ/i)).toBeInTheDocument();
   });
 
-  it("affiche l'onglet Sync GitLab → Testmo au clic", () => {
+  it("affiche l'onglet Sync GitLab → Testmo au clic", async () => {
     renderDashboard();
     fireEvent.click(screen.getByRole('tab', { name: /Sync GitLab → Testmo/i }));
-    expect(screen.getByText(/SYNCHRONISATION GITLAB → TESTMO/i)).toBeInTheDocument();
+    expect(await screen.findByText(/SYNCHRONISATION GITLAB → TESTMO/i)).toBeInTheDocument();
   });
 
   it("n'affiche pas le loader global quand metrics est null sur un onglet secondaire", () => {
