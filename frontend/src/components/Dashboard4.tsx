@@ -11,7 +11,9 @@ import HistoricalTrends from './HistoricalTrends';
 import CompareDashboard from './CompareDashboard';
 import Dashboard5 from './Dashboard5';
 import Dashboard6 from './Dashboard6';
+import SkeletonDashboard from './SkeletonDashboard';
 import '../styles/Dashboard4.css';
+import '../styles/KPICard.css';
 import '../styles/Tabs.css';
 
 const DEFAULT_RATES = {
@@ -141,10 +143,7 @@ const Dashboard4 = ({
       {activeTab === 'overview' && (
         <div ref={dashboardRef} role="tabpanel" id="d4-tabpanel-overview" aria-labelledby="d4-tab-overview">
           {!metrics || !project ? (
-            <div className="tv-loading">
-              <Activity size={48} className="spinner" />
-              <h2>{t('dashboard4.loading')}</h2>
-            </div>
+            <SkeletonDashboard />
           ) : (
           <div className={`tv-dashboard dashboard4-card ${isDark ? 'tv-dark-theme' : ''}`}>
             <header className="dashboard4-hidden-header">{/* Ancien header masqué */}</header>

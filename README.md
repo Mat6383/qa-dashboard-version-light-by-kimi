@@ -319,13 +319,34 @@ curl http://localhost:3001/api/dashboard/1
 cat backend/.env | grep TESTMO_TOKEN
 ```
 
-### **Erreur: "Cannot GET /api/..."**
+### **Erreur: `AggregateError [EADDRNOTAVAIL]` dans Vite (proxy `/api`)**
 
-✅ **Solution** : Le backend n'est pas démarré
+✅ **Solution** : Le port `3001` est occupé par autre chose que le backend Python (souvent une ancienne instance Vite).
 
 ```bash
-cd backend
-npm start
+# 1. Identifier le processus sur le port 3001
+lsof -i :3001
+
+# 2. Le tuer si ce n'est pas le backend Python
+kill <PID>
+
+# 3. Démarrer le backend Python
+cd backend_py && uv run uvicorn app.main:app --reload --port 3001
+
+# 4. Redémarrer le frontend si besoin
+cd frontend && npm run dev
+```
+
+> **Prévention** : le backend Python doit être le seul service sur le port `3001`. Ne lancez jamais `npm run dev` (frontend) sur ce port.
+
+---
+
+### **Erreur: "Cannot GET /api/..."**
+
+✅ **Solution** : Le backend Python n'est pas démarré
+
+```bash
+cd backend_py && uv run uvicorn app.main:app --reload --port 3001
 ```
 
 ### **Erreur: "CORS policy blocked"**

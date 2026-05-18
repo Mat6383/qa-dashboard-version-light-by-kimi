@@ -1,26 +1,36 @@
 /**
  * ================================================
- * PREPROD SECTION — Dashboard4 Préproduction
+ * PREPROD SECTION — Dashboard4 Préproduction v2
  * ================================================
- * Grille de métriques, répartition des statuts, campagnes actives.
+ * Grille de KPIs premium, répartition Doughnut, campagnes actives.
  *
  * @author Matou - Neo-Logix QA Lead
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Activity, CheckSquare, XCircle, TrendingUp, BarChart3, Database, Search } from 'lucide-react';
-import MetricCard from './MetricCard';
-import { getMetricColor } from '../lib/colors';
-import type { DashboardMetrics, RawMetrics, Run, AnomalyItem, MetricAlert } from '../types/api.types';
+import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import KPICard from './KPICard';
+import { getMetricColor, getMetricLevel } from '../lib/colors';
+import type { DashboardMetrics, RawMetrics, Run, MetricAlert, KpiStatus, KpiTrend } from '../types/api.types';
 import '../styles/PreprodSection.css';
 
-export function getPassRateColor(passRate: number): string {
-  return getMetricColor('passRate', passRate);
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+function getKpiStatus(metricName: string, value: number): KpiStatus {
+  const level = getMetricLevel(metricName, value);
+  if (level === 'success') return 'ok';
+  if (level === 'warning') return 'warning';
+  return 'critical';
 }
 
-function getTrend(anomalies: AnomalyItem[], metricKey: string) {
-  return anomalies?.find((a) => a.metric === metricKey) || null;
+function getKpiTrend(metricName: string, value: number): KpiTrend {
+  const level = getMetricLevel(metricName, value);
+  if (level === 'success') return 'up';
+  if (level === 'danger') return 'down';
+  return 'neutral';
 }
 
 function getProgressColor(value: number): string {
@@ -39,7 +49,7 @@ interface PreprodSectionProps {
   isDark: boolean;
   useBusiness: boolean;
   getAlertForMetric: (metric: string) => MetricAlert | undefined;
-  anomalies: AnomalyItem[];
+  anomalies: import('../types/api.types').AnomalyItem[];
 }
 
 export default function PreprodSection({
@@ -55,6 +65,65 @@ export default function PreprodSection({
 }: PreprodSectionProps) {
   const d1 = metrics;
 
+  const statusChartData = useMemo(() => {
+    const labels = [
+      useBusiness ? 'Réussis' : 'Passed',
+      useBusiness ? 'Échoués' : 'Failed',
+      useBusiness ? 'En cours' : 'WIP',
+      useBusiness ? 'Bloqués' : 'Blocked',
+      useBusiness ? 'Non testés' : 'Untested',
+    ];
+    const data = [raw.passed, raw.failed, raw.wip, raw.blocked, raw.untested];
+    const colors = [
+      'var(--status-success)',
+      'var(--status-danger)',
+      'var(--status-info)',
+      'var(--status-warning)',
+      'var(--text-muted)',
+    ];
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors,
+          borderColor: 'var(--surface-elevated)',
+          borderWidth: 2,
+          hoverOffset: 8,
+        },
+      ],
+    };
+  }, [raw, useBusiness]);
+
+  const statusChartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        labels: {
+          color: 'var(--text-secondary)',
+          font: { size: 12, weight: 'bold' as const },
+          padding: 16,
+          usePointStyle: true,
+          pointStyle: 'circle',
+        },
+      },
+      tooltip: {
+        backgroundColor: 'var(--surface-elevated)',
+        titleColor: 'var(--text-default)',
+        bodyColor: 'var(--text-secondary)',
+        borderColor: 'var(--border-color)',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.label}: ${ctx.raw}`,
+        },
+      },
+    },
+  }), []);
+
   return (
     <div className="pp-section">
       <div className="pp-section-header">
@@ -65,88 +134,60 @@ export default function PreprodSection({
       </div>
 
       {/* Grille principale Preprod */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '1rem',
-        marginBottom: '1rem',
-      }}>
-        <MetricCard
+      <div className="pp-kpi-grid">
+        <KPICard
           title={useBusiness ? "Taux d'Exécution" : 'Execution Rate'}
-          icon={Activity}
-          value={d1.completionRate}
-          color={getMetricColor('completionRate', d1.completionRate)}
-          arrow={d1.completionRate >= 90 ? '▲' : '▼'}
-          badge={`${raw.completed} / ${raw.total}`}
-          label={useBusiness ? 'tests exécutés (Cible: ≥ 90%)' : 'tests executed (Target: ≥ 90%)'}
+          icon={<Activity size={20} />}
+          value={Math.round(d1.completionRate)}
+          status={getKpiStatus('completionRate', d1.completionRate)}
+          trend={getKpiTrend('completionRate', d1.completionRate)}
+          subtitle={`${raw.completed} / ${raw.total} ${useBusiness ? 'tests exécutés' : 'tests executed'} (Cible: ≥ 90%)`}
           alert={getAlertForMetric('Completion Rate')}
-          useBusiness={useBusiness}
-          trend={getTrend(anomalies, 'completion_rate')}
           progress={{ value: d1.completionRate, label: `${raw.completed} / ${raw.total}` }}
         />
-        <MetricCard
+        <KPICard
           title={useBusiness ? 'Taux de Succès' : 'Pass Rate'}
-          icon={CheckSquare}
-          value={d1.passRate}
-          color={getMetricColor('passRate', d1.passRate)}
-          arrow={d1.passRate >= 95 ? '▲' : '▼'}
-          badge={`${raw.passed} / ${raw.total}`}
-          label={useBusiness ? 'tests réussis (Cible: ≥ 95%)' : 'tests passed (Target: ≥ 95%)'}
-          description={
-            useBusiness
-              ? '(Réussis / Total des tests terminés, bloqués ou ignorés)'
-              : '(Passed / Total completed, blocked or skipped)'
-          }
+          icon={<CheckSquare size={20} />}
+          value={Math.round(d1.passRate)}
+          status={getKpiStatus('passRate', d1.passRate)}
+          trend={getKpiTrend('passRate', d1.passRate)}
+          subtitle={`${raw.passed} / ${raw.total} ${useBusiness ? 'tests réussis' : 'tests passed'} (Cible: ≥ 95%)`}
           alert={getAlertForMetric('Pass Rate') || getAlertForMetric('Blocked Rate')}
-          useBusiness={useBusiness}
-          trend={getTrend(anomalies, 'pass_rate')}
           progress={{ value: d1.passRate, label: `${raw.passed} / ${raw.total}` }}
         />
-        <MetricCard
+        <KPICard
           title={useBusiness ? "Taux d'Échec" : 'Failure Rate'}
-          icon={XCircle}
-          value={d1.failureRate}
-          color={getMetricColor('failureRate', d1.failureRate)}
-          arrow={d1.failureRate <= 5 ? '▼' : '▲'}
-          badge={`${raw.failed} / ${raw.total}`}
-          label={useBusiness ? 'tests échoués (Cible: ≤ 5%)' : 'tests failed (Target: ≤ 5%)'}
+          icon={<XCircle size={20} />}
+          value={Math.round(d1.failureRate)}
+          status={getKpiStatus('failureRate', d1.failureRate)}
+          trend={getKpiTrend('failureRate', d1.failureRate)}
+          subtitle={`${raw.failed} / ${raw.total} ${useBusiness ? 'tests échoués' : 'tests failed'} (Cible: ≤ 5%)`}
           alert={getAlertForMetric('Failure Rate')}
-          useBusiness={useBusiness}
           progress={{ value: d1.failureRate, label: `${raw.failed} / ${raw.total}` }}
         />
-        <MetricCard
+        <KPICard
           title={useBusiness ? 'Efficience des tests' : 'Test Efficiency'}
-          icon={TrendingUp}
-          value={d1.testEfficiency}
-          color={getMetricColor('testEfficiency', d1.testEfficiency)}
-          arrow={d1.testEfficiency >= 95 ? '▲' : '▼'}
-          badge={`${raw.passed} / ${raw.passed + raw.failed}`}
-          label={useBusiness ? 'Approcher les 100% (≥ 95%)' : 'Approach 100% (≥ 95%)'}
-          description={useBusiness ? '(Réussis / (Réussis + Échoués) purs)' : '(Passed / (Passed + Failed))'}
+          icon={<TrendingUp size={20} />}
+          value={Math.round(d1.testEfficiency)}
+          status={getKpiStatus('testEfficiency', d1.testEfficiency)}
+          trend={getKpiTrend('testEfficiency', d1.testEfficiency)}
+          subtitle={`${raw.passed} / ${raw.passed + raw.failed} (Cible: ≥ 95%)`}
           alert={getAlertForMetric('Test Efficiency')}
-          useBusiness={useBusiness}
           progress={{ value: d1.testEfficiency, label: `${raw.passed} / ${raw.passed + raw.failed}` }}
         />
       </div>
 
       {/* Répartition des statuts */}
-      <div className="pp-status-bar">
-        <div className="pp-status-title">
-          <BarChart3 size={24} /> Répartition Globale
+      <div className="pp-status-section">
+        <div className="pp-status-header">
+          <BarChart3 size={24} />
+          <span>{useBusiness ? 'Répartition Globale' : 'Global Distribution'}</span>
         </div>
-        {[
-          { label: useBusiness ? 'Réussis' : 'Passed', val: raw.passed, color: 'var(--text-success)' },
-          { label: useBusiness ? 'Échoués' : 'Failed', val: raw.failed, color: 'var(--text-danger)' },
-          { label: useBusiness ? 'En cours' : 'WIP', val: raw.wip, color: 'var(--text-primary)' },
-          { label: useBusiness ? 'Bloqués' : 'Blocked', val: raw.blocked, color: 'var(--text-warning)' },
-          { label: useBusiness ? 'Non testés' : 'Untested', val: raw.untested, color: 'var(--text-muted)' },
-        ].map((stat) => (
-          <div key={stat.label} className="pp-status-item">
-            <div className="pp-status-dot" style={{ backgroundColor: stat.color }}></div>
-            <span className="pp-status-label">{stat.label}:</span>
-            <span className="pp-status-value">{stat.val}</span>
+        <div className="pp-status-chart">
+          <div className="pp-doughnut-wrap">
+            <Doughnut data={statusChartData} options={statusChartOptions} />
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Campagnes Actives */}
@@ -270,14 +311,14 @@ export default function PreprodSection({
 
               <div className="pp-campaign-metric" style={{ marginTop: '0.4rem' }}>
                 <span className="pp-campaign-metric-label">{useBusiness ? 'Taux de succès' : 'Pass Rate'}</span>
-                <span className="pp-campaign-metric-value" style={{ color: getPassRateColor(run.passRate) }}>{run.passRate}%</span>
+                <span className="pp-campaign-metric-value" style={{ color: getMetricColor('passRate', run.passRate) }}>{run.passRate}%</span>
               </div>
               <div className="pp-progress-bar">
                 <div
                   className="pp-progress-fill"
                   style={{
                     width: `${run.passRate}%`,
-                    backgroundColor: getPassRateColor(run.passRate),
+                    backgroundColor: getMetricColor('passRate', run.passRate),
                   }}
                 ></div>
               </div>

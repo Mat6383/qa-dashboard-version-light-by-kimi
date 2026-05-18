@@ -21,6 +21,16 @@ cd backend_py && uv sync
 
 ## Démarrage
 
+> **⚠️ Attention — Port 3001 réservé au backend Python**
+>
+> Le port `3001` est utilisé par le backend FastAPI. **Ne lancez jamais** le frontend Vite (`npm run dev`) ni le backend Node legacy sur ce port, sinon le proxy du frontend ne pourra pas joindre l'API et vous obtiendrez des erreurs `AggregateError [EADDRNOTAVAIL]` ou `502 Bad Gateway`.
+>
+> Commandes correctes :
+>
+> - Backend Python → port `3001`
+> - Frontend Vite → port `3000`
+> - Backend Node legacy (si besoin) → port `3002` ou plus
+
 Le backend **Python FastAPI** (port 3001) est le backend actif en production.
 Le backend Node.js (port 3001 legacy) est en mode maintenance pour les routes non encore coupées.
 
@@ -32,7 +42,8 @@ cd backend_py && uv run uvicorn app.main:app --reload --port 3001
 npm run dev -w frontend
 
 # Backend Node.js legacy (si besoin des routes non coupées)
-npm run dev -w backend
+# → utiliser un port différent pour éviter le conflit
+PORT=3002 npm run dev -w backend
 ```
 
 Pour lancer frontend + backend Python en parallèle :

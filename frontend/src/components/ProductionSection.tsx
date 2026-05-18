@@ -1,18 +1,18 @@
 /**
  * ================================================
- * PRODUCTION SECTION — Dashboard4 Production
+ * PRODUCTION SECTION — Dashboard4 Production v2
  * ================================================
- * Escape Rate + Detection Rate (DDP) avec toggle visibilité.
+ * Escape Rate + Detection Rate (DDP) avec KPICards premium.
  *
  * @author Matou - Neo-Logix QA Lead
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import React from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
-import TrendBadge from './TrendBadge';
+import KPICard from './KPICard';
 import { getMetricColor, getMetricLevel } from '../lib/colors';
-import type { AnomalyItem, QualityRates } from '../types/api.types';
+import type { AnomalyItem, QualityRates, KpiStatus, KpiTrend } from '../types/api.types';
 import '../styles/ProductionSection.css';
 
 interface ProductionRates extends QualityRates {
@@ -32,8 +32,27 @@ interface ProductionSectionProps {
   anomalies: AnomalyItem[];
 }
 
-function getTrend(anomalies: AnomalyItem[], metricKey: string) {
-  return anomalies?.find((a) => a.metric === metricKey) || null;
+function getKpiStatus(metricName: string, value: number): KpiStatus {
+  const level = getMetricLevel(metricName, value);
+  if (level === 'success') return 'ok';
+  if (level === 'warning') return 'warning';
+  return 'critical';
+}
+
+function getKpiTrend(metricName: string, value: number): KpiTrend {
+  const level = getMetricLevel(metricName, value);
+  if (level === 'success') return 'up';
+  if (level === 'danger') return 'down';
+  return 'neutral';
+}
+
+function getTrend(anomalies: AnomalyItem[], metricKey: string): import('../types/api.types').MetricAlert | null {
+  const a = anomalies?.find((a) => a.metric === metricKey);
+  if (!a) return null;
+  return {
+    severity: a.severity === 'high' ? 'critical' : a.severity,
+    message: `Anomalie ${a.metric} (z-score: ${a.zScore.toFixed(2)})`,
+  };
 }
 
 export default function ProductionSection({
@@ -48,19 +67,12 @@ export default function ProductionSection({
 }: ProductionSectionProps) {
   if (!rates) return null;
 
-  const escapeLevel = getMetricLevel('escapeRate', rates.escapeRate);
-  const ddpLevel = getMetricLevel('detectionRate', rates.detectionRate);
-  const escapeColor = getMetricColor('escapeRate', rates.escapeRate);
-  const ddpColor = getMetricColor('detectionRate', rates.detectionRate);
-
   const milestoneDisplay = rates.prodMilestone && rates.prodMilestone !== 'N/A' ? rates.prodMilestone : '—';
 
   return (
     <div className="prod-section">
       <div className="prod-header">
-        <h2>
-          {useBusiness ? 'PRODUCTION' : 'PRODUCTION'}
-        </h2>
+        <h2>{useBusiness ? 'PRODUCTION' : 'PRODUCTION'}</h2>
         {onToggleProductionSection && (
           <div
             className="prod-toggle"
@@ -81,65 +93,26 @@ export default function ProductionSection({
       </div>
 
       {showProductionSection && (
-        <>
-          <div className="prod-grid">
-            {/* Escape Rate */}
-            <div className="prod-card" style={{ borderColor: escapeColor }}>
-              <div className="prod-card-content">
-                <h3 className="prod-card-title">
-                  <ShieldAlert size={24} color={escapeColor} /> Taux d&apos;Échappement
-                  <TrendBadge trend={getTrend(anomalies, 'escape_rate')} style={{ marginLeft: '8px' }} />
-                </h3>
-                <div className="prod-card-meta">
-                  <span>
-                    {useBusiness ? 'Jalon' : 'Milestone'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{milestoneDisplay}</strong>
-                  </span>
-                  <span>
-                    {useBusiness ? 'Objectif' : 'Target'}:{' '}
-                    <strong style={{ color: escapeColor }}>&lt; 5%</strong>
-                  </span>
-                </div>
-              </div>
-              <div className="prod-card-value-wrap">
-                <div className="prod-card-value" style={{ color: escapeColor }}>
-                  {rates.escapeRate}%
-                </div>
-                <div className="prod-card-badge">
-                  {rates.bugsInProd} {useBusiness ? 'bugs prod' : 'prod bugs'}
-                </div>
-              </div>
-            </div>
-
-            {/* Detection Rate (DDP) */}
-            <div className="prod-card" style={{ borderColor: ddpColor }}>
-              <div className="prod-card-content">
-                <h3 className="prod-card-title">
-                  <ShieldCheck size={24} color={ddpColor} /> Taux de Détection
-                  <TrendBadge trend={getTrend(anomalies, 'detection_rate')} style={{ marginLeft: '8px' }} />
-                </h3>
-                <div className="prod-card-meta">
-                  <span>
-                    {useBusiness ? 'Lié' : 'Linked'}:{' '}
-                    <strong style={{ color: 'var(--text-color)' }}>{milestoneDisplay}</strong>
-                  </span>
-                  <span>
-                    {useBusiness ? 'Objectif' : 'Target'}:{' '}
-                    <strong style={{ color: ddpColor }}>&gt; 95%</strong>
-                  </span>
-                </div>
-              </div>
-              <div className="prod-card-value-wrap">
-                <div className="prod-card-value" style={{ color: ddpColor }}>
-                  {rates.detectionRate}%
-                </div>
-                <div className="prod-card-badge">
-                  {rates.bugsInTest} {useBusiness ? 'bugs test' : 'test bugs'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <div className="prod-kpi-grid">
+          <KPICard
+            title={useBusiness ? "Taux d'Échappement" : 'Escape Rate'}
+            icon={<ShieldAlert size={20} />}
+            value={Math.round(rates.escapeRate)}
+            status={getKpiStatus('escapeRate', rates.escapeRate)}
+            trend={getKpiTrend('escapeRate', rates.escapeRate)}
+            subtitle={`${useBusiness ? 'Jalon' : 'Milestone'}: ${milestoneDisplay} • Objectif: < 5%`}
+            alert={getTrend(anomalies, 'escape_rate')}
+          />
+          <KPICard
+            title={useBusiness ? 'Taux de Détection' : 'Detection Rate'}
+            icon={<ShieldCheck size={20} />}
+            value={Math.round(rates.detectionRate)}
+            status={getKpiStatus('detectionRate', rates.detectionRate)}
+            trend={getKpiTrend('detectionRate', rates.detectionRate)}
+            subtitle={`${useBusiness ? 'Lié' : 'Linked'}: ${milestoneDisplay} • Objectif: > 95%`}
+            alert={getTrend(anomalies, 'detection_rate')}
+          />
+        </div>
       )}
     </div>
   );

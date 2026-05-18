@@ -1,12 +1,4 @@
-import { QueryCache, QueryClient } from '@tanstack/react-query';
-
-function handleTrpcAuthError(error: any) {
-  const code = error?.data?.code || error?.meta?.responseJSON?.[0]?.error?.code;
-  const message = error?.message || '';
-  if (code === 'UNAUTHORIZED' || message.includes('Unauthorized')) {
-    window.location.href = '/login';
-  }
-}
+import { QueryClient } from '@tanstack/react-query';
 
 /**
  * QueryClient global de l'application.
@@ -17,9 +9,6 @@ function handleTrpcAuthError(error: any) {
  * - retry : 1 (évite de spammer en cas d'erreur réseau temporaire)
  */
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: handleTrpcAuthError,
-  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes

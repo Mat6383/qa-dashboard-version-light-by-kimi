@@ -125,6 +125,52 @@ NODE_ENV=development npm run dev
 
 ## 🟠 Erreurs frontend
 
+### `AggregateError [EADDRNOTAVAIL]` — proxy Vite vers `/api` ou `/trpc`
+
+**Symptôme** : La console du navigateur ou du terminal Vite affiche en boucle :
+
+```
+[vite] http proxy error: /api/health
+AggregateError [EADDRNOTAVAIL]:
+    at internalConnectMultiple (node:net:1134:18)
+```
+
+**Cause** : Le port `3001` (backend Python) est occupé par un autre processus — le plus souvent une ancienne instance Vite lancée par erreur sur ce port, ou le backend Node legacy.
+
+**Diagnostic** :
+
+```bash
+lsof -i :3001
+# Si vous voyez "node ... vite" au lieu d'un process Python,
+# c'est une instance Vite parasite.
+```
+
+**Solution** :
+
+```bash
+# 1. Tuer le processus sur le port 3001
+kill <PID>
+
+# 2. Démarrer le backend Python (seul service autorisé sur 3001)
+cd backend_py
+uv run uvicorn app.main:app --reload --port 3001
+
+# 3. Redémarrer le frontend (port 3000)
+cd ../frontend
+npm run dev
+```
+
+**Prévention** :
+
+- Le backend Python utilise le port `3001`
+- Le frontend Vite utilise le port `3000`
+- Si vous devez lancer le backend Node legacy, utilisez un port différent :
+  ```bash
+  PORT=3002 npm run dev -w backend
+  ```
+
+---
+
 ### `Failed to load module script: Expected a JavaScript module script`
 
 **Symptôme** : Écran blanc après déploiement, erreur dans la console.

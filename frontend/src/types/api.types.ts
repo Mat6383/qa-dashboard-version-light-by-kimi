@@ -350,3 +350,7 @@ export interface FeedbackSyncConfig {
   intervalMinutes: number;
   enabled: boolean;
 }
+
+// ─── KPI Card Types ──────────────────────────────────────────────────────────
+export type KpiStatus = 'ok' | 'warning' | 'critical' | 'info';
+export type KpiTrend = 'up' | 'down' | 'neutral';

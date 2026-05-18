@@ -11,8 +11,10 @@ logger = get_logger(__name__)
 
 async def _dashboard_metrics(input_data: dict[str, Any], db) -> dict[str, Any]:
     project_id = input_data.get("projectId")
-    preprod = input_data.get("preprodMilestones")
-    metrics = await testmo_service.get_project_metrics(project_id, milestone_ids=preprod)
+    preprod = input_data.get("preprodMilestones") or []
+    prod = input_data.get("prodMilestones") or []
+    milestone_ids = list(set(preprod + prod)) if (preprod or prod) else None
+    metrics = await testmo_service.get_project_metrics(project_id, milestone_ids=milestone_ids)
     return _result(metrics)
 
 
@@ -24,7 +26,9 @@ async def _dashboard_quality_rates(input_data: dict[str, Any], db) -> dict[str, 
     return _result(rates)
 
 
-async def _dashboard_multi_project_summary(_input_data: dict[str, Any] | None, db) -> dict[str, Any]:
+async def _dashboard_multi_project_summary(
+    _input_data: dict[str, Any] | None, db
+) -> dict[str, Any]:
     projects = await testmo_service.get_projects()
 
     async def _summary_for_project(p: dict[str, Any]) -> dict[str, Any] | None:

@@ -30,63 +30,56 @@
   background: var(--divider-color);
 }
 
-/* Répartition des statuts */
-.pp-status-bar {
+/* KPI Grid */
+.pp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+  .pp-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pp-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Répartition des statuts — Doughnut Section */
+.pp-status-section {
   background: var(--card-bg);
-  padding: 1rem 1.5rem;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  margin-bottom: var(--spacing-md);
   box-shadow: var(--shadow-card);
 }
 
-.pp-status-title {
+.pp-status-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   color: var(--text-color);
   font-weight: 600;
-  font-size: 1.1rem;
-  margin-right: 1rem;
+  font-size: var(--font-h3);
+  margin-bottom: var(--spacing-sm);
 }
 
-.pp-status-item {
+.pp-status-chart {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.875rem;
-  background: var(--surface-page);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  transition: all 0.15s;
+  justify-content: center;
 }
 
-.pp-status-item:hover {
-  background: var(--surface-hover);
-}
-
-.pp-status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.pp-status-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.pp-status-value {
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: var(--text-color);
+.pp-doughnut-wrap {
+  width: 100%;
+  max-width: 400px;
+  height: 220px;
 }
 
 /* Campagnes */
@@ -285,108 +278,4 @@
 
 .pp-toggle-knob--off {
   left: 2px;
-}
-
-/* Classes requested by refactor */
-.preprod-section {
-  margin-bottom: 0.75rem;
-}
-
-.preprod-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.preprod-title {
-  font-size: 1.35rem;
-  color: var(--text-color);
-  margin: 0;
-}
-
-.preprod-header-line {
-  flex: 1;
-  height: 1px;
-  background: var(--divider-color);
-}
-
-.preprod-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.status-distribution {
-  background: var(--card-bg);
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  box-shadow: var(--shadow-card);
-}
-
-.campaigns-panel {
-  background: var(--card-bg);
-  padding: 1.25rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow-card);
-}
-
-.campaign-card {
-  padding: 1rem;
-  background: var(--surface-page);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  position: relative;
-  transition: all 0.2s var(--ease-out);
-}
-
-.campaign-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-elevated);
-}
-
-.campaign-card--exploratory {
-  background: var(--surface-muted);
-  border-color: var(--color-secondary);
-  border-left: 4px solid var(--color-secondary);
-  cursor: help;
-}
-
-.campaign-card--exploratory:hover {
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
-}
-
-.exploratory-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.5rem;
-  background: var(--color-secondary);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.custom-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  user-select: none;
 }

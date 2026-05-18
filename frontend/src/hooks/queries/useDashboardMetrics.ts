@@ -1,6 +1,6 @@
-import { trpc } from '../../trpc/client';
-import { useAuth } from '../useAuth';
-import type { DashboardMetrics } from '../../types/api.types';
+import { useQuery } from '@tanstack/react-query';
+import apiService from '../../services/api.service';
+import type { DashboardMetrics, QualityRates } from '../../types/api.types';
 
 export interface UseDashboardMetricsOptions {
   autoRefresh?: boolean;
@@ -14,36 +14,34 @@ export function useDashboardMetrics(
   options: UseDashboardMetricsOptions = {}
 ) {
   const { autoRefresh = false, liveConnected = false } = options;
-  const { isAuthenticated } = useAuth();
 
-  const metricsQuery = trpc.dashboard.metrics.useQuery(
-    projectId ? { projectId, preprodMilestones: preprodMilestones || undefined, prodMilestones: prodMilestones || undefined } : undefined,
-    {
-      enabled: !!projectId && isAuthenticated,
-      staleTime: 2 * 60 * 1000,
-      refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
-    }
-  );
+  const metricsQuery = useQuery({
+    queryKey: ['dashboard-metrics', projectId, preprodMilestones, prodMilestones],
+    queryFn: () => apiService.getDashboardMetrics(projectId!, preprodMilestones, prodMilestones),
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
+  });
 
-  const qualityQuery = trpc.dashboard.qualityRates.useQuery(
-    projectId ? { projectId, preprodMilestones: preprodMilestones || undefined, prodMilestones: prodMilestones || undefined } : undefined,
-    {
-      enabled: !!projectId && isAuthenticated,
-      staleTime: 2 * 60 * 1000,
-      refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
-    }
-  );
+  const qualityQuery = useQuery({
+    queryKey: ['dashboard-qualityRates', projectId, preprodMilestones, prodMilestones],
+    queryFn: () => apiService.getQualityRates(projectId!, preprodMilestones, prodMilestones),
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: autoRefresh && !liveConnected ? 60000 : false,
+  });
 
   const isLoading = metricsQuery.isLoading || qualityQuery.isLoading;
   const isError = metricsQuery.isError || qualityQuery.isError;
   const error = metricsQuery.error || qualityQuery.error;
 
+  // NOTE: these REST endpoints return raw data, not ApiResponse wrappers
+  const metricsData = (metricsQuery.data as unknown as DashboardMetrics) || undefined;
+  const qualityRates = (qualityQuery.data as unknown as QualityRates) || undefined;
+
   const data: DashboardMetrics | undefined =
-    metricsQuery.data && qualityQuery.data
-      ? {
-          ...(metricsQuery.data.data as any),
-          qualityRates: qualityQuery.data.data,
-        }
+    metricsData && qualityRates
+      ? { ...metricsData, qualityRates }
       : undefined;
 
   return {

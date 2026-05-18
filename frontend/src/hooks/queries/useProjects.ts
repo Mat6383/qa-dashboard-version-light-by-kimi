@@ -1,23 +1,21 @@
-import { trpc } from '../../trpc/client';
-import { useAuth } from '../useAuth';
+import { useQuery } from '@tanstack/react-query';
+import apiService from '../../services/api.service';
 import type { Project } from '../../types/api.types';
 
 export const PROJECTS_QUERY_KEY = ['projects'] as const;
 
 /**
- * Hook tRPC pour récupérer la liste des projets.
+ * Hook REST pour récupérer la liste des projets.
  * Cache : 5 min stale.
  */
 export function useProjects() {
-  const { isAuthenticated } = useAuth();
-  const { data, ...rest } = trpc.projects.list.useQuery(undefined, {
-    enabled: isAuthenticated,
+  const { data, ...rest } = useQuery({
+    queryKey: PROJECTS_QUERY_KEY,
+    queryFn: () => apiService.getProjects(),
     staleTime: 5 * 60 * 1000,
   });
 
-  // Robustesse : le backend Node legacy peut renvoyer { result: { result: [...] } }
-  // ou le backend Python renvoie directement le tableau dans data.data
-  const raw = data?.data?.result ?? data?.data ?? [];
+  const raw = (data as any)?.projects ?? (data as any)?.data?.result ?? (data as any)?.data ?? [];
   const projects = Array.isArray(raw) ? raw : (raw as any)?.result ?? [];
 
   return {

@@ -1235,6 +1235,59 @@ table.data-table th {
 }
 
 /* ==================================================
+   Skeleton Loading
+   ================================================== */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-card {
+  background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-hover) 50%, var(--surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.skeleton-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.skeleton-dashboard__banner {
+  margin-bottom: var(--spacing-sm);
+}
+
+.skeleton-dashboard__kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+  .skeleton-dashboard__kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .skeleton-dashboard__kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeleton-dashboard__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* ==================================================
    Reduced Motion
    ================================================== */
 @media (prefers-reduced-motion: reduce) {

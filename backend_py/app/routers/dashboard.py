@@ -25,16 +25,24 @@ async def _safe_testmo_call(coro):
         return await coro
     except httpx.HTTPStatusError as exc:
         logger.warning("Testmo API error", extra={"status": exc.response.status_code})
-        raise HTTPException(status_code=exc.response.status_code, detail="Testmo API error") from exc
+        raise HTTPException(
+            status_code=exc.response.status_code, detail="Testmo API error"
+        ) from exc
     except Exception as exc:
         logger.error("Testmo unexpected error", extra={"error": str(exc)})
         raise HTTPException(status_code=503, detail="Testmo service unavailable") from exc
 
 
+def _parse_csv_ints(value: str) -> list[int]:
+    """Parse comma-separated integers from query params (e.g. '64,61')."""
+    return [int(x.strip()) for x in value.split(",") if x.strip()] if value else []
+
+
 # ── Static routes first ─────────────────────────────────
 
+
 @router.get("/multi")
-async def multi_project_dashboard(project_ids: list[int] = Query(default=[]), db: DBMain = None):
+async def multi_project_dashboard(project_ids: list[int] = Query(default=[])):
     if not project_ids:
         return {"projects": [], "metrics": []}
     try:
@@ -46,7 +54,7 @@ async def multi_project_dashboard(project_ids: list[int] = Query(default=[]), db
 
 
 @router.get("/compare")
-async def compare_dashboard(project_ids: list[int] = Query(default=[]), db: DBMain = None):
+async def compare_dashboard(project_ids: list[int] = Query(default=[])):
     if not project_ids:
         return {"projects": []}
     try:
@@ -59,9 +67,20 @@ async def compare_dashboard(project_ids: list[int] = Query(default=[]), db: DBMa
 
 # ── Dynamic project routes ──────────────────────────────
 
+
 @router.get("/{project_id}")
-async def get_dashboard(project_id: int, db: DBMain):
-    metrics = await _safe_testmo_call(testmo_service.get_project_metrics(project_id))
+async def get_dashboard(
+    project_id: int,
+    db: DBMain,
+    preprod_milestones_raw: str = Query(default="", alias="preprodMilestones"),
+    prod_milestones_raw: str = Query(default="", alias="prodMilestones"),
+):
+    preprod = _parse_csv_ints(preprod_milestones_raw)
+    prod = _parse_csv_ints(prod_milestones_raw)
+    milestone_ids = list(set(preprod + prod)) if (preprod or prod) else None
+    metrics = await _safe_testmo_call(
+        testmo_service.get_project_metrics(project_id, milestone_ids=milestone_ids)
+    )
     return {"project_id": project_id, **metrics}
 
 
@@ -69,12 +88,14 @@ async def get_dashboard(project_id: int, db: DBMain):
 async def get_quality_rates(
     project_id: int,
     db: DBMain,
-    preprod_milestones: list[int] = Query(default=[]),
-    prod_milestones: list[int] = Query(default=[]),
+    preprod_milestones_raw: str = Query(default="", alias="preprodMilestones"),
+    prod_milestones_raw: str = Query(default="", alias="prodMilestones"),
 ):
+    preprod = _parse_csv_ints(preprod_milestones_raw)
+    prod = _parse_csv_ints(prod_milestones_raw)
     rates = await _safe_testmo_call(
         testmo_service.get_escape_and_detection_rates(
-            project_id, preprod_milestones=preprod_milestones, prod_milestones=prod_milestones
+            project_id, preprod_milestones=preprod, prod_milestones=prod
         )
     )
     return rates
