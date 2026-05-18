@@ -96,4 +96,17 @@ describe('PreprodSection', () => {
     render(<PreprodSection {...defaultProps} />);
     expect(screen.getByText(/Répartition/i)).toBeInTheDocument();
   });
+
+  it('forwards showExploratoryByMilestone to CampaignGrid', () => {
+    const setter = vi.fn();
+    render(
+      <PreprodSection
+        {...defaultProps}
+        showExploratoryByMilestone={true}
+        setShowExploratoryByMilestone={setter}
+      />
+    );
+    // CampaignGrid shows the toggle when setter is provided
+    expect(screen.getByText('Exploratoires')).toBeInTheDocument();
+  });
 });
