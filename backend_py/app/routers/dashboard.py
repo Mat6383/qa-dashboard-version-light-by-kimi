@@ -188,7 +188,10 @@ async def stream_dashboard(request: Request, project_id: int):
             except Exception:
                 logger.error("SSE stream error", exc_info=True)
                 yield f"data: {json.dumps({'error': SAFE_INTERNAL_ERROR})}\n\n"
-            await asyncio.sleep(5)
+            for _ in range(50):
+                if await request.is_disconnected():
+                    break
+                await asyncio.sleep(0.1)
 
     return StreamingResponse(
         event_generator(),

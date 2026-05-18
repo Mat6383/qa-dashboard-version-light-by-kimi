@@ -112,6 +112,6 @@ describe('useTemporalComparison', () => {
     const { result } = renderHook(() => useTemporalComparison(1), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.comparison).toEqual({});
+    expect(result.current.getTemporalForMetric('passRate', 50)).toBeNull();
   });
 });

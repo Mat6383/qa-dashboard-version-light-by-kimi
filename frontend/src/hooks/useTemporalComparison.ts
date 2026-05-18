@@ -97,7 +97,7 @@ export function useTemporalComparison(projectId: number | null, enabled = true) 
     staleTime: 5 * 60 * 1000,
   });
 
-  const comparison: TemporalComparisonMap = useMemo(() => {
+  const _historicalValues: TemporalComparisonMap = useMemo(() => {
     if (!data.length) return {};
 
     const now = new Date();
@@ -144,7 +144,7 @@ export function useTemporalComparison(projectId: number | null, enabled = true) 
 
   const getTemporalForMetric = useCallback(
     (metricName: string, currentValue: number): MetricTemporal | null => {
-      const base = comparison[metricName];
+      const base = _historicalValues[metricName];
       if (!base) return null;
       // Recompute with actual current value (since we used 0 as placeholder above)
       return {
@@ -155,8 +155,8 @@ export function useTemporalComparison(projectId: number | null, enabled = true) 
         delta30: computeDelta(currentValue, base.values.j30?.value ?? null),
       };
     },
-    [comparison]
+    [_historicalValues]
   );
 
-  return { comparison, getTemporalForMetric, isLoading };
+  return { getTemporalForMetric, isLoading };
 }

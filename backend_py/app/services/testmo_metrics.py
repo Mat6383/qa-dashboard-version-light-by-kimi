@@ -238,15 +238,20 @@ class TestmoMetrics:
     async def _count_prod_bugs(self, run_list: list[dict[str, Any]]) -> int:
         """Count bugs linked to production runs (issues + fallback via results)."""
         bugs = 0
+        seen_ids: set[int | str] = set()
         fallback_runs: list[dict[str, Any]] = []
         for run in run_list:
+            rid = run.get("id")
+            if rid in seen_ids:
+                continue
+            seen_ids.add(rid)
             issues = run.get("issues", [])
             if issues:
                 bugs += len(issues)
             else:
                 fallback_runs.append(run)
         if fallback_runs:
-            sem = asyncio.Semaphore(10)
+            sem = asyncio.Semaphore(5)
 
             async def _fetch(
                 run: dict[str, Any],
