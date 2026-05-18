@@ -113,16 +113,25 @@ const Dashboard4 = ({
 
   const displayedRuns = useMemo(() => {
     let base = showLatestOnly && latestRun ? [latestRun] : sortedRuns;
-    if (showExploratoryByMilestone && selectedPreprodMilestones.length > 0) {
-      // Retirer les exploratoires de la base ; seuls ceux liés aux milestones sélectionnées seront réinjectés
+    if (showExploratoryByMilestone) {
+      // Déterminer les milestones cibles : explicites ou déduites des runs standards visibles
+      const standardRuns = base.filter((r) => !r.isExploratory);
+      const targetMilestones =
+        selectedPreprodMilestones.length > 0
+          ? selectedPreprodMilestones
+          : Array.from(new Set(standardRuns.map((r) => r.milestone).filter(Boolean)));
+      // Retirer les exploratoires de la base ; seuls ceux liés aux milestones cibles seront réinjectés
       base = base.filter((r) => !r.isExploratory);
       const exploratory = sortedRuns.filter(
         (r) =>
           r.isExploratory &&
-          selectedPreprodMilestones.includes(r.milestone as number) &&
+          targetMilestones.includes(r.milestone as number) &&
           !base.some((br) => br.id === r.id)
       );
       base = [...base, ...exploratory];
+    } else {
+      // Toggle OFF : masquer les exploratoires
+      base = base.filter((r) => !r.isExploratory);
     }
     return base;
   }, [

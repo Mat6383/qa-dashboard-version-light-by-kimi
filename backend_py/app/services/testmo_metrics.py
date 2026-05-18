@@ -35,16 +35,44 @@ class TestmoMetrics:
                 return False
         return any(k in n for k in settings.testmo_prod_keywords)
 
+    def _run_to_dict(self, run: dict[str, Any], is_exploratory: bool = False) -> dict[str, Any]:
+        def _pct(num: float, den: float) -> float:
+            return round((num / den) * 100, 2) if den else 0.0
+
+        return {
+            "id": run["id"],
+            "name": run["name"],
+            "total": run.get("total_count", 0),
+            "completed": run.get("completed_count", 0),
+            "passed": run.get(STATUS_KEY_PASSED, 0),
+            "failed": run.get(STATUS_KEY_FAILED, 0),
+            "blocked": run.get(STATUS_KEY_BLOCKED, 0),
+            "skipped": run.get(STATUS_KEY_SKIPPED, 0),
+            "wip": run.get(STATUS_KEY_WIP, 0),
+            "untested": run.get("untested_count", 0),
+            "completionRate": _pct(run.get("completed_count", 0), run.get("total_count", 0)),
+            "passRate": _pct(run.get(STATUS_KEY_PASSED, 0), run.get("completed_count", 0)),
+            "created_at": run.get("created_at"),
+            "milestone": run.get("milestone_id"),
+            "isExploratory": is_exploratory,
+        }
+
     async def get_project_metrics(
         self, project_id: int, milestone_ids: list[int] | None = None
     ) -> dict[str, Any]:
         """Aggregate ISTQB/ITIL/LEAN KPIs from runs + sessions."""
         runs_data = await self._client.get_project_runs(project_id, active_only=True)
         runs = runs_data if isinstance(runs_data, list) else runs_data.get("result", [])
+        sessions_data = await self._client.get_project_sessions(project_id, active_only=True)
+        sessions = (
+            sessions_data if isinstance(sessions_data, list) else sessions_data.get("result", [])
+        )
         if milestone_ids:
             runs = [r for r in runs if r.get("milestone_id") in milestone_ids]
+            sessions = [s for s in sessions if s.get("milestone_id") in milestone_ids]
         # Exclure les runs de production de la section préprod (mais garder les TNR)
         runs = [r for r in runs if not self._is_prod_run(r.get("name"))]
+        # Les sessions exploratoires sont traitées comme préprod par défaut
 
         aggregated = {
             "total": 0,
@@ -108,6 +136,9 @@ class TestmoMetrics:
             )
             mttr = round(lead_time * (aggregated["failed"] / (aggregated["passed"] or 1)), 1)
 
+        all_runs = [self._run_to_dict(r, is_exploratory=False) for r in runs]
+        all_runs.extend([self._run_to_dict(s, is_exploratory=True) for s in sessions])
+
         result_metrics: dict[str, Any] = {
             "raw": aggregated,
             "completionRate": completion_rate,
@@ -137,30 +168,8 @@ class TestmoMetrics:
                     "#3B82F6",
                 ],
             },
-            "runsCount": len(runs),
-            "runs": [
-                {
-                    "id": run["id"],
-                    "name": run["name"],
-                    "total": run.get("total_count", 0),
-                    "completed": run.get("completed_count", 0),
-                    # See status ID mapping comment above (~line 58)
-                    "passed": run.get(STATUS_KEY_PASSED, 0),
-                    "failed": run.get(STATUS_KEY_FAILED, 0),
-                    "blocked": run.get(STATUS_KEY_BLOCKED, 0),
-                    "skipped": run.get(STATUS_KEY_SKIPPED, 0),
-                    "wip": run.get(STATUS_KEY_WIP, 0),
-                    "untested": run.get("untested_count", 0),
-                    "completionRate": _pct(
-                        run.get("completed_count", 0), run.get("total_count", 0)
-                    ),
-                    "passRate": _pct(run.get(STATUS_KEY_PASSED, 0), run.get("completed_count", 0)),
-                    "created_at": run.get("created_at"),
-                    "milestone": run.get("milestone_id"),
-                    "isExploratory": False,
-                }
-                for run in runs
-            ],
+            "runsCount": len(runs) + len(sessions),
+            "runs": all_runs,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "itil": {
                 "mttr": mttr,
@@ -173,7 +182,7 @@ class TestmoMetrics:
             "lean": {
                 "wipTotal": aggregated["wip"],
                 "wipTarget": 20,
-                "activeRuns": len(runs),
+                "activeRuns": len(runs) + len(sessions),
                 "closedRuns": 0,
             },
             "istqb": {

@@ -131,6 +131,21 @@ class TestmoClient:
         result: list[dict[str, Any]] = await self._cached_request(key, _fetch)
         return result
 
+    async def get_project_sessions(
+        self, project_id: int, active_only: bool = False
+    ) -> list[dict[str, Any]]:
+        key = self._cache_key("sessions", project_id, "active" if active_only else "all")
+
+        async def _fetch() -> Any:
+            params: dict[str, Any] = {"per_page": 100}
+            if active_only:
+                params["is_closed"] = "0"
+            data = await self._get(f"/projects/{project_id}/sessions", params)
+            return data if isinstance(data, list) else data.get("result", [])
+
+        result: list[dict[str, Any]] = await self._cached_request(key, _fetch)
+        return result
+
     async def get_project_milestones(self, project_id: int) -> list[dict[str, Any]]:
         key = self._cache_key("milestones", project_id)
 

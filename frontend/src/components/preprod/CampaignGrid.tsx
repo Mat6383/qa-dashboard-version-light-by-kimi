@@ -28,9 +28,7 @@ export default function CampaignGrid({
   useBusiness,
   isDark,
 }: CampaignGridProps) {
-  const normalRuns = showExploratoryByMilestone
-    ? sortedRuns.filter((r) => !r.isExploratory)
-    : sortedRuns;
+  const normalRuns = sortedRuns.filter((r) => !r.isExploratory);
   const exploratoryRuns = showExploratoryByMilestone
     ? sortedRuns.filter((r) => r.isExploratory)
     : [];
