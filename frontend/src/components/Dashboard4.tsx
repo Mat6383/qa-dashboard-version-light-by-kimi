@@ -114,6 +114,8 @@ const Dashboard4 = ({
   const displayedRuns = useMemo(() => {
     let base = showLatestOnly && latestRun ? [latestRun] : sortedRuns;
     if (showExploratoryByMilestone && selectedPreprodMilestones.length > 0) {
+      // Retirer les exploratoires de la base ; seuls ceux liés aux milestones sélectionnées seront réinjectés
+      base = base.filter((r) => !r.isExploratory);
       const exploratory = sortedRuns.filter(
         (r) =>
           r.isExploratory &&

@@ -164,4 +164,112 @@ describe('Dashboard4', () => {
     expect(screen.queryByText(/Chargement des données ISTQB/i)).not.toBeInTheDocument();
     expect(screen.getByText(/SYNCHRONISATION GITLAB → TESTMO/i)).toBeInTheDocument();
   });
+
+  it('affiche les runs exploratoires liés à la milestone quand le toggle est ON', () => {
+    const metricsWithManyRuns = {
+      ...mockMetrics,
+      runs: [
+        ...Array.from({ length: 15 }, (_, i) => ({
+          id: `run-${i}`,
+          name: `Run ${i}`,
+          total: 10,
+          completed: 5,
+          passed: 5,
+          failed: 0,
+          blocked: 0,
+          skipped: 0,
+          wip: 0,
+          untested: 0,
+          completionRate: 50,
+          passRate: 100,
+          isExploratory: false,
+          isClosed: false,
+          created_at: '2026-05-18T10:00:00Z',
+          milestone: 1,
+        })),
+        {
+          id: 'exp-1',
+          name: 'Session exploratoire M1',
+          total: 5,
+          completed: 3,
+          passed: 3,
+          failed: 0,
+          blocked: 0,
+          skipped: 0,
+          wip: 0,
+          untested: 2,
+          completionRate: 60,
+          passRate: 100,
+          isExploratory: true,
+          isClosed: false,
+          created_at: '2026-05-18T10:00:00Z',
+          milestone: 1,
+        },
+        {
+          id: 'exp-2',
+          name: 'Session exploratoire M2',
+          total: 5,
+          completed: 3,
+          passed: 3,
+          failed: 0,
+          blocked: 0,
+          skipped: 0,
+          wip: 0,
+          untested: 2,
+          completionRate: 60,
+          passRate: 100,
+          isExploratory: true,
+          isClosed: false,
+          created_at: '2026-05-18T10:00:00Z',
+          milestone: 99,
+        },
+      ],
+    };
+    renderDashboard({
+      metrics: metricsWithManyRuns,
+      selectedPreprodMilestones: [1],
+    });
+    fireEvent.click(screen.getByText('Exploratoires'));
+    expect(screen.getByText('Session exploratoire M1')).toBeInTheDocument();
+    expect(screen.queryByText('Session exploratoire M2')).not.toBeInTheDocument();
+  });
+
+  it('ne duplique pas un run exploratoire déjà dans la liste de base', () => {
+    const metricsWithDuplicate = {
+      ...mockMetrics,
+      runs: [
+        {
+          id: 'run-1',
+          name: 'R10 - run 1',
+          isExploratory: false,
+          milestone: 1,
+        },
+        {
+          id: 'exp-1',
+          name: 'Session exploratoire',
+          total: 5,
+          completed: 3,
+          passed: 3,
+          failed: 0,
+          blocked: 0,
+          skipped: 0,
+          wip: 0,
+          untested: 2,
+          completionRate: 60,
+          passRate: 100,
+          isExploratory: true,
+          isClosed: false,
+          created_at: '2026-05-18T10:00:00Z',
+          milestone: 1,
+        },
+      ],
+    };
+    renderDashboard({
+      metrics: metricsWithDuplicate,
+      selectedPreprodMilestones: [1],
+    });
+    fireEvent.click(screen.getByText('Exploratoires'));
+    const cards = screen.getAllByText('Session exploratoire');
+    expect(cards.length).toBe(1);
+  });
 });
