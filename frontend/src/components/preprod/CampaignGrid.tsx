@@ -10,6 +10,8 @@ interface CampaignGridProps {
   setShowAllRuns: (show: boolean) => void;
   showLatestOnly?: boolean;
   setShowLatestOnly?: (show: boolean) => void;
+  showExploratoryByMilestone?: boolean;
+  setShowExploratoryByMilestone?: (show: boolean) => void;
   useBusiness: boolean;
   isDark: boolean;
 }
@@ -21,17 +23,27 @@ export default function CampaignGrid({
   setShowAllRuns,
   showLatestOnly = false,
   setShowLatestOnly,
+  showExploratoryByMilestone = false,
+  setShowExploratoryByMilestone,
   useBusiness,
   isDark,
 }: CampaignGridProps) {
+  const normalRuns = showExploratoryByMilestone
+    ? sortedRuns.filter((r) => !r.isExploratory)
+    : sortedRuns;
+  const exploratoryRuns = showExploratoryByMilestone
+    ? sortedRuns.filter((r) => r.isExploratory)
+    : [];
+
   const displayCount = showAllRuns
-    ? sortedRuns.length
-    : sortedRuns.length <= 12
+    ? normalRuns.length
+    : normalRuns.length <= 12
       ? 12
       : 8;
-  const visibleRuns = sortedRuns.slice(0, displayCount);
+  const visibleNormal = normalRuns.slice(0, displayCount);
+  const visibleRuns = [...visibleNormal, ...exploratoryRuns];
   const totalCount = originalRunsCount ?? sortedRuns.length;
-  const hasMore = totalCount > 12 && !showAllRuns;
+  const hasMore = normalRuns.length > displayCount && !showAllRuns;
 
   return (
     <div className="pp-campaigns">
@@ -45,6 +57,13 @@ export default function CampaignGrid({
               label={useBusiness ? 'Dernier actif' : 'Latest only'}
               checked={showLatestOnly}
               onChange={() => setShowLatestOnly(!showLatestOnly)}
+            />
+          )}
+          {setShowExploratoryByMilestone && (
+            <Toggle
+              label={useBusiness ? 'Exploratoires' : 'Exploratory'}
+              checked={showExploratoryByMilestone}
+              onChange={() => setShowExploratoryByMilestone(!showExploratoryByMilestone)}
             />
           )}
           <Toggle
