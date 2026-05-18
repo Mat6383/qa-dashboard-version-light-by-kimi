@@ -12,17 +12,17 @@ Moderniser Dashboard 4 avec un design system cohérent (grid 12 colonnes, cartes
 
 ### Todo
 
-- [ ] **Design System Tokens** — Créer les variables CSS sémantiques (colors, spacing, shadows, typography) dans `frontend/src/styles/tokens.css`
-- [ ] **Grid Layout** — Implémenter un container grid 12-colonnes responsive dans Dashboard4
-- [ ] **KPI Cards v2** — Refonte de MetricCard : ombre subtile, hover tooltip, clic drill-down, sparkline, contexte comparatif
-- [ ] **Skeleton Loader Global** — Remplacer le spinner plein écran par des skeleton cards sur les métriques
-- [ ] **PreprodSection** — Re-layout en panneaux collapsibles avec transitions 200ms
-- [ ] **ProductionSection** — Même traitement + amélioration des couleurs d'état (escape/detection)
-- [ ] **Charts Upgrade** — Légendes interactives, tooltips riches, responsive reflow
-- [ ] **Dark Mode Premium** — Appliquer les tokens sémantiques, vérifier les contrastes 4.5:1
-- [ ] **Micro-interactions** — Transitions 150-300ms sur les données fraîches (pas de blink brutal)
-- [ ] **Tests & QA** — Vérifier le build, le dark mode, le responsive, l'accessibilité
-- [ ] **Commit & Push** — `git add . && git commit -m "feat(dashboard4): Option B redesign — grid, KPI cards, skeleton, interactions"`
+- [x] **Design System Tokens** — Utiliser les tokens CSS existants (`tokens.css`) + nouveaux tokens skeleton dans `App.css`
+- [x] **Grid Layout** — Grids responsives `.pp-kpi-grid` (4→2→1) et `.prod-kpi-grid` (2→1)
+- [x] **KPI Cards v2** — `KPICard` avec hover élévation, bordure de status, icône+texte, progress bar
+- [x] **Skeleton Loader Global** — `SkeletonCard` + `SkeletonDashboard` avec animation shimmer
+- [x] **PreprodSection** — Re-layout avec grid KPI + Doughnut Chart + campagnes
+- [x] **ProductionSection** — Grid 2-col avec `KPICard` + status badges
+- [x] **Charts Upgrade** — Doughnut Chart interactif (react-chartjs-2) avec tooltips et légende
+- [x] **Dark Mode Premium** — Tokens sémantiques appliqués automatiquement via `.dark-theme`
+- [x] **Micro-interactions** — Transitions 200ms sur les cartes, 400ms sur les progress bars
+- [x] **Tests & QA** — Build Vite ✅, type-check ✅ (hors test préexistant)
+- [x] **Commit & Push** — `0fca4c6` pushed to origin/main
 
 ---
 

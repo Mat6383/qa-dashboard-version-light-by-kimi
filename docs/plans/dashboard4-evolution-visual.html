@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard 4 — Évolution visuelle (Option B → Option C)</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-light: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #818cf8;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 2rem;
+  }
+  h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; }
+  .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 2rem; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 2rem; }
+  .tab {
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--surface-light);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+
+  /* Stage */
+  .stage { display: none; animation: fadeIn 0.4s ease; }
+  .stage.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Dashboard mockup container */
+  .dash-mockup {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--surface-light);
+    padding: 1.5rem;
+    min-height: 500px;
+  }
+
+  /* Header */
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--surface-light);
+  }
+  .dash-title { font-size: 1.1rem; font-weight: 700; }
+  .dash-badge {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    padding: 0.25rem 0.6rem; border-radius: 999px;
+    background: rgba(52,211,153,0.15); color: var(--success); border: 1px solid rgba(52,211,153,0.3);
+  }
+
+  /* ===== BEFORE ===== */
+  .before-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+  .before-card {
+    background: var(--surface-light);
+    padding: 1rem;
+    border-radius: var(--radius);
+    border-left: 4px solid var(--accent);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .before-card.danger { border-left-color: var(--danger); }
+  .before-value { font-size: 1.8rem; font-weight: 800; }
+  .before-label { font-size: 0.8rem; color: var(--text-muted); }
+  .before-spinner {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.5rem; padding: 3rem; color: var(--text-muted);
+  }
+  .spinner-icon {
+    width: 40px; height: 40px; border: 3px solid var(--surface-light);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== OPTION B ===== */
+  .optb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+  @media (max-width: 900px) { .optb-grid { grid-template-columns: repeat(2, 1fr); } }
+  .kpi-card {
+    background: var(--surface-light);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .kpi-accent {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--success);
+  }
+  .kpi-accent.warn { background: var(--warning); }
+  .kpi-accent.crit { background: var(--danger); }
+  .kpi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+  .kpi-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+  .kpi-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 999px; background: rgba(52,211,153,0.12); color: var(--success); border: 1px solid rgba(52,211,153,0.25); }
+  .kpi-value { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+  .kpi-sub { font-size: 0.75rem; color: var(--text-muted); }
+  .kpi-progress { margin-top: 0.5rem; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .kpi-progress-fill { height: 100%; background: var(--success); border-radius: 3px; width: 83%; transition: width 0.5s; }
+
+  .skeleton-card {
+    background: linear-gradient(90deg, var(--surface-light) 25%, #475569 50%, var(--surface-light) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 100px; border-radius: var(--radius);
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .doughnut-section {
+    background: var(--surface-light);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 1.5rem;
+  }
+  .doughnut-visual {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: conic-gradient(
+      var(--success) 0deg 234deg,
+      var(--danger) 234deg 280deg,
+      var(--accent) 280deg 300deg,
+      var(--warning) 300deg 315deg,
+      var(--text-muted) 315deg 360deg
+    );
+    position: relative; flex-shrink: 0;
+  }
+  .doughnut-hole {
+    position: absolute; inset: 30px; background: var(--surface-light); border-radius: 50%;
+  }
+
+  /* ===== OPTION C ===== */
+  .optc-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .chip {
+    display: flex; align-items: center; gap: 0.3rem;
+    padding: 0.35rem 0.8rem; border-radius: 999px;
+    background: rgba(56,189,248,0.1); color: var(--accent);
+    border: 1px solid rgba(56,189,248,0.25); font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .chip:hover { background: rgba(56,189,248,0.2); }
+  .chip .x { opacity: 0.6; font-size: 0.9rem; }
+  .drag-handle {
+    width: 18px; height: 10px; display: flex; flex-direction: column; justify-content: space-between; opacity: 0.4;
+  }
+  .drag-handle span { height: 2px; background: currentColor; border-radius: 1px; }
+  .kpi-card.draggable { cursor: grab; }
+  .kpi-card.draggable:hover .drag-handle { opacity: 0.8; }
+  .delta-badge {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 0.7rem; padding: 1px 6px; border-radius: 4px;
+    background: rgba(52,211,153,0.15); color: var(--success); margin-left: 4px;
+  }
+  .tv-overlay {
+    position: fixed; inset: 0; background: #000; z-index: 100;
+    display: none; align-items: center; justify-content: center; flex-direction: column;
+  }
+  .tv-overlay.active { display: flex; }
+  .tv-slide { font-size: 3rem; font-weight: 800; animation: pulse 3s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* Legend */
+  .legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Comparison row */
+  .compare-row { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+  .compare-pill {
+    font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--text-muted);
+  }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); margin: 1.5rem 0 0.75rem;
+  }
+
+  .feature-list {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .feature-item {
+    background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .feature-item h4 { font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--accent); }
+  .feature-item p { font-size: 0.8rem; color: var(--text-muted); }
+  .tag {
+    display: inline-block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 4px; margin-top: 0.4rem;
+    background: rgba(251,191,36,0.12); color: var(--warning);
+  }
+
+  .btn-tv {
+    padding: 0.4rem 1rem; border-radius: var(--radius);
+    background: var(--accent-2); color: white; border: none; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎨 Dashboard 4 — Évolution visuelle</h1>
+<p class="subtitle">Compare les 3 états : Baseline → Option B (actuel) → Option C (futur)</p>
+
+<div class="tabs">
+  <button class="tab" onclick="show('before')">⏮️ Avant (Baseline)</button>
+  <button class="tab active" onclick="show('optb')">✅ Option B — Grid & Interact</button>
+  <button class="tab" onclick="show('optc')">🚀 Option C — Pro Suite</button>
+</div>
+
+<!-- ==================== BEFORE ==================== -->
+<div id="before" class="stage">
+  <div class="dash-mockup">
+    <div class="dash-header">
+      <div class="dash-title">Vue Globale — Projet Alpha</div>
+      <div class="dash-badge">En cours</div>
+    </div>
+
+    <div class="before-spinner">
+      <div class="spinner-icon"></div>
+      <span>Chargement des métriques...</span>
+    </div>
+
+    <div style="opacity:0.6">
+      <div class="before-grid">
+        <div class="before-card">
+          <div>
+            <div class="before-label">Taux d'exécution</div>
+            <div class="before-value" style="color:var(--accent)">92%</div>
+          </div>
+        </div>
+        <div class="before-card">
+          <div>
+            <div class="before-label">Taux de succès</div>
+            <div class="before-value" style="color:var(--success)">80%</div>
+          </div>
+        </div>
+        <div class="before-card danger">
+          <div>
+            <div class="before-label">Taux d'échec</div>
+            <div class="before-value" style="color:var(--danger)">16%</div>
+          </div>
+        </div>
+        <div class="before-card">
+          <div>
+            <div class="before-label">Efficience</div>
+            <div class="before-value" style="color:var(--warning)">83%</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-light);padding:1rem;border-radius:var(--radius);margin-bottom:1rem;">
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Répartition : ● 65 Passed ● 13 Failed ● 2 WIP ● 4 Untested</div>
+        <div style="display:flex;gap:0.5rem;">
+          <div style="flex:65;height:8px;background:var(--success);border-radius:4px;"></div>
+          <div style="flex:13;height:8px;background:var(--danger);border-radius:4px;"></div>
+          <div style="flex:2;height:8px;background:var(--accent);border-radius:4px;"></div>
+          <div style="flex:4;height:8px;background:var(--text-muted);border-radius:4px;"></div>
+        </div>
+      </div>
+
+      <div class="before-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="before-card danger">
+          <div>
+            <div class="before-label">Taux d'échappement</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">Milestone: R06</div>
+          </div>
+          <div class="before-value" style="color:var(--danger)">79%</div>
+        </div>
+        <div class="before-card">
+          <div>
+            <div class="before-label">Taux de détection</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">Milestone: R06</div>
+          </div>
+          <div class="before-value" style="color:var(--success)">21%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-list">
+    <div class="feature-item">
+      <h4>❌ Problèmes identifiés</h4>
+      <p>Spinner plein écran bloquant. Cartes métriques en inline styles sans hover. Pas de feedback visuel sur l'état. Répartition statique en texte.</p>
+      <span class="tag">UX Debt</span>
+    </div>
+    <div class="feature-item">
+      <h4>❌ Responsive</h4>
+      <p>Grid fixe 2 colonnes qui casse sur mobile. Pas de breakpoints. Scroll horizontal sur tablette.</p>
+      <span class="tag">Mobile</span>
+    </div>
+    <div class="feature-item">
+      <h4>❌ Accessibilité</h4>
+      <p>Couleur seule pour indiquer l'état (pas d'icône). Pas de focus visible. Contraste insuffisant sur certains fonds.</p>
+      <span class="tag">A11y</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== OPTION B ==================== -->
+<div id="optb" class="stage active">
+  <div class="dash-mockup">
+    <div class="dash-header">
+      <div class="dash-title">Vue Globale — Projet Alpha</div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <div class="dash-badge">En cours</div>
+      </div>
+    </div>
+
+    <!-- Skeleton (shown briefly then real cards) -->
+    <div class="optb-grid">
+      <div class="kpi-card" style="padding:0"><div class="skeleton-card" style="height:120px;border-radius:var(--radius)"></div></div>
+      <div class="kpi-card" style="padding:0"><div class="skeleton-card" style="height:120px;border-radius:var(--radius)"></div></div>
+      <div class="kpi-card" style="padding:0"><div class="skeleton-card" style="height:120px;border-radius:var(--radius)"></div></div>
+      <div class="kpi-card" style="padding:0"><div class="skeleton-card" style="height:120px;border-radius:var(--radius)"></div></div>
+    </div>
+
+    <div class="section-label">📊 KPIs chargés</div>
+    <div class="optb-grid">
+      <div class="kpi-card">
+        <div class="kpi-accent"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">📈 Taux d'exécution</div>
+          <div class="kpi-badge">OK</div>
+        </div>
+        <div class="kpi-value" style="color:var(--success)">92<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">81 / 88 tests exécutés (Cible: ≥ 90%)</div>
+        <div class="kpi-progress"><div class="kpi-progress-fill" style="width:92%"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent warn"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">✅ Taux de succès</div>
+          <div class="kpi-badge" style="background:rgba(251,191,36,0.12);color:var(--warning);border-color:rgba(251,191,36,0.25)">Attention</div>
+        </div>
+        <div class="kpi-value" style="color:var(--warning)">80<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">65 / 88 tests réussis (Cible: ≥ 95%)</div>
+        <div class="kpi-progress"><div class="kpi-progress-fill" style="width:80%;background:var(--warning)"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">❌ Taux d'échec</div>
+          <div class="kpi-badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.25)">Critique</div>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">16<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">13 / 88 tests échoués (Cible: ≤ 5%)</div>
+        <div class="kpi-progress"><div class="kpi-progress-fill" style="width:16%;background:var(--danger)"></div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🚀 Efficience</div>
+          <div class="kpi-badge">OK</div>
+        </div>
+        <div class="kpi-value" style="color:var(--success)">83<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">65 / 78 (Cible: ≥ 95%)</div>
+        <div class="kpi-progress"><div class="kpi-progress-fill" style="width:83%"></div></div>
+      </div>
+    </div>
+
+    <div class="section-label">🍩 Répartition des statuts</div>
+    <div class="doughnut-section">
+      <div class="doughnut-visual"><div class="doughnut-hole"></div></div>
+      <div class="legend">
+        <div class="legend-item"><div class="dot" style="background:var(--success)"></div> Passed — 65</div>
+        <div class="legend-item"><div class="dot" style="background:var(--danger)"></div> Failed — 13</div>
+        <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> WIP — 2</div>
+        <div class="legend-item"><div class="dot" style="background:var(--warning)"></div> Blocked — 1</div>
+        <div class="legend-item"><div class="dot" style="background:var(--text-muted)"></div> Untested — 4</div>
+      </div>
+    </div>
+
+    <div class="section-label">🏭 Production</div>
+    <div class="optb-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="kpi-card">
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🛡️ Taux d'échappement</div>
+          <div class="kpi-badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.25)">Critique</div>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">79<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">Jalon: R06 • Objectif: &lt; 5%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🛡️ Taux de détection</div>
+          <div class="kpi-badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.25)">Critique</div>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">21<span style="font-size:0.9rem;opacity:0.7">%</span></div>
+        <div class="kpi-sub">Lié: R06 • Objectif: &gt; 95%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-list">
+    <div class="feature-item">
+      <h4>✅ Skeleton Loading</h4>
+      <p>Pas de spinner bloquant. Les placeholders shimmer maintiennent la structure pendant le chargement, réduisant le CLS.</p>
+      <span class="tag">Perceived Perf</span>
+    </div>
+    <div class="feature-item">
+      <h4>✅ Grid 12 colonnes responsive</h4>
+      <p>4 colonnes → 2 colonnes → 1 colonne selon le viewport. Les cartes s'adaptent sans scroll horizontal.</p>
+      <span class="tag">Responsive</span>
+    </div>
+    <div class="feature-item">
+      <h4>✅ KPI Cards premium</h4>
+      <p>Hover élévation (-2px), bordure de status, icône + texte (jamais couleur seule), progress bar animée.</p>
+      <span class="tag">A11y + Micro-interactions</span>
+    </div>
+    <div class="feature-item">
+      <h4>✅ Doughnut Chart</h4>
+      <p>Répartition visuelle interactive avec legende et tooltip au hover. Remplace la barre de texte statique.</p>
+      <span class="tag">Data Viz</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== OPTION C ==================== -->
+<div id="optc" class="stage">
+  <div class="dash-mockup">
+    <div class="dash-header">
+      <div class="dash-title">Vue Globale — Projet Alpha</div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button class="btn-tv" onclick="toggleTv()">📺 Mode TV</button>
+        <div class="dash-badge">En cours</div>
+      </div>
+    </div>
+
+    <!-- Inline chips filters -->
+    <div class="optc-toolbar">
+      <div class="chip">📅 R14 <span class="x">×</span></div>
+      <div class="chip">🏭 R06 <span class="x">×</span></div>
+      <div class="chip" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border-color:rgba(255,255,255,0.1)">+ Ajouter un filtre</div>
+    </div>
+
+    <div class="section-label">📊 Mes KPIs (drag & drop pour réorganiser)</div>
+    <div class="optb-grid">
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">📈 Taux d'exécution</div>
+          <div style="display:flex;gap:4px">
+            <div class="kpi-badge">OK</div>
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+          </div>
+        </div>
+        <div class="kpi-value" style="color:var(--success)">92<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge">▲ +3.2%</span></div>
+        <div class="kpi-sub">vs semaine dernière (88.8%)</div>
+        <div class="compare-row">
+          <div class="compare-pill">J-7: 88.8%</div>
+          <div class="compare-pill">J-14: 85.1%</div>
+          <div class="compare-pill">J-30: 79.4%</div>
+        </div>
+      </div>
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent warn"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">✅ Taux de succès</div>
+          <div style="display:flex;gap:4px">
+            <div class="kpi-badge" style="background:rgba(251,191,36,0.12);color:var(--warning);border-color:rgba(251,191,36,0.25)">Attention</div>
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+          </div>
+        </div>
+        <div class="kpi-value" style="color:var(--warning)">80<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge" style="background:rgba(251,191,36,0.15);color:var(--warning)">▼ -1.4%</span></div>
+        <div class="kpi-sub">vs semaine dernière (81.4%)</div>
+        <div class="compare-row">
+          <div class="compare-pill">J-7: 81.4%</div>
+          <div class="compare-pill">J-14: 82.0%</div>
+          <div class="compare-pill">J-30: 83.5%</div>
+        </div>
+      </div>
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">❌ Taux d'échec</div>
+          <div style="display:flex;gap:4px">
+            <div class="kpi-badge" style="background:rgba(248,113,113,0.12);color:var(--danger);border-color:rgba(248,113,113,0.25)">Critique</div>
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+          </div>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">16<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge" style="background:rgba(248,113,113,0.15);color:var(--danger)">▲ +2.1%</span></div>
+        <div class="kpi-sub">vs semaine dernière (13.9%)</div>
+      </div>
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🚀 Efficience</div>
+          <div style="display:flex;gap:4px">
+            <div class="kpi-badge">OK</div>
+            <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+          </div>
+        </div>
+        <div class="kpi-value" style="color:var(--success)">83<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge">▲ +1.8%</span></div>
+        <div class="kpi-sub">vs semaine dernière (81.2%)</div>
+      </div>
+    </div>
+
+    <div class="section-label">🍩 Répartition des statuts</div>
+    <div class="doughnut-section">
+      <div class="doughnut-visual"><div class="doughnut-hole"></div></div>
+      <div>
+        <div class="legend">
+          <div class="legend-item"><div class="dot" style="background:var(--success)"></div> Passed — 65</div>
+          <div class="legend-item"><div class="dot" style="background:var(--danger)"></div> Failed — 13</div>
+          <div class="legend-item"><div class="dot" style="background:var(--accent)"></div> WIP — 2</div>
+          <div class="legend-item"><div class="dot" style="background:var(--warning)"></div> Blocked — 1</div>
+          <div class="legend-item"><div class="dot" style="background:var(--text-muted)"></div> Untested — 4</div>
+        </div>
+        <button style="margin-top:0.75rem;padding:0.3rem 0.8rem;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--text-muted);border:1px solid rgba(255,255,255,0.1);cursor:pointer;font-size:0.75rem">⬇️ Exporter ce graphique</button>
+      </div>
+    </div>
+
+    <div class="section-label">🏭 Production</div>
+    <div class="optb-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🛡️ Taux d'échappement</div>
+          <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">79<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge" style="background:rgba(248,113,113,0.15);color:var(--danger)">▲ +5.3%</span></div>
+        <div class="kpi-sub">vs R06 précédent (73.9%)</div>
+      </div>
+      <div class="kpi-card draggable">
+        <div class="drag-handle"><span></span><span></span></div>
+        <div class="kpi-accent crit"></div>
+        <div class="kpi-header">
+          <div class="kpi-title">🛡️ Taux de détection</div>
+          <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem" title="Exporter PNG">⬇️</button>
+        </div>
+        <div class="kpi-value" style="color:var(--danger)">21<span style="font-size:0.9rem;opacity:0.7">%</span><span class="delta-badge" style="background:rgba(248,113,113,0.15);color:var(--danger)">▼ -4.8%</span></div>
+        <div class="kpi-sub">vs R06 précédent (25.8%)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-list">
+    <div class="feature-item">
+      <h4>🧩 Widgets drag & drop</h4>
+      <p>L'utilisateur réorganise son dashboard. Le layout est sauvegardé dans localStorage ou en base (persistance par utilisateur).</p>
+      <span class="tag">Personnalisation</span>
+    </div>
+    <div class="feature-item">
+      <h4>📺 Mode TV optimisé</h4>
+      <p>Cycle automatique des slides en plein écran, contraste max, pas d'interaction requise. Idéal pour les écrans de open-space.</p>
+      <span class="tag">Affichage</span>
+    </div>
+    <div class="feature-item">
+      <h4>📊 Comparaison temporelle</h4>
+      <p>Chaque KPI affiche son delta vs J-7 / J-14 / J-30. Pas besoin d'aller dans l'onglet Historical Trends.</p>
+      <span class="tag">Analytics</span>
+    </div>
+    <div class="feature-item">
+      <h4>🏷️ Filtres inline chips</h4>
+      <p>Remplace le sélecteur de milestones par des chips interactives. Ajout/suppression en un clic, visuellement intégré.</p>
+      <span class="tag">UX</span>
+    </div>
+    <div class="feature-item">
+      <h4>💾 Export par carte</h4>
+      <p>Bouton PNG/PDF sur chaque KPI card et chaque graphique. Export ciblé au lieu d'un PDF global lourd.</p>
+      <span class="tag">Productivité</span>
+    </div>
+  </div>
+</div>
+
+<!-- TV Mode Overlay -->
+<div id="tvOverlay" class="tv-overlay">
+  <div class="tv-slide" style="color:var(--success)">92% Exécution</div>
+  <div style="color:var(--text-muted);margin-top:1rem">Slide 1/4 • Projet Alpha</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+  function toggleTv() {
+    const ov = document.getElementById('tvOverlay');
+    ov.classList.toggle('active');
+    setTimeout(() => ov.classList.remove('active'), 3000);
+  }
+</script>
+</body>
+</html>
