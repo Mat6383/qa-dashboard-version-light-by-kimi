@@ -41,6 +41,24 @@ const tabs = [
   { id: 'gitlab-sync', labelKey: 'dashboard4.gitlabSync', icon: Settings },
 ];
 
+interface Dashboard4Props {
+  metrics?: any;
+  project?: any;
+  projects?: any[];
+  projectId?: number | null;
+  onProjectChange?: (id: number | string) => void;
+  isDark?: boolean;
+  useBusiness?: boolean;
+  setExportHandler?: (handler: () => void) => void;
+  showProductionSection?: boolean;
+  onToggleProductionSection?: () => void;
+  anomalies?: any[];
+  selectedPreprodMilestones?: number[];
+  selectedProdMilestones?: number[];
+  onTogglePreprodMilestone?: (id: number) => void;
+  onToggleProdMilestone?: (id: number) => void;
+}
+
 const Dashboard4 = ({
   metrics,
   project,
@@ -57,7 +75,7 @@ const Dashboard4 = ({
   selectedProdMilestones = [],
   onTogglePreprodMilestone,
   onToggleProdMilestone,
-}) => {
+}: Dashboard4Props) => {
   const { t } = useTranslation();
   const dashboardRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -111,7 +129,8 @@ const Dashboard4 = ({
 
   const handleExportPDF = useCallback(async () => {
     if (!dashboardRef.current || !project) return;
-    await exportPDF(dashboardRef.current, `QA_Dashboard_${project.name}_${new Date().toLocaleDateString('fr-FR')}.pdf`);
+    const safeName = (project.name || 'project').replace(/[^a-zA-Z0-9\-_]/g, '_');
+    await exportPDF(dashboardRef.current, `QA_Dashboard_${safeName}_${new Date().toLocaleDateString('fr-FR')}.pdf`);
   }, [exportPDF, project]);
 
   const handleExportPDFRef = useRef(handleExportPDF);

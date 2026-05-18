@@ -26,7 +26,7 @@ export interface DashboardLayout {
   production: WidgetId[];
 }
 
-const DEFAULT_LAYOUT: DashboardLayout = {
+export const DEFAULT_LAYOUT: DashboardLayout = {
   preprod: ['completionRate', 'passRate', 'failureRate', 'testEfficiency'],
   production: ['escapeRate', 'detectionRate'],
 };

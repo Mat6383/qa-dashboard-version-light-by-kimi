@@ -213,12 +213,14 @@ class TestmoClient:
         return names
 
     async def get_run_results(
-        self, run_id: int, status_filter: str | None = None
+        self, run_id: int, status_filter: str | None = None, expands: str | None = None
     ) -> dict[str, Any]:
-        key = self._cache_key("results", run_id, status_filter or "all")
+        key = self._cache_key("results", run_id, status_filter or "all", expands or "none")
         params = {}
         if status_filter:
             params["status"] = status_filter
+        if expands:
+            params["expands"] = expands
 
         async def _fetch() -> Any:
             return await self._get(f"/runs/{run_id}/results", params)

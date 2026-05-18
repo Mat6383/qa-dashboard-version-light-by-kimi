@@ -4,7 +4,7 @@ import { Loader2, AlertCircle, GitCompare } from 'lucide-react';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { apiClient } from '../services/api.service';
 import { getMetricColor } from '../lib/colors';
-import { buildCompareChartData, buildCompareRequestConfig, buildChartOptions } from '../lib/charts';
+import { buildCompareChartData, buildChartOptions } from '../lib/charts';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -22,7 +22,9 @@ export default function CompareDashboard({ isDark }) {
         const raw = res.data?.data?.result || res.data?.data || res.data?.projects || [];
         setProjects(Array.isArray(raw) ? raw : []);
       })
-      .catch(() => {});
+      .catch(() => {
+        setError('Impossible de charger la liste des projets.');
+      });
   }, []);
 
   useEffect(() => {
@@ -35,28 +37,30 @@ export default function CompareDashboard({ isDark }) {
       setLoading(true);
       try {
         const res = await apiClient.get('/dashboard/compare', {
-          ...buildCompareRequestConfig(selected),
+          params: { project_ids: selected },
+          paramsSerializer: { indexes: null },
           signal: controller.signal,
         });
         const raw = res.data?.data || res.data?.projects || [];
         const list = Array.isArray(raw) ? raw : [];
-        setData(
-          list.map((d) => ({
-            projectId: d.projectId ?? d.project_id ?? 0,
-            projectName: d.projectName ?? d.project_name ?? `Projet ${d.projectId ?? d.project_id ?? 0}`,
-            passRate: d.passRate ?? d.pass_rate ?? 0,
-            completionRate: d.completionRate ?? d.completion_rate ?? 0,
-            escapeRate: d.escapeRate ?? d.escape_rate ?? 0,
-            detectionRate: d.detectionRate ?? d.detection_rate ?? 0,
-            blockedRate: d.blockedRate ?? d.blocked_rate ?? 0,
-          }))
-        );
+        const mapProject = (d: any) => ({
+          projectId: d.projectId ?? d.project_id ?? 0,
+          projectName: d.projectName ?? d.project_name ?? `Projet ${d.projectId ?? d.project_id ?? 0}`,
+          passRate: d.passRate ?? d.pass_rate ?? 0,
+          completionRate: d.completionRate ?? d.completion_rate ?? 0,
+          escapeRate: d.escapeRate ?? d.escape_rate ?? 0,
+          detectionRate: d.detectionRate ?? d.detection_rate ?? 0,
+          blockedRate: d.blockedRate ?? d.blocked_rate ?? 0,
+        });
+        setData(list.map(mapProject));
         setError(null);
       } catch (err) {
         if (controller.signal.aborted) return;
         setError('Erreur lors de la comparaison.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     fetchData();

@@ -15,6 +15,14 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Testmo result status ID constants (non-standard, business-critical)
+STATUS_KEY_PASSED = "status1_count"
+STATUS_KEY_FAILED = "status2_count"
+STATUS_KEY_RETEST = "status3_count"
+STATUS_KEY_BLOCKED = "status4_count"
+STATUS_KEY_SKIPPED = "status5_count"
+STATUS_KEY_WIP = "status7_count"
+
 
 class TestmoMetrics:
     def __init__(self, client: TestmoClient) -> None:
@@ -55,20 +63,12 @@ class TestmoMetrics:
         for run in runs:
             aggregated["total"] += run.get("total_count", 0)
             aggregated["untested"] += run.get("untested_count", 0)
-            # Testmo result status IDs (non-standard, business-critical):
-            #   status1 = Passed
-            #   status2 = Failed
-            #   status3 = Retest
-            #   status4 = Blocked
-            #   status5 = Skipped
-            #   status7 = WIP
-            # Note: status6 and status8 are unused in our Testmo config.
-            aggregated["passed"] += run.get("status1_count", 0)
-            aggregated["failed"] += run.get("status2_count", 0)
-            aggregated["retest"] += run.get("status3_count", 0)
-            aggregated["blocked"] += run.get("status4_count", 0)
-            aggregated["skipped"] += run.get("status5_count", 0)
-            aggregated["wip"] += run.get("status7_count", 0)
+            aggregated["passed"] += run.get(STATUS_KEY_PASSED, 0)
+            aggregated["failed"] += run.get(STATUS_KEY_FAILED, 0)
+            aggregated["retest"] += run.get(STATUS_KEY_RETEST, 0)
+            aggregated["blocked"] += run.get(STATUS_KEY_BLOCKED, 0)
+            aggregated["skipped"] += run.get(STATUS_KEY_SKIPPED, 0)
+            aggregated["wip"] += run.get(STATUS_KEY_WIP, 0)
             aggregated["completed"] += run.get("completed_count", 0)
             aggregated["success"] += run.get("success_count", 0)
             aggregated["failure"] += run.get("failure_count", 0)
@@ -90,17 +90,20 @@ class TestmoMetrics:
         lead_time = 0.0
         mttr = 0.0
         if runs:
+            now_ts = datetime.now(timezone.utc).timestamp()
+            runs_with_created_at = [r for r in runs if r.get("created_at")]
             lead_time = round(
                 sum(
                     (
-                        datetime.now(timezone.utc).timestamp()
+                        now_ts
                         - datetime.fromisoformat(r["created_at"].replace("Z", "+00:00")).timestamp()
                     )
                     / 3600
-                    for r in runs
-                    if r.get("created_at")
+                    for r in runs_with_created_at
                 )
-                / len(runs),
+                / len(runs_with_created_at)
+                if runs_with_created_at
+                else 0.0,
                 1,
             )
             mttr = round(lead_time * (aggregated["failed"] / (aggregated["passed"] or 1)), 1)
@@ -141,17 +144,17 @@ class TestmoMetrics:
                     "name": run["name"],
                     "total": run.get("total_count", 0),
                     "completed": run.get("completed_count", 0),
-                    # See status ID mapping comment above (~line 223)
-                    "passed": run.get("status1_count", 0),
-                    "failed": run.get("status2_count", 0),
-                    "blocked": run.get("status4_count", 0),
-                    "skipped": run.get("status5_count", 0),
-                    "wip": run.get("status7_count", 0),
+                    # See status ID mapping comment above (~line 58)
+                    "passed": run.get(STATUS_KEY_PASSED, 0),
+                    "failed": run.get(STATUS_KEY_FAILED, 0),
+                    "blocked": run.get(STATUS_KEY_BLOCKED, 0),
+                    "skipped": run.get(STATUS_KEY_SKIPPED, 0),
+                    "wip": run.get(STATUS_KEY_WIP, 0),
                     "untested": run.get("untested_count", 0),
                     "completionRate": _pct(
                         run.get("completed_count", 0), run.get("total_count", 0)
                     ),
-                    "passRate": _pct(run.get("status1_count", 0), run.get("completed_count", 0)),
+                    "passRate": _pct(run.get(STATUS_KEY_PASSED, 0), run.get("completed_count", 0)),
                     "created_at": run.get("created_at"),
                     "milestone": run.get("milestone_id"),
                     "isExploratory": False,
@@ -249,13 +252,11 @@ class TestmoMetrics:
                 run: dict[str, Any],
             ) -> dict[str, Any] | list[dict[str, Any]] | Exception:
                 run_id = run.get("id")
-                if not run_id:
-                    return Exception("Run without id")
+                if not isinstance(run_id, int):
+                    return Exception(f"Invalid run id: {run_id!r}")
                 async with sem:
                     try:
-                        return await self._client._get(
-                            f"/runs/{run_id}/results", {"expands": "issues"}
-                        )
+                        return await self._client.get_run_results(run_id, expands="issues")
                     except Exception as exc:
                         return exc
 
@@ -289,7 +290,7 @@ class TestmoMetrics:
             else []
         )
 
-        bugs_in_test = sum(r.get("status2_count", 0) for r in preprod_runs)
+        bugs_in_test = sum(r.get(STATUS_KEY_FAILED, 0) for r in preprod_runs)
         bugs_in_prod = await self._count_prod_bugs(prod_runs)
         total_bugs = bugs_in_test + bugs_in_prod
 
@@ -325,7 +326,7 @@ class TestmoMetrics:
     ) -> dict[str, Any]:
         milestones = await self._client.get_project_milestones(project_id)
         active_milestones = [m for m in milestones if not m.get("is_completed")]
-        active_milestones.sort(key=lambda m: m.get("id", 0), reverse=True)
+        active_milestones.sort(key=lambda m: m.get("id") or 0, reverse=True)
 
         if len(active_milestones) < 3:
             return {
@@ -376,7 +377,7 @@ class TestmoMetrics:
             }
 
         test_runs = [r for r in prod_runs_auto if not self._is_prod_run(r.get("name"))]
-        bugs_in_test = sum(r.get("status2_count", 0) for r in test_runs)
+        bugs_in_test = sum(r.get(STATUS_KEY_FAILED, 0) for r in test_runs)
 
         patch_runs = [r for r in prod_runs_auto if self._is_prod_run(r.get("name"))]
         bugs_in_prod = await self._count_prod_bugs(patch_runs)
@@ -427,11 +428,19 @@ class TestmoMetrics:
             started = r.get("started_at") or r.get("created_at")
             if not started:
                 continue
-            year = str(started)[:4] if isinstance(started, str) else started.year
+            if isinstance(started, datetime):
+                year = str(started.year)
+            elif isinstance(started, str):
+                year = started[:4]
+            else:
+                try:
+                    year = str(datetime.fromtimestamp(float(started)).year)
+                except (ValueError, TypeError, OSError):
+                    year = str(started)[:4]
             # Utilise les mêmes champs que get_project_metrics (status ID mapping)
-            years[year]["passed"] += r.get("status1_count", 0)
-            years[year]["failed"] += r.get("status2_count", 0)
-            years[year]["blocked"] += r.get("status4_count", 0)
+            years[year]["passed"] += r.get(STATUS_KEY_PASSED, 0)
+            years[year]["failed"] += r.get(STATUS_KEY_FAILED, 0)
+            years[year]["blocked"] += r.get(STATUS_KEY_BLOCKED, 0)
             years[year]["total"] += r.get("total_count", 0)
 
         trends = []
@@ -462,8 +471,17 @@ class TestmoMetrics:
 
     async def compare_projects(self, project_ids: list[int]) -> list[dict[str, Any]]:
         """Metrics comparison across multiple projects."""
-        tasks = [self.get_project_metrics(pid) for pid in project_ids]
-        metrics_list = await asyncio.gather(*tasks, return_exceptions=True)
+        sem = asyncio.Semaphore(5)
+
+        async def _fetch(pid: int) -> dict[str, Any] | Exception:
+            async with sem:
+                try:
+                    return await self.get_project_metrics(pid)
+                except Exception as exc:
+                    return exc
+
+        tasks = [_fetch(pid) for pid in project_ids]
+        metrics_list = await asyncio.gather(*tasks)
         results: list[dict[str, Any]] = []
         for pid, metrics in zip(project_ids, metrics_list):
             if isinstance(metrics, Exception):

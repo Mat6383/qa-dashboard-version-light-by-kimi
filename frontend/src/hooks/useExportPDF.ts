@@ -42,8 +42,15 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
           element.style.display = 'block';
         }
 
+        let scale = opts.scale ?? 2;
+        const pixelCount = element.offsetWidth * element.offsetHeight * scale * scale;
+        const MAX_PIXELS = 32_000_000; // ~32 MP to avoid memory blow-up
+        if (pixelCount > MAX_PIXELS) {
+          scale = Math.max(1, Math.floor(Math.sqrt(MAX_PIXELS / (element.offsetWidth * element.offsetHeight))));
+        }
+
         const canvas = await html2canvas(element, {
-          scale: opts.scale ?? 2,
+          scale,
           useCORS: true,
           backgroundColor: opts.backgroundColor ?? '#FFFFFF',
           logging: opts.logging ?? false,

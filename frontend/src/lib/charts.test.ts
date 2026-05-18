@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildHistoricalChartData, buildCompareChartData, buildCompareRequestConfig, buildChartOptions, buildDoughnutChartData } from './charts';
+import { buildHistoricalChartData, buildCompareChartData, buildChartOptions, buildDoughnutChartData } from './charts';
 
 describe('buildHistoricalChartData', () => {
   const snapshots = [
@@ -29,6 +29,13 @@ describe('buildHistoricalChartData', () => {
     const chartData = buildHistoricalChartData(snapshots);
     const passRateDs = chartData.datasets.find((d) => d.label === 'Pass Rate');
     expect(passRateDs?.data).toEqual([99.0, 80.25]);
+  });
+
+  it('includes blocked_rate dataset (U014)', () => {
+    const chartData = buildHistoricalChartData(snapshots);
+    const blockedDs = chartData.datasets.find((d) => d.label === 'Blocked Rate');
+    expect(blockedDs).toBeDefined();
+    expect(blockedDs?.data).toEqual([0.0, 0.0]);
   });
 
   it('gère les valeurs null en les remplaçant par null dans le dataset', () => {
@@ -78,15 +85,6 @@ describe('buildCompareChartData', () => {
     const chartData = buildCompareChartData(compareItems);
     const neoPilot = chartData.datasets.find((d) => d.label === 'Neo-Pilot');
     expect(neoPilot?.data).toEqual([80.25, 92.05, 0, 0, 0]);
-  });
-});
-
-describe('buildCompareRequestConfig', () => {
-  it('sérialise les arrays sans brackets pour FastAPI', () => {
-    const config = buildCompareRequestConfig([1, 3]);
-    // Axios avec paramsSerializer: { indexes: null } produit ?project_ids=1&project_ids=3
-    expect(config.params).toEqual({ project_ids: [1, 3] });
-    expect(config.paramsSerializer).toEqual({ indexes: null });
   });
 });
 

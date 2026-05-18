@@ -66,6 +66,7 @@ export function buildHistoricalChartData(data: HistoricalSnapshot[]) {
       makeDataset('Completion', 'completion_rate'),
       makeDataset('Escape Rate', 'escape_rate'),
       makeDataset('Detection', 'detection_rate'),
+      makeDataset('Blocked Rate', 'blocked_rate'),
     ],
   };
 }
@@ -85,13 +86,6 @@ export function buildCompareChartData(data: CompareItem[]) {
   });
 
   return { labels, datasets };
-}
-
-export function buildCompareRequestConfig(selected: number[]) {
-  return {
-    params: { project_ids: selected },
-    paramsSerializer: { indexes: null } as any,
-  };
 }
 
 // ── Chart.js theme colors (Chart.js cannot resolve CSS variables in canvas) ──

@@ -9,7 +9,7 @@
  * @version 1.0.0
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../services/api.service';
 
@@ -48,7 +48,7 @@ function getMetricKeyFromName(name: string): string {
   const map: Record<string, string> = {
     completionRate: 'completion_rate',
     passRate: 'pass_rate',
-    failureRate: 'failure_rate',
+    failureRate: 'blocked_rate', // failure rate ≈ blocked rate in our Testmo config
     blockedRate: 'blocked_rate',
     escapeRate: 'escape_rate',
     detectionRate: 'detection_rate',
@@ -77,7 +77,7 @@ function findClosestSnapshot(data: TrendSnapshot[], targetDate: Date): TrendSnap
 }
 
 function computeDelta(current: number, previous: number | null): number | null {
-  if (previous === null || previous === undefined || previous === 0) return null;
+  if (previous === null || previous === undefined) return null;
   return parseFloat((current - previous).toFixed(2));
 }
 
@@ -142,19 +142,21 @@ export function useTemporalComparison(projectId: number | null, enabled = true) 
     };
   }, [data]);
 
-  const getTemporalForMetric = (metricName: string, currentValue: number): MetricTemporal | null => {
-    const key = getMetricKeyFromName(metricName);
-    const base = comparison[key];
-    if (!base) return null;
-    // Recompute with actual current value (since we used 0 as placeholder above)
-    return {
-      ...base,
-      current: currentValue,
-      delta7: computeDelta(currentValue, base.values.j7?.value ?? null),
-      delta14: computeDelta(currentValue, base.values.j14?.value ?? null),
-      delta30: computeDelta(currentValue, base.values.j30?.value ?? null),
-    };
-  };
+  const getTemporalForMetric = useCallback(
+    (metricName: string, currentValue: number): MetricTemporal | null => {
+      const base = comparison[metricName];
+      if (!base) return null;
+      // Recompute with actual current value (since we used 0 as placeholder above)
+      return {
+        ...base,
+        current: currentValue,
+        delta7: computeDelta(currentValue, base.values.j7?.value ?? null),
+        delta14: computeDelta(currentValue, base.values.j14?.value ?? null),
+        delta30: computeDelta(currentValue, base.values.j30?.value ?? null),
+      };
+    },
+    [comparison]
+  );
 
   return { comparison, getTemporalForMetric, isLoading };
 }

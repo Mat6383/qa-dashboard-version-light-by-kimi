@@ -43,7 +43,9 @@ export default function HistoricalTrends({ projectId, isDark }) {
         if (controller.signal.aborted) return;
         setError('Impossible de charger les tendances historiques.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     fetchData();
