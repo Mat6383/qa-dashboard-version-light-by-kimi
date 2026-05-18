@@ -103,6 +103,7 @@ export interface Run {
   isExploratory: boolean;
   isClosed: boolean;
   created_at: string;
+  milestone?: number;
 }
 
 export interface SlaStatus {

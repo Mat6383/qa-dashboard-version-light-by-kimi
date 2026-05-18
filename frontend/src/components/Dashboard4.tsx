@@ -81,6 +81,7 @@ const Dashboard4 = ({
   const [activeTab, setActiveTab] = useState('overview');
   const [showAllRuns, setShowAllRuns] = React.useState(false);
   const [showLatestOnly, setShowLatestOnly] = React.useState(false);
+  const [showExploratoryByMilestone, setShowExploratoryByMilestone] = React.useState(false);
   const [showClosureModal, setShowClosureModal] = React.useState(false);
   const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
   const [showReportGenerator, setShowReportGenerator] = React.useState(false);
@@ -111,9 +112,24 @@ const Dashboard4 = ({
   const latestRun = useMemo(() => runs.find((r) => !r.isExploratory) || runs[0], [runs]);
 
   const displayedRuns = useMemo(() => {
-    if (showLatestOnly && latestRun) return [latestRun];
-    return sortedRuns;
-  }, [showLatestOnly, latestRun, sortedRuns]);
+    let base = showLatestOnly && latestRun ? [latestRun] : sortedRuns;
+    if (showExploratoryByMilestone && selectedPreprodMilestones.length > 0) {
+      const exploratory = sortedRuns.filter(
+        (r) =>
+          r.isExploratory &&
+          selectedPreprodMilestones.includes(r.milestone as number) &&
+          !base.some((br) => br.id === r.id)
+      );
+      base = [...base, ...exploratory];
+    }
+    return base;
+  }, [
+    showLatestOnly,
+    latestRun,
+    sortedRuns,
+    showExploratoryByMilestone,
+    selectedPreprodMilestones,
+  ]);
   const rates = metrics?.qualityRates || DEFAULT_RATES;
 
   const escapeOk = rates.escapeRate < 5;
@@ -288,6 +304,8 @@ const Dashboard4 = ({
                 setShowAllRuns={setShowAllRuns}
                 showLatestOnly={showLatestOnly}
                 setShowLatestOnly={setShowLatestOnly}
+                showExploratoryByMilestone={showExploratoryByMilestone}
+                setShowExploratoryByMilestone={setShowExploratoryByMilestone}
                 isDark={isDark}
                 useBusiness={useBusiness}
                 getAlertForMetric={getAlertForMetric}
