@@ -2,73 +2,59 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Radar } from 'react-chartjs-2';
 import { Loader2, AlertCircle, GitCompare } from 'lucide-react';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
-import { apiClient } from '../services/api.service';
 import { getMetricColor } from '../lib/colors';
 import { buildCompareChartData, buildChartOptions } from '../lib/charts';
+import { useApiRequest } from '../hooks/useApiRequest';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
+const mapProject = (d: any) => ({
+  projectId: d.projectId ?? d.project_id ?? 0,
+  projectName: d.projectName ?? d.project_name ?? `Projet ${d.projectId ?? d.project_id ?? 0}`,
+  passRate: d.passRate ?? d.pass_rate ?? 0,
+  completionRate: d.completionRate ?? d.completion_rate ?? 0,
+  escapeRate: d.escapeRate ?? d.escape_rate ?? 0,
+  detectionRate: d.detectionRate ?? d.detection_rate ?? 0,
+  blockedRate: d.blockedRate ?? d.blocked_rate ?? 0,
+});
+
 export default function CompareDashboard({ isDark }) {
-  const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState([]);
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+
+  const projectsApi = useApiRequest<any>();
+  const compareApi = useApiRequest<any>();
 
   useEffect(() => {
-    apiClient
-      .get('/projects')
-      .then((res) => {
-        const raw = res.data?.data?.result || res.data?.data || res.data?.projects || [];
-        setProjects(Array.isArray(raw) ? raw : []);
-      })
-      .catch(() => {
-        setError('Impossible de charger la liste des projets.');
-      });
+    projectsApi.execute('/projects');
   }, []);
 
   useEffect(() => {
     if (selected.length < 2) {
-      setData([]);
+      compareApi.reset();
       return;
     }
-    const controller = new AbortController();
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res = await apiClient.get('/dashboard/compare', {
-          params: { project_ids: selected },
-          paramsSerializer: { indexes: null },
-          signal: controller.signal,
-        });
-        const raw = res.data?.data || res.data?.projects || [];
-        const list = Array.isArray(raw) ? raw : [];
-        const mapProject = (d: any) => ({
-          projectId: d.projectId ?? d.project_id ?? 0,
-          projectName: d.projectName ?? d.project_name ?? `Projet ${d.projectId ?? d.project_id ?? 0}`,
-          passRate: d.passRate ?? d.pass_rate ?? 0,
-          completionRate: d.completionRate ?? d.completion_rate ?? 0,
-          escapeRate: d.escapeRate ?? d.escape_rate ?? 0,
-          detectionRate: d.detectionRate ?? d.detection_rate ?? 0,
-          blockedRate: d.blockedRate ?? d.blocked_rate ?? 0,
-        });
-        setData(list.map(mapProject));
-        setError(null);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError('Erreur lors de la comparaison.');
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    };
-    fetchData();
-    return () => controller.abort();
+    compareApi.execute('/dashboard/compare', {
+      params: { project_ids: selected },
+      paramsSerializer: { indexes: null },
+    });
   }, [selected]);
 
-  const chartData = useMemo(() => buildCompareChartData(data), [data]);
+  const projects = useMemo(() => {
+    const res = projectsApi.data;
+    if (!res) return [];
+    const raw = res.data?.result || res.data || res.projects || [];
+    return Array.isArray(raw) ? raw : [];
+  }, [projectsApi.data]);
 
+  const data = useMemo(() => {
+    const res = compareApi.data;
+    if (!res) return [];
+    const raw = res.data || res.projects || [];
+    const list = Array.isArray(raw) ? raw : [];
+    return list.map(mapProject);
+  }, [compareApi.data]);
+
+  const chartData = useMemo(() => buildCompareChartData(data), [data]);
   const options = useMemo(() => buildChartOptions('radar', isDark), [isDark]);
 
   const cardBg = 'var(--surface-muted)';
@@ -83,6 +69,9 @@ export default function CompareDashboard({ isDark }) {
     });
   };
 
+  const loading = compareApi.loading;
+  const error = projectsApi.error || compareApi.error;
+
   return (
     <div style={{ padding: '24px' }}>
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: text }}>
@@ -91,7 +80,7 @@ export default function CompareDashboard({ isDark }) {
       </h2>
       <p style={{ color: 'var(--text-secondary)' }}>Sélectionnez 2 à 4 projets à comparer</p>
 
-      {projects.length === 0 && !loading && (
+      {projects.length === 0 && !projectsApi.loading && (
         <div style={{ color: 'var(--text-secondary)', margin: '16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={20} />
           Aucun projet disponible.
@@ -136,38 +125,37 @@ export default function CompareDashboard({ isDark }) {
       )}
 
       {!loading && data.length > 0 && (
-        <div style={{ height: '500px', background: cardBg, border, borderRadius: '8px', padding: '16px' }}>
-          <Radar data={chartData} options={options} />
-        </div>
-      )}
-
-      {!loading && data.length > 0 && (
-        <div style={{ marginTop: '24px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', color: text }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${border}` }}>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Projet</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Pass Rate</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Completion</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Escape</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Detection</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>Blocked</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((d) => (
-                <tr key={d.projectId} style={{ borderBottom: `1px solid ${border}` }}>
-                  <td style={{ padding: '8px', fontWeight: 500 }}>{d.projectName}</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('passRate', d.passRate), fontWeight: 700 }}>{d.passRate}%</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('completionRate', d.completionRate), fontWeight: 700 }}>{d.completionRate}%</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('escapeRate', d.escapeRate), fontWeight: 700 }}>{d.escapeRate}%</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('detectionRate', d.detectionRate), fontWeight: 700 }}>{d.detectionRate}%</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('blockedRate', d.blockedRate), fontWeight: 700 }}>{d.blockedRate}%</td>
+        <>
+          <div style={{ height: '500px', background: cardBg, border, borderRadius: '8px', padding: '16px' }}>
+            <Radar data={chartData} options={options} />
+          </div>
+          <div style={{ marginTop: '24px', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', color: text }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${border}` }}>
+                  <th style={{ textAlign: 'left', padding: '8px' }}>Projet</th>
+                  <th style={{ textAlign: 'right', padding: '8px' }}>Pass Rate</th>
+                  <th style={{ textAlign: 'right', padding: '8px' }}>Completion</th>
+                  <th style={{ textAlign: 'right', padding: '8px' }}>Escape</th>
+                  <th style={{ textAlign: 'right', padding: '8px' }}>Detection</th>
+                  <th style={{ textAlign: 'right', padding: '8px' }}>Blocked</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data.map((d) => (
+                  <tr key={d.projectId} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '8px', fontWeight: 500 }}>{d.projectName}</td>
+                    <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('passRate', d.passRate), fontWeight: 700 }}>{d.passRate}%</td>
+                    <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('completionRate', d.completionRate), fontWeight: 700 }}>{d.completionRate}%</td>
+                    <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('escapeRate', d.escapeRate), fontWeight: 700 }}>{d.escapeRate}%</td>
+                    <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('detectionRate', d.detectionRate), fontWeight: 700 }}>{d.detectionRate}%</td>
+                    <td style={{ padding: '8px', textAlign: 'right', color: getMetricColor('blockedRate', d.blockedRate), fontWeight: 700 }}>{d.blockedRate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

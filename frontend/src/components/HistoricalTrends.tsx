@@ -12,46 +12,26 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { apiClient } from '../services/api.service';
 import { buildHistoricalChartData, buildChartOptions } from '../lib/charts';
+import { useApiRequest } from '../hooks/useApiRequest';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function HistoricalTrends({ projectId, isDark }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [range, setRange] = useState('30'); // jours
   const [granularity, setGranularity] = useState('day');
+  const { data: response, loading, error, execute } = useApiRequest<any>();
 
   useEffect(() => {
-    const controller = new AbortController();
-    const fetchData = async () => {
-      if (!projectId) return;
-      setLoading(true);
-      try {
-        const to = new Date().toISOString().slice(0, 10);
-        const from = new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const res = await apiClient.get(`/dashboard/${projectId}/trends`, {
-          params: { granularity, from, to },
-          signal: controller.signal,
-        });
-        // Le backend retourne { project_id, granularity, snapshots: [...] }
-        setData(res.data.snapshots || []);
-        setError(null);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError('Impossible de charger les tendances historiques.');
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    };
-    fetchData();
-    return () => controller.abort();
+    if (!projectId) return;
+    const to = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    execute(`/dashboard/${projectId}/trends`, {
+      params: { granularity, from, to },
+    });
   }, [projectId, range, granularity]);
 
+  const data = useMemo(() => response?.snapshots || [], [response]);
   const chartData = useMemo(() => buildHistoricalChartData(data), [data]);
 
   const options = useMemo(() => buildChartOptions('line', isDark), [isDark]);

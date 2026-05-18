@@ -45,7 +45,7 @@ describe('CompareDashboard', () => {
     mockGet.mockRejectedValue(new Error('fail'));
     render(<CompareDashboard isDark={false} />);
     await waitFor(() => {
-      expect(screen.getByText(/Impossible de charger/i)).toBeInTheDocument();
+      expect(screen.getByText(/fail/i)).toBeInTheDocument();
     });
   });
 

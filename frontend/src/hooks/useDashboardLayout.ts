@@ -39,13 +39,16 @@ function loadLayout(): DashboardLayout {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Validate structure
+      const hasDuplicates = (arr: string[]) => new Set(arr).size !== arr.length;
       if (
         Array.isArray(parsed.preprod) &&
         Array.isArray(parsed.production) &&
         parsed.preprod.every((id: string) => DEFAULT_LAYOUT.preprod.includes(id as WidgetId)) &&
         parsed.production.every((id: string) => DEFAULT_LAYOUT.production.includes(id as WidgetId)) &&
         parsed.preprod.length === DEFAULT_LAYOUT.preprod.length &&
-        parsed.production.length === DEFAULT_LAYOUT.production.length
+        parsed.production.length === DEFAULT_LAYOUT.production.length &&
+        !hasDuplicates(parsed.preprod) &&
+        !hasDuplicates(parsed.production)
       ) {
         return parsed as DashboardLayout;
       }
