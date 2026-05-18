@@ -34,11 +34,11 @@ Fonctionnalités avancées : widgets personnalisables, mode TV, comparaison temp
 
 ### Todo
 
-- [ ] **Widgets personnalisables** — Drag & drop des KPIs, sauvegarde layout utilisateur
-- [ ] **Mode TV optimisé** — Cycle auto des slides, plein écran, contraste max
-- [ ] **Comparaison temporelle** — KPI cards avec delta vs période précédente
-- [ ] **Filtres contextuels inline** — Remplacer le sélecteur de milestones par des chips interactives
-- [ ] **Export par carte** — Bouton PDF/PNG sur chaque MetricCard
+- [x] **Widgets personnalisables** — Drag & drop des KPIs, sauvegarde layout utilisateur (localStorage)
+- [x] **Mode TV optimisé** — Cycle auto des slides, plein écran, contraste max
+- [x] **Comparaison temporelle** — KPI cards avec delta vs J-7 / J-14 / J-30
+- [x] **Filtres contextuels inline** — Remplacer le sélecteur de milestones par des chips interactives
+- [x] **Export par carte** — Bouton PNG sur chaque KPICard et graphique Doughnut
 - [ ] **Commit & Push** — `git add . && git commit -m "feat(dashboard4): Option C pro suite — widgets, TV mode, inline filters, export"`
 
 ---

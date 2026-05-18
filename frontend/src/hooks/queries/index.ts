@@ -6,3 +6,4 @@ export { useDashboardMetrics } from './useDashboardMetrics';
 export { useAnalytics } from './useAnalytics';
 export { useRetentionPolicies, useRetentionArchives } from './useRetention';
 export { useIntegrations } from './useIntegrations';
+export { useProjectMilestones } from './useProjectMilestones';

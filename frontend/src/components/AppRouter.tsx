@@ -43,6 +43,8 @@ export default function AppRouter({
   selectedPreprodMilestones,
   selectedProdMilestones,
   onSaveSelection,
+  onTogglePreprodMilestone,
+  onToggleProdMilestone,
 }) {
   const { anomalies } = useDashboard();
   return (
@@ -63,6 +65,10 @@ export default function AppRouter({
               showProductionSection={showProductionSection}
               onToggleProductionSection={onToggleProductionSection}
               anomalies={anomalies}
+              selectedPreprodMilestones={selectedPreprodMilestones}
+              selectedProdMilestones={selectedProdMilestones}
+              onTogglePreprodMilestone={onTogglePreprodMilestone}
+              onToggleProdMilestone={onToggleProdMilestone}
             />
           }
         />

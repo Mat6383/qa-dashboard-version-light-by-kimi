@@ -2,22 +2,30 @@
  * ================================================
  * KPI CARD v2 — Carte de métrique premium
  * ================================================
- * Remplace MetricCard avec un design system cohérent :
- * - Hover élévation + transition 200ms
- * - Status visuel (bordure + icône + texte)
- * - Trend arrow + contexte comparatif
- * - Progress bar animée
- * - Accessibilité : role, aria-label, focus visible
+ * Option C "Pro Suite" enhancements:
+ * - Delta badge vs temporal comparison (▲+3.2%)
+ * - Comparison pills (J-7 / J-14 / J-30)
+ * - Per-card export button (PNG/PDF)
+ *
+ * @author Matou - Neo-Logix QA Lead
+ * @version 2.1.0
  */
 
-import React from 'react';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, AlertCircle, CheckCircle2 } from 'lucide-react';
-import type { MetricAlert, Trend } from '../types/api.types';
+import React, { useRef, useCallback } from 'react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  Download,
+} from 'lucide-react';
+import type { MetricAlert, KpiStatus, KpiTrend } from '../types/api.types';
 
-export type KpiStatus = 'ok' | 'warning' | 'critical' | 'info';
-export type KpiTrend = 'up' | 'down' | 'neutral';
+export type { KpiStatus, KpiTrend };
 
-interface KPICardProps {
+export interface KPICardProps {
   title: string;
   value: string | number;
   unit?: string;
@@ -31,6 +39,15 @@ interface KPICardProps {
   onClick?: () => void;
   children?: React.ReactNode;
   className?: string;
+  // Option C — Temporal comparison
+  delta?: {
+    value: number;
+    label: string;
+  } | null;
+  invertDeltaColors?: boolean;
+  comparisonPills?: Array<{ label: string; value: string }> | null;
+  // Option C — Per-card export
+  onExport?: ((element: HTMLElement) => void) | null;
 }
 
 const statusConfig: Record<KpiStatus, { border: string; bg: string; icon: React.ReactNode; label: string }> = {
@@ -66,6 +83,20 @@ const trendConfig: Record<KpiTrend, { icon: React.ReactNode; color: string }> = 
   neutral: { icon: <Minus size={14} />, color: 'var(--text-muted)' },
 };
 
+function getDeltaColor(deltaValue: number, invert: boolean): string {
+  if (invert) {
+    return deltaValue > 0 ? 'var(--text-danger)' : deltaValue < 0 ? 'var(--text-success)' : 'var(--text-muted)';
+  }
+  return deltaValue > 0 ? 'var(--text-success)' : deltaValue < 0 ? 'var(--text-danger)' : 'var(--text-muted)';
+}
+
+function getDeltaBg(deltaValue: number, invert: boolean): string {
+  if (invert) {
+    return deltaValue > 0 ? 'rgba(239,68,68,0.12)' : deltaValue < 0 ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.1)';
+  }
+  return deltaValue > 0 ? 'rgba(34,197,94,0.12)' : deltaValue < 0 ? 'rgba(239,68,68,0.12)' : 'rgba(148,163,184,0.1)';
+}
+
 export default function KPICard({
   title,
   value,
@@ -80,12 +111,28 @@ export default function KPICard({
   onClick,
   children,
   className = '',
+  delta,
+  invertDeltaColors = false,
+  comparisonPills,
+  onExport,
 }: KPICardProps) {
   const cfg = statusConfig[status];
   const isClickable = !!onClick;
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (cardRef.current && onExport) {
+        onExport(cardRef.current);
+      }
+    },
+    [onExport]
+  );
 
   return (
     <div
+      ref={cardRef}
       className={`kpi-card ${isClickable ? 'kpi-card--clickable' : ''} ${className}`}
       onClick={onClick}
       role={isClickable ? 'button' : undefined}
@@ -114,6 +161,17 @@ export default function KPICard({
               {cfg.icon}
               <span>{cfg.label}</span>
             </span>
+            {onExport && (
+              <button
+                className="kpi-card__export-btn"
+                onClick={handleExport}
+                type="button"
+                title="Exporter cette carte"
+                aria-label={`Exporter ${title}`}
+              >
+                <Download size={14} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -130,6 +188,22 @@ export default function KPICard({
             </span>
           )}
         </div>
+
+        {/* Delta badge */}
+        {delta && (
+          <div className="kpi-card__delta">
+            <span
+              className="kpi-card__delta-badge"
+              style={{
+                backgroundColor: getDeltaBg(delta.value, invertDeltaColors),
+                color: getDeltaColor(delta.value, invertDeltaColors),
+              }}
+            >
+              {delta.value > 0 ? '▲' : delta.value < 0 ? '▼' : '•'} {delta.value > 0 ? '+' : ''}
+              {delta.value}% {delta.label}
+            </span>
+          </div>
+        )}
 
         {/* Subtitle */}
         {subtitle && <p className="kpi-card__subtitle">{subtitle}</p>}
@@ -150,6 +224,17 @@ export default function KPICard({
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Comparison pills */}
+        {comparisonPills && comparisonPills.length > 0 && (
+          <div className="kpi-card__pills">
+            {comparisonPills.map((pill) => (
+              <span key={pill.label} className="kpi-card__pill">
+                {pill.label}: {pill.value}
+              </span>
+            ))}
           </div>
         )}
 

@@ -43,6 +43,14 @@ def _parse_csv_ints(value: str) -> list[int]:
 
 @router.get("/multi")
 async def multi_project_dashboard(project_ids: list[int] = Query(default=[])):
+    # Si aucun project_ids fourni, récupérer tous les projets depuis Testmo
+    if not project_ids:
+        try:
+            all_projects = await testmo_service.get_projects()
+            project_ids = [p["id"] for p in all_projects if "id" in p]
+        except Exception as exc:
+            logger.warning("Failed to fetch projects for multi-dashboard: %s", exc)
+            return {"projects": [], "metrics": []}
     if not project_ids:
         return {"projects": [], "metrics": []}
     try:

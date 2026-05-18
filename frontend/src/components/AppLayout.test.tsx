@@ -43,6 +43,7 @@ function renderAppLayout(props = {}) {
     circuitBreakers: [],
     compactMode: false,
     toggleCompactMode: vi.fn(),
+    onDevLogin: vi.fn(),
   };
   return render(
     <MemoryRouter>

@@ -13,7 +13,7 @@ import {
   Filler,
 } from 'chart.js';
 import { apiClient } from '../services/api.service';
-import type { ChartOptions } from 'chart.js';
+import { buildHistoricalChartData, buildChartOptions } from '../lib/charts';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -36,7 +36,8 @@ export default function HistoricalTrends({ projectId, isDark }) {
           params: { granularity, from, to },
           signal: controller.signal,
         });
-        setData(res.data.data || []);
+        // Le backend retourne { project_id, granularity, snapshots: [...] }
+        setData(res.data.snapshots || []);
         setError(null);
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -49,52 +50,9 @@ export default function HistoricalTrends({ projectId, isDark }) {
     return () => controller.abort();
   }, [projectId, range, granularity]);
 
-  const chartData = useMemo(() => {
-    const labels = data.map((d) => d.period);
-    const dataset = (label, key, color) => ({
-      label,
-      data: data.map((d) => (d[key] != null ? parseFloat(d[key].toFixed(2)) : null)),
-      borderColor: color,
-      backgroundColor: color + '20',
-      fill: false,
-      tension: 0.3,
-      pointRadius: 3,
-    });
+  const chartData = useMemo(() => buildHistoricalChartData(data), [data]);
 
-    return {
-      labels,
-      datasets: [
-        dataset('Pass Rate', 'pass_rate', 'var(--text-success)'),
-        dataset('Completion', 'completion_rate', 'var(--text-primary)'),
-        dataset('Escape Rate', 'escape_rate', 'var(--text-danger)'),
-        dataset('Detection', 'detection_rate', 'var(--text-secondary)'),
-      ],
-    };
-  }, [data]);
-
-  const options = useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: 'var(--text-color)' } },
-        tooltip: { mode: 'index', intersect: false },
-      },
-      scales: {
-        x: {
-          ticks: { color: 'var(--text-muted)' },
-          grid: { color: 'var(--border-color)' },
-        },
-        y: {
-          ticks: { color: 'var(--text-muted)' },
-          grid: { color: 'var(--border-color)' },
-          min: 0,
-          max: 100,
-        },
-      },
-    } satisfies ChartOptions<'line'>),
-    [isDark]
-  );
+  const options = useMemo(() => buildChartOptions('line', isDark), [isDark]);
 
   const cardBg = 'var(--surface-muted)';
   const border = 'var(--border-color)';

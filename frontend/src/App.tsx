@@ -83,6 +83,33 @@ function App() {
     [navigate, setSelectedPreprodMilestones, setSelectedProdMilestones]
   );
 
+  const handleTogglePreprodMilestone = useCallback(
+    (id: number) => {
+      setSelectedPreprodMilestones((prev) => {
+        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+        // Enforce max 2
+        if (next.length > 2) return prev;
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-qualityRates'] });
+        return next;
+      });
+    },
+    [setSelectedPreprodMilestones]
+  );
+
+  const handleToggleProdMilestone = useCallback(
+    (id: number) => {
+      setSelectedProdMilestones((prev) => {
+        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+        if (next.length > 2) return prev;
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-qualityRates'] });
+        return next;
+      });
+    },
+    [setSelectedProdMilestones]
+  );
+
   useAutoRefresh({
     checkBackendHealth,
     loadProjects,
@@ -228,6 +255,8 @@ function App() {
           selectedPreprodMilestones={selectedPreprodMilestones}
           selectedProdMilestones={selectedProdMilestones}
           onSaveSelection={handleSaveSelection}
+          onTogglePreprodMilestone={handleTogglePreprodMilestone}
+          onToggleProdMilestone={handleToggleProdMilestone}
         />
       )}
     </AppLayout>

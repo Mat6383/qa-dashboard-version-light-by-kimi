@@ -1,7 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import Dashboard4 from './Dashboard4';
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+}
+
+function Wrapper({ children }) {
+  return <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>;
+}
 
 vi.mock('../hooks/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
@@ -23,12 +36,41 @@ vi.mock('jspdf', () => ({
 
 vi.mock('../services/api.service', () => ({
   default: {
-    getAnnualTrends: vi.fn(() => Promise.resolve({ data: [] })),
+    getAnnualTrends: vi.fn(() =>
+      Promise.resolve({
+        success: true,
+        data: [
+          {
+            version: '2025',
+            date: '2025-01-01',
+            passRate: 90,
+            completionRate: 85,
+            blockedRate: 2,
+            totalTests: 100,
+            bugsInTest: 5,
+            bugsInProd: 1,
+            totalBugs: 6,
+            detectionRate: 83,
+            escapeRate: 17,
+          },
+        ],
+      })
+    ),
     getSyncProjects: vi.fn(() => Promise.resolve([])),
     getSyncHistory: vi.fn(() => Promise.resolve([])),
     getSyncIterations: vi.fn(() => Promise.resolve([])),
     previewSync: vi.fn(() => Promise.resolve({})),
+    getProjectMilestones: vi.fn(() => Promise.resolve({ result: [] })),
   },
+  apiClient: {
+    get: vi.fn(() => Promise.resolve({ data: { data: [] } })),
+  },
+}));
+
+vi.mock('react-chartjs-2', () => ({
+  Doughnut: () => <div data-testid="mock-doughnut">Doughnut Chart</div>,
+  Line: () => <div data-testid="mock-line">Line Chart</div>,
+  Bar: () => <div data-testid="mock-bar">Bar Chart</div>,
 }));
 
 const mockMetrics = {
@@ -64,14 +106,15 @@ function renderDashboard(props = {}) {
       showProductionSection={true}
       onToggleProductionSection={vi.fn()}
       {...props}
-    />
+    />,
+    { wrapper: Wrapper }
   );
 }
 
 describe('Dashboard4', () => {
-  it('affiche le loader si metrics ou project sont absents', () => {
-    render(<Dashboard4 metrics={null} project={null} />);
-    expect(screen.getByText(/Chargement des données ISTQB/i)).toBeInTheDocument();
+  it('affiche le skeleton si metrics ou project sont absents', () => {
+    render(<Dashboard4 metrics={null} project={null} />, { wrapper: Wrapper });
+    expect(screen.getByLabelText(/Chargement du dashboard/i)).toBeInTheDocument();
   });
 
   it('affiche le dashboard quand les données sont présentes', () => {
@@ -114,7 +157,8 @@ describe('Dashboard4', () => {
         setExportHandler={vi.fn()}
         showProductionSection={true}
         onToggleProductionSection={vi.fn()}
-      />
+      />,
+      { wrapper: Wrapper }
     );
     fireEvent.click(screen.getByRole('tab', { name: /Sync GitLab → Testmo/i }));
     expect(screen.queryByText(/Chargement des données ISTQB/i)).not.toBeInTheDocument();

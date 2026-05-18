@@ -354,3 +354,21 @@ export interface FeedbackSyncConfig {
 // ─── KPI Card Types ──────────────────────────────────────────────────────────
 export type KpiStatus = 'ok' | 'warning' | 'critical' | 'info';
 export type KpiTrend = 'up' | 'down' | 'neutral';
+
+// ─── Temporal Comparison Types ───────────────────────────────────────────────
+export interface TemporalValue {
+  value: number | null;
+  date: string;
+}
+
+export interface MetricTemporal {
+  current: number;
+  delta7: number | null;
+  delta14: number | null;
+  delta30: number | null;
+  values: {
+    j7: TemporalValue | null;
+    j14: TemporalValue | null;
+    j30: TemporalValue | null;
+  };
+}

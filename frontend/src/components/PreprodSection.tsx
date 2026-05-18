@@ -1,20 +1,50 @@
 /**
  * ================================================
- * PREPROD SECTION — Dashboard4 Préproduction v2
+ * PREPROD SECTION — Dashboard4 Préproduction v3
  * ================================================
- * Grille de KPIs premium, répartition Doughnut, campagnes actives.
+ * Option C "Pro Suite" enhancements:
+ * - Sortable KPI grid (drag & drop)
+ * - Temporal comparison deltas (J-7 / J-14 / J-30)
+ * - Per-card export (PNG/PDF)
  *
  * @author Matou - Neo-Logix QA Lead
- * @version 2.0.0
+ * @version 3.0.0
  */
 
-import React, { useMemo } from 'react';
-import { Activity, CheckSquare, XCircle, TrendingUp, BarChart3, Database, Search } from 'lucide-react';
+import React, { useMemo, useCallback } from 'react';
+import { Activity, CheckSquare, XCircle, TrendingUp, BarChart3, Database, Search, Download } from 'lucide-react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import KPICard from './KPICard';
 import { getMetricColor, getMetricLevel } from '../lib/colors';
-import type { DashboardMetrics, RawMetrics, Run, MetricAlert, KpiStatus, KpiTrend } from '../types/api.types';
+import { buildChartOptions, buildDoughnutChartData } from '../lib/charts';
+import type {
+  DashboardMetrics,
+  RawMetrics,
+  Run,
+  MetricAlert,
+  KpiStatus,
+  KpiTrend,
+  AnomalyItem,
+  MetricTemporal,
+} from '../types/api.types';
+import type { WidgetId, SectionType } from '../hooks/useDashboardLayout';
 import '../styles/PreprodSection.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -40,148 +70,257 @@ function getProgressColor(value: number): string {
   return 'var(--status-danger)';
 }
 
+/* ── Sortable wrapper for KPI card ─────────────────────────────── */
+
+interface SortableKPIProps {
+  id: string;
+  children: React.ReactNode;
+  dragEnabled?: boolean;
+}
+
+function SortableKPI({ id, children, dragEnabled }: SortableKPIProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !dragEnabled,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: 'relative',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="sortable-kpi-wrapper">
+      {dragEnabled && (
+        <div className="sortable-kpi-wrapper__handle" {...attributes} {...listeners} tabIndex={0} role="button" aria-label="Déplacer ce widget">
+          <GripVertical size={16} />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/* ── PreprodSection Props ──────────────────────────────────────── */
+
 interface PreprodSectionProps {
   metrics: DashboardMetrics;
   raw: RawMetrics;
   sortedRuns: Run[];
+  originalRunsCount?: number;
   showAllRuns: boolean;
   setShowAllRuns: (show: boolean) => void;
+  showLatestOnly?: boolean;
+  setShowLatestOnly?: (show: boolean) => void;
   isDark: boolean;
   useBusiness: boolean;
   getAlertForMetric: (metric: string) => MetricAlert | undefined;
-  anomalies: import('../types/api.types').AnomalyItem[];
+  anomalies: AnomalyItem[];
+  // Option C
+  layout?: WidgetId[];
+  onMoveWidget?: (section: SectionType, oldIndex: number, newIndex: number) => void;
+  dragEnabled?: boolean;
+  getTemporalForMetric?: (metricName: string, currentValue: number) => MetricTemporal | null;
+  onExportCard?: (element: HTMLElement, title: string) => void;
+  onExportDoughnut?: (element: HTMLElement) => void;
 }
+
+const PREPROD_WIDGET_ORDER: WidgetId[] = ['completionRate', 'passRate', 'failureRate', 'testEfficiency'];
 
 export default function PreprodSection({
   metrics,
   raw,
   sortedRuns,
+  originalRunsCount,
   showAllRuns,
   setShowAllRuns,
+  showLatestOnly = false,
+  setShowLatestOnly,
   isDark,
   useBusiness,
   getAlertForMetric,
   anomalies,
+  layout,
+  onMoveWidget,
+  dragEnabled = false,
+  getTemporalForMetric,
+  onExportCard,
+  onExportDoughnut,
 }: PreprodSectionProps) {
   const d1 = metrics;
 
-  const statusChartData = useMemo(() => {
-    const labels = [
-      useBusiness ? 'Réussis' : 'Passed',
-      useBusiness ? 'Échoués' : 'Failed',
-      useBusiness ? 'En cours' : 'WIP',
-      useBusiness ? 'Bloqués' : 'Blocked',
-      useBusiness ? 'Non testés' : 'Untested',
-    ];
-    const data = [raw.passed, raw.failed, raw.wip, raw.blocked, raw.untested];
-    const colors = [
-      'var(--status-success)',
-      'var(--status-danger)',
-      'var(--status-info)',
-      'var(--status-warning)',
-      'var(--text-muted)',
-    ];
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: colors,
-          borderColor: 'var(--surface-elevated)',
-          borderWidth: 2,
-          hoverOffset: 8,
-        },
-      ],
-    };
-  }, [raw, useBusiness]);
+  const statusChartData = useMemo(() => buildDoughnutChartData(raw, useBusiness, isDark), [raw, useBusiness, isDark]);
 
-  const statusChartOptions = useMemo(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '65%',
-    plugins: {
-      legend: {
-        position: 'right' as const,
-        labels: {
-          color: 'var(--text-secondary)',
-          font: { size: 12, weight: 'bold' as const },
-          padding: 16,
-          usePointStyle: true,
-          pointStyle: 'circle',
-        },
+  const statusChartOptions = useMemo(() => buildChartOptions('doughnut', isDark), [isDark]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: (event: any) => {
+        const { active } = event;
+        const node = active?.rect?.current?.translated;
+        return node ? { x: node.left, y: node.top } : { x: 0, y: 0 };
       },
-      tooltip: {
-        backgroundColor: 'var(--surface-elevated)',
-        titleColor: 'var(--text-default)',
-        bodyColor: 'var(--text-secondary)',
-        borderColor: 'var(--border-color)',
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (ctx: any) => ` ${ctx.label}: ${ctx.raw}`,
-        },
-      },
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id && onMoveWidget) {
+        const items = layout || PREPROD_WIDGET_ORDER;
+        const oldIndex = items.indexOf(active.id as WidgetId);
+        const newIndex = items.indexOf(over.id as WidgetId);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          onMoveWidget('preprod', oldIndex, newIndex);
+        }
+      }
     },
-  }), []);
+    [layout, onMoveWidget]
+  );
+
+  const widgetOrder = layout || PREPROD_WIDGET_ORDER;
+
+  const renderWidget = (widgetId: WidgetId) => {
+    const temporal = getTemporalForMetric
+      ? getTemporalForMetric(widgetId, 0)
+      : null;
+
+    const buildPills = (t: MetricTemporal | null) => {
+      if (!t) return null;
+      const pills = [];
+      if (t.values.j7?.value != null) {
+        pills.push({ label: 'J-7', value: `${Math.round(t.values.j7.value)}%` });
+      }
+      if (t.values.j14?.value != null) {
+        pills.push({ label: 'J-14', value: `${Math.round(t.values.j14.value)}%` });
+      }
+      if (t.values.j30?.value != null) {
+        pills.push({ label: 'J-30', value: `${Math.round(t.values.j30.value)}%` });
+      }
+      return pills.length > 0 ? pills : null;
+    };
+
+    switch (widgetId) {
+      case 'completionRate': {
+        const t = getTemporalForMetric?.('completionRate', d1.completionRate);
+        return (
+          <KPICard
+            title={useBusiness ? "Taux d'Exécution" : 'Execution Rate'}
+            icon={<Activity size={20} />}
+            value={Math.round(d1.completionRate)}
+            status={getKpiStatus('completionRate', d1.completionRate)}
+            trend={getKpiTrend('completionRate', d1.completionRate)}
+            subtitle={`${raw.completed} / ${raw.total} ${useBusiness ? 'tests exécutés' : 'tests executed'} (Cible: ≥ 90%)`}
+            alert={getAlertForMetric('Completion Rate')}
+            progress={{ value: d1.completionRate, label: `${raw.completed} / ${raw.total}` }}
+            delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}
+            comparisonPills={buildPills(t)}
+            onExport={onExportCard ? (el) => onExportCard(el, useBusiness ? "Taux d'Exécution" : 'Execution Rate') : null}
+          />
+        );
+      }
+      case 'passRate': {
+        const t = getTemporalForMetric?.('passRate', d1.passRate);
+        return (
+          <KPICard
+            title={useBusiness ? 'Taux de Succès' : 'Pass Rate'}
+            icon={<CheckSquare size={20} />}
+            value={Math.round(d1.passRate)}
+            status={getKpiStatus('passRate', d1.passRate)}
+            trend={getKpiTrend('passRate', d1.passRate)}
+            subtitle={`${raw.passed} / ${raw.total} ${useBusiness ? 'tests réussis' : 'tests passed'} (Cible: ≥ 95%)`}
+            alert={getAlertForMetric('Pass Rate') || getAlertForMetric('Blocked Rate')}
+            progress={{ value: d1.passRate, label: `${raw.passed} / ${raw.total}` }}
+            delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}
+            comparisonPills={buildPills(t)}
+            onExport={onExportCard ? (el) => onExportCard(el, useBusiness ? 'Taux de Succès' : 'Pass Rate') : null}
+          />
+        );
+      }
+      case 'failureRate': {
+        const t = getTemporalForMetric?.('failureRate', d1.failureRate);
+        return (
+          <KPICard
+            title={useBusiness ? "Taux d'Échec" : 'Failure Rate'}
+            icon={<XCircle size={20} />}
+            value={Math.round(d1.failureRate)}
+            status={getKpiStatus('failureRate', d1.failureRate)}
+            trend={getKpiTrend('failureRate', d1.failureRate)}
+            subtitle={`${raw.failed} / ${raw.total} ${useBusiness ? 'tests échoués' : 'tests failed'} (Cible: ≤ 5%)`}
+            alert={getAlertForMetric('Failure Rate')}
+            progress={{ value: d1.failureRate, label: `${raw.failed} / ${raw.total}` }}
+            delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}
+            invertDeltaColors
+            comparisonPills={buildPills(t)}
+            onExport={onExportCard ? (el) => onExportCard(el, useBusiness ? "Taux d'Échec" : 'Failure Rate') : null}
+          />
+        );
+      }
+      case 'testEfficiency': {
+        const t = getTemporalForMetric?.('testEfficiency', d1.testEfficiency);
+        return (
+          <KPICard
+            title={useBusiness ? 'Efficience des tests' : 'Test Efficiency'}
+            icon={<TrendingUp size={20} />}
+            value={Math.round(d1.testEfficiency)}
+            status={getKpiStatus('testEfficiency', d1.testEfficiency)}
+            trend={getKpiTrend('testEfficiency', d1.testEfficiency)}
+            subtitle={`${raw.passed} / ${raw.passed + raw.failed} (Cible: ≥ 95%)`}
+            alert={getAlertForMetric('Test Efficiency')}
+            progress={{ value: d1.testEfficiency, label: `${raw.passed} / ${raw.passed + raw.failed}` }}
+            delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}
+            comparisonPills={buildPills(t)}
+            onExport={onExportCard ? (el) => onExportCard(el, useBusiness ? 'Efficience des tests' : 'Test Efficiency') : null}
+          />
+        );
+      }
+      default:
+        return null;
+    }
+  };
+
+  const doughnutRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <div className="pp-section">
       <div className="pp-section-header">
-        <h2 className="pp-section-title">
-          {useBusiness ? 'PRÉPRODUCTION' : 'PREPROD'}
-        </h2>
+        <h2 className="pp-section-title">{useBusiness ? 'PRÉPRODUCTION' : 'PREPROD'}</h2>
         <div className="pp-divider"></div>
       </div>
 
       {/* Grille principale Preprod */}
-      <div className="pp-kpi-grid">
-        <KPICard
-          title={useBusiness ? "Taux d'Exécution" : 'Execution Rate'}
-          icon={<Activity size={20} />}
-          value={Math.round(d1.completionRate)}
-          status={getKpiStatus('completionRate', d1.completionRate)}
-          trend={getKpiTrend('completionRate', d1.completionRate)}
-          subtitle={`${raw.completed} / ${raw.total} ${useBusiness ? 'tests exécutés' : 'tests executed'} (Cible: ≥ 90%)`}
-          alert={getAlertForMetric('Completion Rate')}
-          progress={{ value: d1.completionRate, label: `${raw.completed} / ${raw.total}` }}
-        />
-        <KPICard
-          title={useBusiness ? 'Taux de Succès' : 'Pass Rate'}
-          icon={<CheckSquare size={20} />}
-          value={Math.round(d1.passRate)}
-          status={getKpiStatus('passRate', d1.passRate)}
-          trend={getKpiTrend('passRate', d1.passRate)}
-          subtitle={`${raw.passed} / ${raw.total} ${useBusiness ? 'tests réussis' : 'tests passed'} (Cible: ≥ 95%)`}
-          alert={getAlertForMetric('Pass Rate') || getAlertForMetric('Blocked Rate')}
-          progress={{ value: d1.passRate, label: `${raw.passed} / ${raw.total}` }}
-        />
-        <KPICard
-          title={useBusiness ? "Taux d'Échec" : 'Failure Rate'}
-          icon={<XCircle size={20} />}
-          value={Math.round(d1.failureRate)}
-          status={getKpiStatus('failureRate', d1.failureRate)}
-          trend={getKpiTrend('failureRate', d1.failureRate)}
-          subtitle={`${raw.failed} / ${raw.total} ${useBusiness ? 'tests échoués' : 'tests failed'} (Cible: ≤ 5%)`}
-          alert={getAlertForMetric('Failure Rate')}
-          progress={{ value: d1.failureRate, label: `${raw.failed} / ${raw.total}` }}
-        />
-        <KPICard
-          title={useBusiness ? 'Efficience des tests' : 'Test Efficiency'}
-          icon={<TrendingUp size={20} />}
-          value={Math.round(d1.testEfficiency)}
-          status={getKpiStatus('testEfficiency', d1.testEfficiency)}
-          trend={getKpiTrend('testEfficiency', d1.testEfficiency)}
-          subtitle={`${raw.passed} / ${raw.passed + raw.failed} (Cible: ≥ 95%)`}
-          alert={getAlertForMetric('Test Efficiency')}
-          progress={{ value: d1.testEfficiency, label: `${raw.passed} / ${raw.passed + raw.failed}` }}
-        />
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
+          <div className="pp-kpi-grid">
+            {widgetOrder.map((widgetId) => (
+              <SortableKPI key={widgetId} id={widgetId} dragEnabled={dragEnabled}>
+                {renderWidget(widgetId)}
+              </SortableKPI>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Répartition des statuts */}
-      <div className="pp-status-section">
+      <div className="pp-status-section" ref={doughnutRef}>
         <div className="pp-status-header">
           <BarChart3 size={24} />
           <span>{useBusiness ? 'Répartition Globale' : 'Global Distribution'}</span>
+          {onExportDoughnut && (
+            <button
+              className="pp-status-export"
+              onClick={() => doughnutRef.current && onExportDoughnut(doughnutRef.current)}
+              type="button"
+              title="Exporter ce graphique"
+              aria-label="Exporter le graphique de répartition"
+            >
+              <Download size={14} />
+            </button>
+          )}
         </div>
         <div className="pp-status-chart">
           <div className="pp-doughnut-wrap">
@@ -196,33 +335,67 @@ export default function PreprodSection({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Database size={24} color="var(--color-primary)" /> Campagnes Actives (Préproduction)
           </div>
-          <div
-            className="pp-toggle"
-            onClick={() => setShowAllRuns(!showAllRuns)}
-            role="switch"
-            aria-checked={showAllRuns}
-            tabIndex={0}
-          >
-            <span
-              className="pp-toggle-label"
-              style={{
-                color: showAllRuns ? 'var(--color-primary)' : 'var(--text-muted)',
-              }}
-            >
-              {useBusiness ? 'Tout afficher' : 'Show All'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {setShowLatestOnly && (
+              <div
+                className="pp-toggle"
+                onClick={() => setShowLatestOnly(!showLatestOnly)}
+                role="switch"
+                aria-checked={showLatestOnly}
+                tabIndex={0}
+              >
+                <span
+                  className="pp-toggle-label"
+                  style={{
+                    color: showLatestOnly ? 'var(--color-primary)' : 'var(--text-muted)',
+                  }}
+                >
+                  {useBusiness ? 'Dernier actif' : 'Latest only'}
+                </span>
+                <div
+                  className={`pp-toggle-track ${showLatestOnly ? 'pp-toggle-track--on' : ''}`}
+                  style={{
+                    backgroundColor: showLatestOnly ? 'var(--action-success-bg)' : 'var(--surface-muted)',
+                    border: showLatestOnly ? '1px solid #059669' : '1px solid var(--border-color)',
+                    boxShadow: showLatestOnly ? '0 0 10px rgba(16, 185, 129, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <div className={`pp-toggle-knob ${showLatestOnly ? 'pp-toggle-knob--on' : 'pp-toggle-knob--off'}`}>
+                    {showLatestOnly && (
+                      <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--text-success)' }} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div
-              className={`pp-toggle-track ${showAllRuns ? 'pp-toggle-track--on' : ''}`}
-              style={{
-                backgroundColor: showAllRuns ? 'var(--action-success-bg)' : 'var(--surface-muted)',
-                border: showAllRuns ? '1px solid #059669' : '1px solid var(--border-color)',
-                boxShadow: showAllRuns ? '0 0 10px rgba(16, 185, 129, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
-              }}
+              className="pp-toggle"
+              onClick={() => setShowAllRuns(!showAllRuns)}
+              role="switch"
+              aria-checked={showAllRuns}
+              tabIndex={0}
             >
-              <div className={`pp-toggle-knob ${showAllRuns ? 'pp-toggle-knob--on' : 'pp-toggle-knob--off'}`}>
-                {showAllRuns && (
-                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--text-success)' }} />
-                )}
+              <span
+                className="pp-toggle-label"
+                style={{
+                  color: showAllRuns ? 'var(--color-primary)' : 'var(--text-muted)',
+                }}
+              >
+                {useBusiness ? 'Tout afficher' : 'Show All'}
+              </span>
+              <div
+                className={`pp-toggle-track ${showAllRuns ? 'pp-toggle-track--on' : ''}`}
+                style={{
+                  backgroundColor: showAllRuns ? 'var(--action-success-bg)' : 'var(--surface-muted)',
+                  border: showAllRuns ? '1px solid #059669' : '1px solid var(--border-color)',
+                  boxShadow: showAllRuns ? '0 0 10px rgba(16, 185, 129, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div className={`pp-toggle-knob ${showAllRuns ? 'pp-toggle-knob--on' : 'pp-toggle-knob--off'}`}>
+                  {showAllRuns && (
+                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--text-success)' }} />
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -253,9 +426,7 @@ export default function PreprodSection({
               onMouseLeave={run.isExploratory ? (e) => { e.currentTarget.style.transform = 'scale(1)'; } : undefined}
             >
               <div className="pp-campaign-header">
-                <div className="pp-campaign-name">
-                  {run.name}
-                </div>
+                <div className="pp-campaign-name">{run.name}</div>
                 {run.isExploratory ? (
                   <div className="pp-campaign-badge">
                     <Search size={12} />
@@ -324,9 +495,9 @@ export default function PreprodSection({
               </div>
             </div>
           ))}
-          {sortedRuns.length > 12 && !showAllRuns && (
+          {(originalRunsCount ?? sortedRuns.length) > 12 && !showAllRuns && !showLatestOnly && (
             <div className="pp-show-more">
-              + {sortedRuns.length - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
+              + {(originalRunsCount ?? sortedRuns.length) - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
             </div>
           )}
         </div>

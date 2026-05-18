@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, CheckSquare, LineChart, GitCompare, Globe, TrendingUp, Settings } from 'lucide-react';
+import { Activity, CheckSquare, LineChart, GitCompare, Globe, TrendingUp, Settings, Monitor } from 'lucide-react';
 import TestClosureModal from './TestClosureModal';
 import { useExportPDF } from '../hooks/useExportPDF';
 import QuickClosureModal from './QuickClosureModal';
@@ -12,9 +12,15 @@ import CompareDashboard from './CompareDashboard';
 import Dashboard5 from './Dashboard5';
 import Dashboard6 from './Dashboard6';
 import SkeletonDashboard from './SkeletonDashboard';
+import MilestoneChips from './MilestoneChips';
+import TVModeOverlay from './TVModeOverlay';
+import { useTemporalComparison } from '../hooks/useTemporalComparison';
+import { useDashboardLayout } from '../hooks/useDashboardLayout';
+import { useProjectMilestones } from '../hooks/queries';
 import '../styles/Dashboard4.css';
 import '../styles/KPICard.css';
 import '../styles/Tabs.css';
+import '../styles/ProSuite.css';
 
 const DEFAULT_RATES = {
   escapeRate: 0,
@@ -47,18 +53,37 @@ const Dashboard4 = ({
   showProductionSection = true,
   onToggleProductionSection,
   anomalies = [],
+  selectedPreprodMilestones = [],
+  selectedProdMilestones = [],
+  onTogglePreprodMilestone,
+  onToggleProdMilestone,
 }) => {
   const { t } = useTranslation();
   const dashboardRef = useRef(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAllRuns, setShowAllRuns] = React.useState(false);
+  const [showLatestOnly, setShowLatestOnly] = React.useState(false);
   const [showClosureModal, setShowClosureModal] = React.useState(false);
   const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
   const [showReportGenerator, setShowReportGenerator] = React.useState(false);
-  const { exportPDF } = useExportPDF({
+  const [showTVMode, setShowTVMode] = React.useState(false);
+
+  const { exportPDF, exportElement } = useExportPDF({
     orientation: 'landscape',
     backgroundColor: 'var(--bg-color)',
   });
+
+  // Option C — Temporal comparison
+  const { getTemporalForMetric, isLoading: temporalLoading } = useTemporalComparison(
+    projectId,
+    activeTab === 'overview'
+  );
+
+  // Option C — Dashboard layout (drag & drop)
+  const { layout, moveWidget, resetLayout } = useDashboardLayout();
+
+  // Option C — Milestones for inline chips
+  const { data: availableMilestones = [] } = useProjectMilestones(projectId);
 
   const runs = useMemo(() => metrics?.runs || [], [metrics?.runs]);
   const sortedRuns = useMemo(
@@ -66,6 +91,11 @@ const Dashboard4 = ({
     [runs]
   );
   const latestRun = useMemo(() => runs.find((r) => !r.isExploratory) || runs[0], [runs]);
+
+  const displayedRuns = useMemo(() => {
+    if (showLatestOnly && latestRun) return [latestRun];
+    return sortedRuns;
+  }, [showLatestOnly, latestRun, sortedRuns]);
   const rates = metrics?.qualityRates || DEFAULT_RATES;
 
   const escapeOk = rates.escapeRate < 5;
@@ -95,6 +125,32 @@ const Dashboard4 = ({
       if (setExportHandler) setExportHandler(null);
     };
   }, [setExportHandler]);
+
+  // Option C — Per-card export
+  const handleExportCard = useCallback(
+    async (element: HTMLElement, title: string) => {
+      if (!element) return;
+      const safeName = title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      await exportElement(element, `KPI_${safeName}_${new Date().toLocaleDateString('fr-FR')}.png`, {
+        format: 'png',
+        scale: 2,
+        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
+      });
+    },
+    [exportElement, isDark]
+  );
+
+  const handleExportDoughnut = useCallback(
+    async (element: HTMLElement) => {
+      if (!element) return;
+      await exportElement(element, `Repartition_${project?.name || 'Dashboard'}_${new Date().toLocaleDateString('fr-FR')}.png`, {
+        format: 'png',
+        scale: 2,
+        backgroundColor: isDark ? '#0a0a0a' : '#ffffff',
+      });
+    },
+    [exportElement, project, isDark]
+  );
 
   const d1 = metrics;
   const raw = d1?.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
@@ -145,61 +201,102 @@ const Dashboard4 = ({
           {!metrics || !project ? (
             <SkeletonDashboard />
           ) : (
-          <div className={`tv-dashboard dashboard4-card ${isDark ? 'tv-dark-theme' : ''}`}>
-            <header className="dashboard4-hidden-header">{/* Ancien header masqué */}</header>
-            {(project || latestRun) && (
-              <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
-                <span className="dashboard4-project-name">{project?.name}</span>
-                {latestRun ? (
-                  <>
-                    <span className="dashboard4-separator">—</span>
-                    <span className="dashboard4-run-name">{latestRun.name}</span>
-                    <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
-                  </>
-                ) : (
-                  <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
-                    {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
-                  </span>
-                )}
+            <div className={`tv-dashboard dashboard4-card ${isDark ? 'tv-dark-theme' : ''}`}>
+              <header className="dashboard4-hidden-header">{/* Ancien header masqué */}</header>
+
+              {/* Option C — Inline milestone chips */}
+              <div className="dashboard4-chips-row">
+                <MilestoneChips
+                  milestones={availableMilestones}
+                  selected={selectedPreprodMilestones}
+                  onToggle={onTogglePreprodMilestone || (() => {})}
+                  variant="preprod"
+                  label={useBusiness ? 'Préprod' : 'Preprod'}
+                />
+                <MilestoneChips
+                  milestones={availableMilestones}
+                  selected={selectedProdMilestones}
+                  onToggle={onToggleProdMilestone || (() => {})}
+                  variant="prod"
+                  label={useBusiness ? 'Prod' : 'Prod'}
+                />
               </div>
-            )}
 
-            {/* Boutons d'action */}
-            <div className="dashboard4-actions">
-              <button className="btn-action btn-action-primary" onClick={() => setShowClosureModal(true)}>
-                <CheckSquare size={16} /> {t('dashboard4.testClosure')}
-              </button>
-              <button className="btn-action btn-action-success" onClick={() => setShowQuickClosureModal(true)}>
-                <CheckSquare size={16} /> {t('dashboard4.quickClosure')}
-              </button>
-              <button className="btn-action btn-action-secondary" onClick={() => setShowReportGenerator(true)}>
-                <CheckSquare size={16} /> {t('dashboard4.reportGenerator')}
-              </button>
+              {(project || latestRun) && (
+                <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
+                  <span className="dashboard4-project-name">{project?.name}</span>
+                  {latestRun ? (
+                    <>
+                      <span className="dashboard4-separator">—</span>
+                      <span className="dashboard4-run-name">{latestRun.name}</span>
+                      <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
+                    </>
+                  ) : (
+                    <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
+                      {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="dashboard4-actions">
+                <button className="btn-action btn-action-primary" onClick={() => setShowClosureModal(true)}>
+                  <CheckSquare size={16} /> {t('dashboard4.testClosure')}
+                </button>
+                <button className="btn-action btn-action-success" onClick={() => setShowQuickClosureModal(true)}>
+                  <CheckSquare size={16} /> {t('dashboard4.quickClosure')}
+                </button>
+                <button className="btn-action btn-action-secondary" onClick={() => setShowReportGenerator(true)}>
+                  <CheckSquare size={16} /> {t('dashboard4.reportGenerator')}
+                </button>
+                <button
+                  className="btn-action btn-action-secondary"
+                  onClick={() => setShowTVMode(true)}
+                  type="button"
+                  title="Mode TV"
+                >
+                  <Monitor size={16} /> Mode TV
+                </button>
+              </div>
+
+              <PreprodSection
+                metrics={metrics}
+                raw={raw}
+                sortedRuns={displayedRuns}
+                originalRunsCount={sortedRuns.length}
+                showAllRuns={showAllRuns}
+                setShowAllRuns={setShowAllRuns}
+                showLatestOnly={showLatestOnly}
+                setShowLatestOnly={setShowLatestOnly}
+                isDark={isDark}
+                useBusiness={useBusiness}
+                getAlertForMetric={getAlertForMetric}
+                anomalies={anomalies}
+                layout={layout.preprod}
+                onMoveWidget={moveWidget}
+                dragEnabled={true}
+                getTemporalForMetric={getTemporalForMetric}
+                onExportCard={handleExportCard}
+                onExportDoughnut={handleExportDoughnut}
+              />
+
+              <ProductionSection
+                rates={rates}
+                escapeOk={escapeOk}
+                ddpOk={ddpOk}
+                showProductionSection={showProductionSection}
+                onToggleProductionSection={onToggleProductionSection}
+                isDark={isDark}
+                useBusiness={useBusiness}
+                anomalies={anomalies}
+                layout={layout.production}
+                onMoveWidget={moveWidget}
+                dragEnabled={true}
+                getTemporalForMetric={getTemporalForMetric}
+                onExportCard={handleExportCard}
+              />
             </div>
-
-            <PreprodSection
-              metrics={metrics}
-              raw={raw}
-              sortedRuns={sortedRuns}
-              showAllRuns={showAllRuns}
-              setShowAllRuns={setShowAllRuns}
-              isDark={isDark}
-              useBusiness={useBusiness}
-              getAlertForMetric={getAlertForMetric}
-              anomalies={anomalies}
-            />
-
-            <ProductionSection
-              rates={rates}
-              escapeOk={escapeOk}
-              ddpOk={ddpOk}
-              showProductionSection={showProductionSection}
-              onToggleProductionSection={onToggleProductionSection}
-              isDark={isDark}
-              useBusiness={useBusiness}
-              anomalies={anomalies}
-            />
-          </div>
           )}
         </div>
       )}
@@ -231,32 +328,44 @@ const Dashboard4 = ({
       {metrics && project && (
         <>
           <TestClosureModal
-        isOpen={showClosureModal}
-        onClose={() => setShowClosureModal(false)}
-        metrics={metrics}
-        project={project}
-        useBusiness={useBusiness}
-        isDark={isDark}
-      />
+            isOpen={showClosureModal}
+            onClose={() => setShowClosureModal(false)}
+            metrics={metrics}
+            project={project}
+            useBusiness={useBusiness}
+            isDark={isDark}
+          />
 
-      <QuickClosureModal
-        isOpen={showQuickClosureModal}
-        onClose={() => setShowQuickClosureModal(false)}
-        metrics={metrics}
-        project={project}
-        useBusiness={useBusiness}
-        isDark={isDark}
-      />
+          <QuickClosureModal
+            isOpen={showQuickClosureModal}
+            onClose={() => setShowQuickClosureModal(false)}
+            metrics={metrics}
+            project={project}
+            useBusiness={useBusiness}
+            isDark={isDark}
+          />
 
-      <ReportGeneratorModal
-        isOpen={showReportGenerator}
-        onClose={() => setShowReportGenerator(false)}
-        metrics={metrics}
-        project={project}
-        isDark={isDark}
-      />
+          <ReportGeneratorModal
+            isOpen={showReportGenerator}
+            onClose={() => setShowReportGenerator(false)}
+            metrics={metrics}
+            project={project}
+            isDark={isDark}
+          />
         </>
       )}
+
+      {/* Option C — TV Mode Overlay */}
+      <TVModeOverlay
+        isOpen={showTVMode}
+        onClose={() => setShowTVMode(false)}
+        metrics={metrics}
+        raw={raw}
+        rates={rates}
+        anomalies={anomalies}
+        useBusiness={useBusiness}
+        projectName={project?.name}
+      />
     </div>
   );
 };

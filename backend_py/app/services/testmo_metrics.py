@@ -428,10 +428,11 @@ class TestmoMetrics:
             if not started:
                 continue
             year = str(started)[:4] if isinstance(started, str) else started.year
-            years[year]["passed"] += r.get("passed_count", 0)
-            years[year]["failed"] += r.get("failed_count", 0)
-            years[year]["blocked"] += r.get("blocked_count", 0)
-            years[year]["total"] += r.get("cases_count", 0)
+            # Utilise les mêmes champs que get_project_metrics (status ID mapping)
+            years[year]["passed"] += r.get("status1_count", 0)
+            years[year]["failed"] += r.get("status2_count", 0)
+            years[year]["blocked"] += r.get("status4_count", 0)
+            years[year]["total"] += r.get("total_count", 0)
 
         trends = []
         for year in sorted(years.keys()):

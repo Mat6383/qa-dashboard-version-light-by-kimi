@@ -1,12 +1,13 @@
 /**
  * ================================================
- * USE EXPORT PDF — Hook réutilisable d'export PDF
+ * USE EXPORT PDF — Hook réutilisable d'export PDF/PNG
  * ================================================
  * Centralise la logique html2canvas + jsPDF utilisée par
- * Dashboard4 (vue globale) et TestClosureModal (rapport de clôture).
+ * Dashboard4 (vue globale), TestClosureModal (rapport de clôture),
+ * et l'Option C "Pro Suite" (export par carte).
  *
  * @author Matou - Neo-Logix QA Lead
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { useState, useCallback } from 'react';
@@ -14,17 +15,6 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { useToast } from './useToast';
 
-/**
- * Hook d'export PDF.
- *
- * @param {object} defaultOptions - Options par défaut pour tous les exports
- * @param {string} [defaultOptions.orientation='portrait'] - 'portrait' | 'landscape'
- * @param {string} [defaultOptions.backgroundColor='#FFFFFF'] - Couleur de fond canvas
- * @param {number} [defaultOptions.scale=2] - Échelle html2canvas
- * @param {boolean} [defaultOptions.logging=false] - Logs html2canvas
- * @param {boolean} [defaultOptions.preCapture=false] - Force display:block temporairement
- * @param {boolean} [defaultOptions.multiPage=false] - Pagination auto si contenu trop long
- */
 export interface ExportPDFOptions {
   orientation?: 'portrait' | 'landscape';
   backgroundColor?: string;
@@ -32,6 +22,7 @@ export interface ExportPDFOptions {
   logging?: boolean;
   preCapture?: boolean;
   multiPage?: boolean;
+  format?: 'pdf' | 'png';
 }
 
 export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
@@ -46,8 +37,6 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
       setIsExporting(true);
 
       try {
-        // Certains éléments sont cachés (position:absolute; left:-9999px)
-        // il faut les rendre visibles le temps de la capture
         const originalDisplay = opts.preCapture ? element.style.display : undefined;
         if (opts.preCapture) {
           element.style.display = 'block';
@@ -61,10 +50,21 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
         });
 
         if (opts.preCapture) {
-          element.style.display = originalDisplay;
+          element.style.display = originalDisplay || '';
         }
 
         const imgData = canvas.toDataURL('image/png');
+
+        // Option PNG : téléchargement direct
+        if (opts.format === 'png') {
+          const link = document.createElement('a');
+          link.download = filename.replace(/\.pdf$/i, '.png');
+          link.href = imgData;
+          link.click();
+          setIsExporting(false);
+          return;
+        }
+
         const pdf = new jsPDF({
           orientation: opts.orientation || 'portrait',
           unit: 'mm',
@@ -91,8 +91,8 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
 
         pdf.save(filename);
       } catch (error) {
-        console.error("Erreur lors de l'export PDF:", error);
-        showToast('Erreur lors de la génération du PDF', 'error');
+        console.error("Erreur lors de l'export:", error);
+        showToast("Erreur lors de la génération de l'export", 'error');
         throw error;
       } finally {
         setIsExporting(false);
@@ -101,5 +101,18 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
     [defaultOptions, showToast]
   );
 
-  return { exportPDF, isExporting };
+  /**
+   * Exporte un élément HTML isolé en PNG ou PDF.
+   * Par défaut : PNG (rapide pour Slack/Teams).
+   */
+  const exportElement = useCallback(
+    async (element: HTMLElement | null, filename: string, options?: ExportPDFOptions) => {
+      if (!element) return;
+      const opts = { format: 'png' as const, scale: 2, ...options };
+      await exportPDF(element, filename, opts);
+    },
+    [exportPDF]
+  );
+
+  return { exportPDF, exportElement, isExporting };
 }

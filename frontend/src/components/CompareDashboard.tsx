@@ -4,6 +4,7 @@ import { Loader2, AlertCircle, GitCompare } from 'lucide-react';
 import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { apiClient } from '../services/api.service';
 import { getMetricColor } from '../lib/colors';
+import { buildCompareChartData, buildCompareRequestConfig, buildChartOptions } from '../lib/charts';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -34,7 +35,7 @@ export default function CompareDashboard({ isDark }) {
       setLoading(true);
       try {
         const res = await apiClient.get('/dashboard/compare', {
-          params: { projectIds: selected.join(',') },
+          ...buildCompareRequestConfig(selected),
           signal: controller.signal,
         });
         const raw = res.data?.data || res.data?.projects || [];
@@ -62,37 +63,9 @@ export default function CompareDashboard({ isDark }) {
     return () => controller.abort();
   }, [selected]);
 
-  const chartData = useMemo(() => {
-    const labels = ['Pass Rate', 'Completion', 'Escape Rate', 'Detection', 'Blocked'];
-    const datasets = data.map((d, i) => ({
-      label: d.projectName,
-      data: [d.passRate, d.completionRate, d.escapeRate, d.detectionRate, d.blockedRate],
-      borderColor: ['var(--text-primary)', 'var(--text-success)', 'var(--text-warning)', 'var(--text-danger)', 'var(--text-secondary)'][i % 5],
-      backgroundColor: ['color-mix(in srgb, var(--text-primary) 12%, transparent)', 'color-mix(in srgb, var(--text-success) 12%, transparent)', 'color-mix(in srgb, var(--text-warning) 12%, transparent)', 'color-mix(in srgb, var(--text-danger) 12%, transparent)', 'color-mix(in srgb, var(--text-secondary) 12%, transparent)'][i % 5],
-      pointRadius: 4,
-    }));
-    return { labels, datasets };
-  }, [data]);
+  const chartData = useMemo(() => buildCompareChartData(data), [data]);
 
-  const options = useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: 'var(--text-color)' } },
-      },
-      scales: {
-        r: {
-          ticks: { color: 'var(--text-muted)', backdropColor: 'transparent' },
-          grid: { color: 'var(--border-color)' },
-          pointLabels: { color: 'var(--text-color)' },
-          min: 0,
-          max: 100,
-        },
-      },
-    }),
-    [isDark]
-  );
+  const options = useMemo(() => buildChartOptions('radar', isDark), [isDark]);
 
   const cardBg = 'var(--surface-muted)';
   const border = 'var(--border-color)';

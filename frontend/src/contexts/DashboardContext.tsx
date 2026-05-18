@@ -17,9 +17,9 @@ export interface DashboardContextValue {
   exportHandler: (() => void) | null;
   setExportHandler: (handler: (() => void) | null) => void;
   selectedPreprodMilestones: number[];
-  setSelectedPreprodMilestones: (milestones: number[]) => void;
+  setSelectedPreprodMilestones: React.Dispatch<React.SetStateAction<number[]>>;
   selectedProdMilestones: number[];
-  setSelectedProdMilestones: (milestones: number[]) => void;
+  setSelectedProdMilestones: React.Dispatch<React.SetStateAction<number[]>>;
   showProductionSection: boolean;
   setShowProductionSection: (show: boolean) => void;
   autoRefresh: boolean;

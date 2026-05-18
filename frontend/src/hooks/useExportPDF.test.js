@@ -137,7 +137,7 @@ describe('useExportPDF', () => {
       await expect(result.current.exportPDF(element, 'fail.pdf')).rejects.toThrow('canvas failed');
     });
 
-    expect(mockShowToast).toHaveBeenCalledWith('Erreur lors de la génération du PDF', 'error');
+    expect(mockShowToast).toHaveBeenCalledWith("Erreur lors de la génération de l'export", 'error');
   });
 
   it('ignore les appels si element est null', async () => {

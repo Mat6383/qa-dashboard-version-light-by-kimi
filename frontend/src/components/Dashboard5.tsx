@@ -25,6 +25,7 @@ import {
 } from 'chart.js';
 import apiService from '../services/api.service';
 import { getMetricColor, getMetricBgColor, getMetricLevel } from '../lib/colors';
+import { buildChartOptions } from '../lib/charts';
 import type { ChartOptions } from 'chart.js';
 
 // Register Chart.js components
@@ -42,7 +43,12 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
         setLoading(true);
         const response = await apiService.getAnnualTrends(projectId) as any;
         if (controller.signal.aborted) return;
-        setTrends(response.data || []);
+        // La réponse est { success: true, data: [...] }
+        const trendsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        if (import.meta.env.DEV) {
+          console.log('[Dashboard5] Annual trends:', trendsData);
+        }
+        setTrends(trendsData);
         setError(null);
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -59,36 +65,7 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
     return () => controller.abort();
   }, [projectId]);
 
-  const chartOptions = useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            color: 'var(--text-color)',
-            font: { size: 12, weight: 600 },
-          },
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-        },
-      },
-      scales: {
-        x: {
-          grid: { color: 'var(--border-color)' },
-          ticks: { color: 'var(--text-muted)' },
-        },
-        y: {
-          grid: { color: 'var(--border-color)' },
-          ticks: { color: 'var(--text-muted)' },
-        },
-      },
-    } satisfies ChartOptions<'line'>),
-    [isDark]
-  );
+  const chartOptions = useMemo(() => buildChartOptions('line', isDark) as any, [isDark]);
 
   const qualityTrendData = useMemo(
     () => ({
@@ -97,8 +74,8 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
         {
           label: useBusiness ? 'Taux de Détection (DDP)' : 'Detection Rate (DDP)',
           data: trends.map((t) => t.detectionRate),
-          borderColor: 'var(--text-success)',
-          backgroundColor: 'color-mix(in srgb, var(--text-success) 10%, transparent)',
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.10)',
           fill: true,
           tension: 0.4,
           pointRadius: 6,
@@ -108,8 +85,8 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
         {
           label: useBusiness ? "Taux d'Échappement" : 'Escape Rate',
           data: trends.map((t) => t.escapeRate),
-          borderColor: 'var(--text-danger)',
-          backgroundColor: 'color-mix(in srgb, var(--text-danger) 10%, transparent)',
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.10)',
           fill: true,
           tension: 0.4,
           pointRadius: 6,
@@ -174,6 +151,31 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
       >
         <AlertCircle size={48} />
         <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>{error}</p>
+      </div>
+    );
+  }
+
+  if (!loading && trends.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '60vh',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <Calendar size={48} />
+        <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>
+          {useBusiness ? 'Aucune donnée annuelle disponible.' : 'No annual data available.'}
+        </p>
+        <p style={{ fontSize: '0.9rem' }}>
+          {useBusiness
+            ? 'Les tendances sont calculées à partir des runs historiques du projet.'
+            : 'Trends are calculated from historical project runs.'}
+        </p>
       </div>
     );
   }
