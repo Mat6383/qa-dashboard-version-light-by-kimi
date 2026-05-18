@@ -1,7 +1,10 @@
 import React, { useRef, useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { BarChart3, Download } from 'lucide-react';
 import { buildChartOptions, buildDoughnutChartData } from '../../lib/charts';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 import type { RawMetrics } from '../../types/api.types';
 
 interface StatusDistributionProps {
