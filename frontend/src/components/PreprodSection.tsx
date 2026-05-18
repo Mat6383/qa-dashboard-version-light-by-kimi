@@ -81,6 +81,8 @@ interface PreprodSectionProps {
   setShowAllRuns: (show: boolean) => void;
   showLatestOnly?: boolean;
   setShowLatestOnly?: (show: boolean) => void;
+  showExploratoryByMilestone?: boolean;
+  setShowExploratoryByMilestone?: (show: boolean) => void;
   isDark: boolean;
   useBusiness: boolean;
   getAlertForMetric: (metric: string) => MetricAlert | undefined;
@@ -104,6 +106,8 @@ export default function PreprodSection({
   setShowAllRuns,
   showLatestOnly = false,
   setShowLatestOnly,
+  showExploratoryByMilestone = false,
+  setShowExploratoryByMilestone,
   isDark,
   useBusiness,
   getAlertForMetric,
@@ -185,6 +189,8 @@ export default function PreprodSection({
         setShowAllRuns={setShowAllRuns}
         showLatestOnly={showLatestOnly}
         setShowLatestOnly={setShowLatestOnly}
+        showExploratoryByMilestone={showExploratoryByMilestone}
+        setShowExploratoryByMilestone={setShowExploratoryByMilestone}
         useBusiness={useBusiness}
         isDark={isDark}
       />
