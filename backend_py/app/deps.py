@@ -45,6 +45,10 @@ async def require_auth(
         token = credentials.credentials
     else:
         token = request.cookies.get("access_token")
+        if not token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.lower().startswith("bearer "):
+                token = auth_header[7:]
 
     if not token:
         logger.warning("[AUTH] No token. Cookies: %s", request.cookies)

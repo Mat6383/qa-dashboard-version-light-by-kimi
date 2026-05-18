@@ -16,7 +16,7 @@ from app.models.users import User
 
 
 async def _make_auth_client(role: str = "admin") -> tuple[AsyncClient, str]:
-    gitlab_id = 800000 + random.randint(0, 50000)
+    gitlab_id = 800000 + random.randint(0, 50_000_000)
     async with get_main_db() as db:
         user = User(
             gitlab_id=gitlab_id,
@@ -28,28 +28,38 @@ async def _make_auth_client(role: str = "admin") -> tuple[AsyncClient, str]:
         await db.commit()
         await db.refresh(user)
     token = create_access_token(str(user.id), user.email, user.role)
-    client = AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"Authorization": f"Bearer {token}"})
+    client = AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {token}"},
+    )
     return client, token
 
 
 @pytest.mark.asyncio
 class TestProjectsRouter:
     async def test_list_projects(self, client: AsyncClient) -> None:
-        with patch("app.routers.projects.testmo_service.get_projects", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.projects.testmo_service.get_projects", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = [{"id": 1, "name": "Alpha"}]
             response = await client.get("/api/projects/", follow_redirects=True)
             assert response.status_code == 200
             assert response.json()["projects"][0]["name"] == "Alpha"
 
     async def test_get_project_runs(self, client: AsyncClient) -> None:
-        with patch("app.routers.projects.testmo_service.get_project_runs", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.projects.testmo_service.get_project_runs", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = [{"id": 10, "name": "R01"}]
             response = await client.get("/api/projects/1/runs?active=true")
             assert response.status_code == 200
             assert response.json()["runs"][0]["name"] == "R01"
 
     async def test_get_project_milestones(self, client: AsyncClient) -> None:
-        with patch("app.routers.projects.testmo_service.get_project_milestones", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.projects.testmo_service.get_project_milestones", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = [{"id": 5, "name": "M1"}]
             response = await client.get("/api/projects/1/milestones")
             assert response.status_code == 200
@@ -58,7 +68,9 @@ class TestProjectsRouter:
             assert data["data"]["result"][0]["name"] == "M1"
 
     async def test_get_project_automation(self, client: AsyncClient) -> None:
-        with patch("app.routers.projects.testmo_service.get_automation_runs", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.projects.testmo_service.get_automation_runs", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = {"result": [{"id": 7, "name": "Auto-1"}]}
             response = await client.get("/api/projects/1/automation")
             assert response.status_code == 200
@@ -68,14 +80,18 @@ class TestProjectsRouter:
 @pytest.mark.asyncio
 class TestRunsRouter:
     async def test_get_run(self, client: AsyncClient) -> None:
-        with patch("app.routers.runs.testmo_service.get_run_details", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.runs.testmo_service.get_run_details", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = {"id": 99, "name": "Run-X"}
             response = await client.get("/api/runs/99")
             assert response.status_code == 200
             assert response.json()["name"] == "Run-X"
 
     async def test_get_run_results(self, client: AsyncClient) -> None:
-        with patch("app.routers.runs.testmo_service.get_run_results", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.runs.testmo_service.get_run_results", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = {"result": [{"id": 1, "status_id": 2}]}
             response = await client.get("/api/runs/99/results?status=passed")
             assert response.status_code == 200
@@ -120,12 +136,16 @@ class TestSyncRouter:
     async def test_sync_preview(self, client: AsyncClient) -> None:
         with patch("app.routers.sync.sync_service.preview_sync", new_callable=AsyncMock) as mock:
             mock.return_value = {"iteration": {"name": "R01"}, "summary": {"toCreate": 1}}
-            response = await client.post("/api/sync/preview", json={"project_id": 1, "iteration_name": "R01"})
+            response = await client.post(
+                "/api/sync/preview", json={"project_id": 1, "iteration_name": "R01"}
+            )
             assert response.status_code == 200
             assert response.json()["data"]["summary"]["toCreate"] == 1
 
     async def test_sync_cases_history(self, client: AsyncClient) -> None:
-        with patch("app.routers.sync.case_sync_service.get_history", new_callable=AsyncMock) as mock:
+        with patch(
+            "app.routers.sync.case_sync_service.get_history", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = [{"id": 1, "iteration_name": "R01"}]
             response = await client.get("/api/sync/cases/history")
             assert response.status_code == 200
@@ -136,7 +156,9 @@ class TestSyncRouter:
         assert response.status_code == 403
 
     async def test_test_api_with_admin_token(self, client: AsyncClient) -> None:
-        response = await client.post("/api/sync/test-api", headers={"X-Admin-Token": settings.admin_api_token})
+        response = await client.post(
+            "/api/sync/test-api", headers={"X-Admin-Token": settings.admin_api_token}
+        )
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
 
@@ -146,7 +168,9 @@ class TestExportRouter:
     async def test_export_csv(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            response = await ac.post("/api/export/csv", json={"rows": [{"a": 1, "b": 2}], "filename": "test.csv"})
+            response = await ac.post(
+                "/api/export/csv", json={"rows": [{"a": 1, "b": 2}], "filename": "test.csv"}
+            )
             assert response.status_code == 200
             assert response.headers["content-type"] == "text/csv; charset=utf-8"
             assert "test.csv" in response.headers["content-disposition"]
@@ -154,7 +178,9 @@ class TestExportRouter:
     async def test_export_excel(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            response = await ac.post("/api/export/excel", json={"rows": [{"a": 1, "b": 2}], "filename": "test.xlsx"})
+            response = await ac.post(
+                "/api/export/excel", json={"rows": [{"a": 1, "b": 2}], "filename": "test.xlsx"}
+            )
             assert response.status_code == 200
             assert "spreadsheet" in response.headers["content-type"]
 
@@ -179,9 +205,13 @@ class TestReportsRouter:
     async def test_generate_report_with_auth(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.reports.report_service.generate", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.reports.report_service.generate", new_callable=AsyncMock
+            ) as mock:
                 mock.return_value = {"html": "<html></html>", "pptx_base64": None}
-                response = await ac.post("/api/reports/generate", json={"run_id": 1, "format": "html"})
+                response = await ac.post(
+                    "/api/reports/generate", json={"run_id": 1, "format": "html"}
+                )
                 assert response.status_code == 200
                 assert response.json()["success"] is True
                 assert response.json()["data"]["html"] == "<html></html>"
@@ -196,18 +226,25 @@ class TestTestmoBrowserRouter:
     async def test_health_with_admin_ok(self) -> None:
         ac, _ = await _make_auth_client("admin")
         async with ac:
-            with patch("app.routers.testmo_browser.testmo_browser_service.health_check", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.testmo_browser.testmo_browser_service.health_check",
+                new_callable=AsyncMock,
+            ) as mock:
                 mock.return_value = {"ok": True, "message": "OK"}
                 response = await ac.get("/api/testmo-browser/health")
                 assert response.status_code == 200
                 assert response.json()["success"] is True
 
     async def test_create_run_requires_admin(self, client: AsyncClient) -> None:
-        response = await client.post("/api/testmo-browser/runs", json={"projectId": 1, "name": "Test"})
+        response = await client.post(
+            "/api/testmo-browser/runs", json={"projectId": 1, "name": "Test"}
+        )
         assert response.status_code == 401
 
     async def test_add_results_requires_admin(self, client: AsyncClient) -> None:
-        response = await client.post("/api/testmo-browser/runs/1/results", json={"projectId": 1, "results": []})
+        response = await client.post(
+            "/api/testmo-browser/runs/1/results", json={"projectId": 1, "results": []}
+        )
         assert response.status_code == 401
 
 
@@ -241,7 +278,9 @@ class TestDashboardRouter:
     async def test_dashboard_metrics(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock
+            ) as mock:
                 mock.return_value = {"passRate": 95.0, "completionRate": 80.0}
                 response = await ac.get("/api/dashboard/1")
                 assert response.status_code == 200
@@ -250,7 +289,10 @@ class TestDashboardRouter:
     async def test_dashboard_trends(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.dashboard.testmo_service.get_annual_quality_trends", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.dashboard.testmo_service.get_annual_quality_trends",
+                new_callable=AsyncMock,
+            ) as mock:
                 mock.return_value = [{"version": "2024", "passRate": 90.0}]
                 response = await ac.get("/api/dashboard/1/annual-trends")
                 assert response.status_code == 200
@@ -259,7 +301,9 @@ class TestDashboardRouter:
     async def test_dashboard_compare(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.dashboard.testmo_service.compare_projects", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.dashboard.testmo_service.compare_projects", new_callable=AsyncMock
+            ) as mock:
                 mock.return_value = [{"project_id": 1, "passRate": 90.0}]
                 response = await ac.get("/api/dashboard/compare?project_ids=1&project_ids=2")
                 assert response.status_code == 200
@@ -268,7 +312,9 @@ class TestDashboardRouter:
     async def test_dashboard_multi(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.dashboard.testmo_service.compare_projects", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.dashboard.testmo_service.compare_projects", new_callable=AsyncMock
+            ) as mock:
                 mock.return_value = [{"passRate": 90.0}]
                 response = await ac.get("/api/dashboard/multi?project_ids=1&project_ids=2")
                 assert response.status_code == 200
@@ -282,7 +328,9 @@ class TestCacheRouter:
         assert response.status_code == 403
 
     async def test_clear_cache_admin(self, client: AsyncClient) -> None:
-        response = await client.post("/api/cache/clear", headers={"X-Admin-Token": settings.admin_api_token})
+        response = await client.post(
+            "/api/cache/clear", headers={"X-Admin-Token": settings.admin_api_token}
+        )
         assert response.status_code == 200
         assert response.json()["status"] == "cleared"
 
@@ -317,7 +365,10 @@ class TestTrpcRouter:
     async def test_trpc_dashboard_metrics(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.trpc.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.trpc.dashboard.testmo_service.get_project_metrics",
+                new_callable=AsyncMock,
+            ) as mock:
                 mock.return_value = {"pass_rate": 75.0, "total": 4, "passed": 3, "failed": 1}
                 response = await ac.post(
                     "/trpc/",
@@ -331,7 +382,10 @@ class TestTrpcRouter:
     async def test_trpc_batch_get_dashboard(self) -> None:
         ac, _ = await _make_auth_client("viewer")
         async with ac:
-            with patch("app.routers.trpc.dashboard.testmo_service.get_project_metrics", new_callable=AsyncMock) as mock:
+            with patch(
+                "app.routers.trpc.dashboard.testmo_service.get_project_metrics",
+                new_callable=AsyncMock,
+            ) as mock:
                 mock.return_value = {"pass_rate": 88.0}
                 response = await ac.get("/trpc/dashboard.metrics?input=%7B%22projectId%22%3A1%7D")
                 assert response.status_code == 200
