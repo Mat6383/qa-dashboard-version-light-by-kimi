@@ -9,6 +9,7 @@ import type {
   MilestoneListResponse,
   ApiResponse,
   MultiProjectSummaryItem,
+  ReadinessResult,
 } from '../../types/api.types';
 import { apiClient, apiCall, handleError } from './core';
 import type { AxiosError } from 'axios';
@@ -153,6 +154,20 @@ export async function getTrends(
     const response = await apiClient.get(`/dashboard/${projectId}/trends`, {
       params: { granularity, from, to },
     });
+    return response.data;
+  });
+}
+
+export async function getReadiness(
+  projectId: number,
+  preprodMilestones: number[] | null = null,
+  prodMilestones: number[] | null = null
+): Promise<ReadinessResult> {
+  return apiCall('Get Readiness', async () => {
+    const params: Record<string, string> = {};
+    if (preprodMilestones) params.preprodMilestones = preprodMilestones.join(',');
+    if (prodMilestones) params.prodMilestones = prodMilestones.join(',');
+    const response = await apiClient.get(`/dashboard/${projectId}/readiness`, { params });
     return response.data;
   });
 }

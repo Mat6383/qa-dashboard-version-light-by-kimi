@@ -451,5 +451,56 @@
     "doughnutTitle": "Test Status Distribution",
     "barTitleBusiness": "Status Distribution",
     "barTitle": "Status Distribution"
+  },
+  "activity": {
+    "title": "Recent activity",
+    "noActivity": "No recent activity",
+    "liveUpdate": "Live update"
+  },
+  "alerts": {
+    "recommendation": "Recommendation"
+  },
+  "readiness": {
+    "calculating": "Calculating readiness score...",
+    "status": {
+      "ready": "Ready for Release",
+      "caution": "Caution — Review Needed",
+      "blocked": "Blocked — Not Ready"
+    },
+    "factors": {
+      "passRate": {
+        "good": "{{value}}% — excellent",
+        "warning": "{{value}}% — acceptable",
+        "critical": "{{value}}% — too low"
+      },
+      "completionRate": {
+        "good": "{{value}}% — on track",
+        "warning": "{{value}}% — behind",
+        "critical": "{{value}}% — critical"
+      },
+      "blockedRate": {
+        "good": "{{value}}% — low",
+        "warning": "{{value}}% — elevated",
+        "critical": "{{value}}% — critical"
+      },
+      "failureRate": {
+        "good": "{{value}}% — low",
+        "warning": "{{value}}% — elevated",
+        "critical": "{{value}}% — critical"
+      },
+      "anomalies": {
+        "good": "No anomalies detected",
+        "warning": "{{value}} anomaly detected",
+        "critical": "{{value}} anomalies detected"
+      },
+      "escapeRate": {
+        "good": "{{value}}% — low",
+        "warning": "{{value}}% — elevated",
+        "critical": "{{value}}% — critical"
+      }
+    },
+    "more": "more",
+    "expand": "Show all",
+    "collapse": "Collapse"
   }
 }

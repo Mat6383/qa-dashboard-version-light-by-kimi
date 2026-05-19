@@ -4,6 +4,7 @@ import {
   RefreshCw,
   Search,
   AlertCircle,
+  Zap,
 } from 'lucide-react';
 
 export default function SyncConfigPanel({
@@ -34,6 +35,8 @@ export default function SyncConfigPanel({
   state,
   canAnalyze,
   onAnalyze,
+  canQuickSync,
+  onQuickSync,
   onReset,
   showReset,
 }) {
@@ -222,6 +225,23 @@ export default function SyncConfigPanel({
                 ) : (
                   <>
                     <Search size={14} /> Analyser
+                  </>
+                )}
+              </button>
+
+              <button
+                className="d6-btn d6-btn-success"
+                onClick={onQuickSync}
+                disabled={!canQuickSync || state === 'analyzing' || state === 'syncing'}
+                title="Analyse + synchronisation automatique si aucune erreur"
+              >
+                {state === 'analyzing' || state === 'syncing' ? (
+                  <>
+                    <RefreshCw size={14} className="d6-spinner" /> Sync...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={14} /> Sync Rapide
                   </>
                 )}
               </button>

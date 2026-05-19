@@ -11,6 +11,16 @@ import ExportFAB from './ExportFAB';
 import TopBar from './layout/TopBar';
 import MobileDrawerContent from './layout/MobileDrawerContent';
 
+function formatLiveAgo(date: Date, lang: string): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 5) return lang === 'fr' ? 'à l\'instant' : 'just now';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h`;
+}
+
 function getDashboardRoutes(isAdmin, t) {
   const routes = [
     { path: '/global-view', label: t('dashboard.globalView') },
@@ -60,6 +70,7 @@ export default function AppLayout({
   onExportExcel,
   liveConnected,
   liveError,
+  lastLiveEventAt,
   circuitBreakers,
   compactMode,
   toggleCompactMode,
@@ -157,6 +168,7 @@ export default function AppLayout({
           setUseBusinessTerms={setUseBusinessTerms}
           liveConnected={liveConnected}
           liveError={liveError}
+          lastLiveEventAt={lastLiveEventAt}
           autoRefresh={autoRefresh}
           setAutoRefresh={setAutoRefresh}
           onRefresh={onRefresh}
@@ -237,7 +249,11 @@ export default function AppLayout({
       <footer className="app-footer" role="contentinfo">
         <div className="footer-content">
           <span>{t('layout.footer.copyright')}</span>
-          {lastUpdate && (
+          {liveConnected && lastLiveEventAt ? (
+            <span className="last-update live-footer">
+              <span className="pulse-dot" /> LIVE — {formatLiveAgo(lastLiveEventAt, i18n.language)}
+            </span>
+          ) : lastUpdate && (
             <span className="last-update">{t('layout.footer.lastUpdate')}: {lastUpdate.toLocaleTimeString(i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</span>
           )}
           <span>{t('layout.footer.standards')}</span>

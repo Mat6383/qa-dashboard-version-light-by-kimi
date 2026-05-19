@@ -56,6 +56,7 @@ function App() {
     setShowProductionSection,
     liveConnected,
     liveError,
+    lastLiveEventAt,
     circuitBreakers,
     checkBackendHealth,
     loadProjects,
@@ -220,6 +221,7 @@ function App() {
       lastUpdate={lastUpdate}
       liveConnected={liveConnected}
       liveError={liveError}
+      lastLiveEventAt={lastLiveEventAt}
       circuitBreakers={circuitBreakers}
       compactMode={compactMode}
       toggleCompactMode={toggleCompactMode}

@@ -1288,6 +1288,60 @@ table.data-table th {
 }
 
 /* ==================================================
+   Live Mode
+   ================================================== */
+
+.live-mode-toggle {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-mode-toggle.live-connected {
+  background-color: rgba(34, 197, 94, 0.12);
+  border-color: var(--status-success);
+  color: var(--text-success);
+}
+
+.live-mode-toggle.live-error {
+  background-color: rgba(239, 68, 68, 0.12);
+  border-color: var(--status-danger);
+  color: var(--text-danger);
+}
+
+.live-mode-toggle.live-connected .live-pulse {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--status-success);
+  margin-right: 6px;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+.live-footer {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-success);
+  font-weight: 600;
+}
+
+/* ==================================================
    Reduced Motion
    ================================================== */
 @media (prefers-reduced-motion: reduce) {

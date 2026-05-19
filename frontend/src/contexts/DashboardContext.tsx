@@ -26,6 +26,7 @@ export interface DashboardContextValue {
   setAutoRefresh: (auto: boolean) => void;
   liveConnected: boolean;
   liveError: string | null;
+  lastLiveEventAt: Date | null;
   anomalies: AnomalyItem[];
   loadAnomalies: () => Promise<void>;
   circuitBreakers: CircuitBreakerState[];
@@ -63,6 +64,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const preprod = selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null;
   const prod = selectedProdMilestones.length > 0 ? selectedProdMilestones : null;
 
+  const [lastLiveEventAt, setLastLiveEventAt] = useState<Date | null>(null);
+
   const sse = useDashboardWebSocket({
     projectId,
     preprodMilestones: selectedPreprodMilestones,
@@ -91,6 +94,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // Appliquer les données SSE temps réel dans le cache React Query
   useEffect(() => {
     if (sse.data) {
+      setLastLiveEventAt(new Date());
       queryClient.setQueryData<DashboardMetrics>(
         ['dashboard-metrics', projectId, preprod, prod],
         {
@@ -195,6 +199,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setAutoRefresh,
       liveConnected: sse.connected,
       liveError: sse.error,
+      lastLiveEventAt,
       anomalies,
       loadAnomalies,
       circuitBreakers,
@@ -219,6 +224,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       autoRefresh,
       sse.connected,
       sse.error,
+      lastLiveEventAt,
       anomalies,
       loadAnomalies,
       circuitBreakers,

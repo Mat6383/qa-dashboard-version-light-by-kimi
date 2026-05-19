@@ -373,3 +373,17 @@ export interface MetricTemporal {
     j30: TemporalValue | null;
   };
 }
+
+export interface ReadinessFactor {
+  name: string;
+  impact: number;
+  status: string;
+  value: number;
+}
+
+export interface ReadinessResult {
+  project_id: number;
+  score: number;
+  status: 'ready' | 'caution' | 'blocked';
+  factors: ReadinessFactor[];
+}

@@ -452,5 +452,56 @@
     "doughnutTitle": "Test Status Distribution",
     "barTitleBusiness": "Répartition par Statut",
     "barTitle": "Status Distribution"
+  },
+  "activity": {
+    "title": "Activité récente",
+    "noActivity": "Aucune activité récente",
+    "liveUpdate": "Mise à jour temps réel"
+  },
+  "alerts": {
+    "recommendation": "Recommandation"
+  },
+  "readiness": {
+    "calculating": "Calcul du score de maturité...",
+    "status": {
+      "ready": "Prêt pour release",
+      "caution": "Attention — Revue nécessaire",
+      "blocked": "Bloqué — Non prêt"
+    },
+    "factors": {
+      "passRate": {
+        "good": "{{value}}% — excellent",
+        "warning": "{{value}}% — acceptable",
+        "critical": "{{value}}% — trop faible"
+      },
+      "completionRate": {
+        "good": "{{value}}% — dans les temps",
+        "warning": "{{value}}% — en retard",
+        "critical": "{{value}}% — critique"
+      },
+      "blockedRate": {
+        "good": "{{value}}% — faible",
+        "warning": "{{value}}% — élevé",
+        "critical": "{{value}}% — critique"
+      },
+      "failureRate": {
+        "good": "{{value}}% — faible",
+        "warning": "{{value}}% — élevé",
+        "critical": "{{value}}% — critique"
+      },
+      "anomalies": {
+        "good": "Aucune anomalie détectée",
+        "warning": "{{value}} anomalie détectée",
+        "critical": "{{value}} anomalies détectées"
+      },
+      "escapeRate": {
+        "good": "{{value}}% — faible",
+        "warning": "{{value}}% — élevé",
+        "critical": "{{value}}% — critique"
+      }
+    },
+    "more": "de plus",
+    "expand": "Voir tout",
+    "collapse": "Réduire"
   }
 }

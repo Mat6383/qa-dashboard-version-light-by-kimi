@@ -40,6 +40,7 @@ function renderAppLayout(props = {}) {
     onExportExcel: null,
     liveConnected: false,
     liveError: null,
+    lastLiveEventAt: null,
     circuitBreakers: [],
     compactMode: false,
     toggleCompactMode: vi.fn(),

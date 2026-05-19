@@ -95,13 +95,19 @@ export default function KPIWidget({
   const t = getTemporalForMetric?.(widgetId, metrics[cfg.metricKey] as number);
   const title = useBusiness ? cfg.titleFr : cfg.titleEn;
 
+  // Trend basé sur le delta temporel (J-7) quand disponible
+  const temporalTrend: import('../../types/api.types').KpiTrend | undefined =
+    t?.delta7 != null ? (t.delta7 > 0 ? 'up' : t.delta7 < 0 ? 'down' : 'neutral') : undefined;
+  const trendValue = t?.delta7 != null ? `${t.delta7 > 0 ? '+' : ''}${t.delta7}%` : undefined;
+
   return (
     <KPICard
       title={title}
       icon={cfg.icon}
       value={value}
       status={getKpiStatus(widgetId, value)}
-      trend={getKpiTrend(widgetId, value)}
+      trend={temporalTrend ?? getKpiTrend(widgetId, value)}
+      trendValue={trendValue}
       subtitle={cfg.subtitle(metrics, raw, useBusiness)}
       alert={getAlertForMetric?.(cfg.alertMetric)}
       progress={{ value: metrics[cfg.metricKey] as number, label: cfg.progressLabel(metrics, raw) }}

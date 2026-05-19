@@ -182,13 +182,16 @@ export default function ProductionSection({
     switch (widgetId) {
       case 'escapeRate': {
         const t = getTemporalForMetric?.('escapeRate', rates.escapeRate);
+        const temporalTrend = t?.delta7 != null ? (t.delta7 > 0 ? 'down' : t.delta7 < 0 ? 'up' : 'neutral') : getKpiTrend('escapeRate', rates.escapeRate);
+        const trendValue = t?.delta7 != null ? `${t.delta7 > 0 ? '+' : ''}${t.delta7}%` : undefined;
         return (
           <KPICard
             title={useBusiness ? "Taux d'Échappement" : 'Escape Rate'}
             icon={<ShieldAlert size={20} />}
             value={Math.round(rates.escapeRate)}
             status={getKpiStatus('escapeRate', rates.escapeRate)}
-            trend={getKpiTrend('escapeRate', rates.escapeRate)}
+            trend={temporalTrend}
+            trendValue={trendValue}
             subtitle={`${useBusiness ? 'Jalon' : 'Milestone'}: ${milestoneDisplay} • Objectif: < 5%`}
             alert={getTrend(anomalies, 'escape_rate')}
             delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}
@@ -200,13 +203,16 @@ export default function ProductionSection({
       }
       case 'detectionRate': {
         const t = getTemporalForMetric?.('detectionRate', rates.detectionRate);
+        const temporalTrend = t?.delta7 != null ? (t.delta7 > 0 ? 'up' : t.delta7 < 0 ? 'down' : 'neutral') : getKpiTrend('detectionRate', rates.detectionRate);
+        const trendValue = t?.delta7 != null ? `${t.delta7 > 0 ? '+' : ''}${t.delta7}%` : undefined;
         return (
           <KPICard
             title={useBusiness ? 'Taux de Détection' : 'Detection Rate'}
             icon={<ShieldCheck size={20} />}
             value={Math.round(rates.detectionRate)}
             status={getKpiStatus('detectionRate', rates.detectionRate)}
-            trend={getKpiTrend('detectionRate', rates.detectionRate)}
+            trend={temporalTrend}
+            trendValue={trendValue}
             subtitle={`${useBusiness ? 'Lié' : 'Linked'}: ${milestoneDisplay} • Objectif: > 95%`}
             alert={getTrend(anomalies, 'detection_rate')}
             delta={t?.delta7 != null ? { value: t.delta7, label: 'vs J-7' } : null}

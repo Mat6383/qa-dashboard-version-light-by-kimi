@@ -269,6 +269,56 @@ export default function Dashboard6({ isDark }) {
       });
   };
 
+  // ---- Sync rapide (preview + execute auto) ------------------------
+  const handleQuickSync = async () => {
+    if (!selectedProject) {
+      setError('Veuillez sélectionner un projet.');
+      return;
+    }
+    setError(null);
+    setPreview(null);
+    setState('analyzing');
+
+    try {
+      const data = await apiService.previewSyncCases(
+        selectedProject,
+        selectedIter,
+        {
+          label: labelCustomFilter.trim() || 'Test::TODO',
+          gitlab_status: statusFilter.trim() || undefined,
+          version_prod: versionFilter.trim() || undefined,
+          version_test: versionDeTestFilter.trim() || undefined,
+          run_name: runName.trim() || undefined,
+        }
+      );
+      setPreview(data);
+
+      // Vérifier si exécution auto est safe (erreurs = iid null dans le mapping backend)
+      const hasErrors = data?.issues?.some((i) => i.iid === null);
+      const summary = data?.summary;
+      const hasWorkToDo = summary && (summary.toCreate > 0 || summary.toUpdate > 0);
+
+      if (hasErrors) {
+        setState('preview');
+        setError('Des erreurs ont été détectées dans le preview. Veuillez vérifier avant de synchroniser.');
+        return;
+      }
+
+      if (!hasWorkToDo) {
+        setState('preview');
+        setError('Rien à synchroniser — tous les éléments sont à jour.');
+        return;
+      }
+
+      // Tout est OK : lancer l'exécution
+      setState('preview');
+      setTimeout(() => handleExecute(), 0);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
+      setState('idle');
+    }
+  };
+
   // ---- Reset -------------------------------------------------------
   const handleReset = () => {
     setState('idle');
@@ -283,6 +333,7 @@ export default function Dashboard6({ isDark }) {
   const isConfigured = currentProject?.configured === true;
   const canAnalyze = isConfigured && state === 'idle';
   const canExecute = isConfigured && state === 'preview';
+  const canQuickSync = isConfigured && (state === 'idle' || state === 'preview');
   const processedCount = logLines.filter((e) =>
     ['case_created', 'case_updated', 'case_skipped', 'case_error'].includes(e.type)
   ).length;
@@ -343,6 +394,8 @@ export default function Dashboard6({ isDark }) {
         state={state}
         canAnalyze={canAnalyze}
         onAnalyze={handleAnalyze}
+        onQuickSync={handleQuickSync}
+        canQuickSync={canQuickSync}
         onReset={handleReset}
         showReset={state === 'preview' || state === 'done'}
       />

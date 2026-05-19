@@ -136,7 +136,7 @@
 
 .pp-campaign-card {
   padding: 1rem;
-  background: var(--surface-page);
+  background: var(--surface-default);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   display: flex;
@@ -149,6 +149,7 @@
 .pp-campaign-card:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-elevated);
+  border-color: var(--border-subtle);
 }
 
 .pp-campaign-card--exploratory {
@@ -159,6 +160,27 @@
 
 .pp-campaign-card--exploratory:hover {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
+}
+
+/* Dark mode — meilleur contraste et élévation */
+.dark-theme .pp-campaign-card {
+  background: var(--surface-elevated);
+  border-color: var(--border-subtle);
+}
+
+.dark-theme .pp-campaign-card:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-color);
+}
+
+.dark-theme .pp-campaign-card--exploratory {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.dark-theme .pp-campaign-card--exploratory:hover {
+  background: rgba(139, 92, 246, 0.14);
+  border-color: rgba(167, 139, 250, 0.6);
 }
 
 .pp-campaign-header {

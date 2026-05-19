@@ -14,9 +14,13 @@ import Dashboard6 from './Dashboard6';
 import SkeletonDashboard from './SkeletonDashboard';
 import MilestoneChips from './MilestoneChips';
 import TVModeOverlay from './TVModeOverlay';
+import ReleaseReadinessScore from './ReleaseReadinessScore';
+import SmartAlerts from './SmartAlerts';
+import ActivityFeed from './ActivityFeed';
 import { useTemporalComparison } from '../hooks/useTemporalComparison';
 import { useDashboardLayout } from '../hooks/useDashboardLayout';
 import { useProjectMilestones } from '../hooks/queries';
+import { useDashboard } from '../hooks/useDashboard';
 import '../styles/Dashboard4.css';
 import '../styles/KPICard.css';
 import '../styles/Tabs.css';
@@ -86,6 +90,21 @@ const Dashboard4 = ({
   const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
   const [showReportGenerator, setShowReportGenerator] = React.useState(false);
   const [showTVMode, setShowTVMode] = React.useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = React.useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dismissed_alerts') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const handleDismissAlert = React.useCallback((id: string) => {
+    setDismissedAlerts((prev) => {
+      const next = [...prev, id];
+      localStorage.setItem('dismissed_alerts', JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const { exportPDF, exportElement } = useExportPDF({
     orientation: 'landscape',
@@ -103,6 +122,7 @@ const Dashboard4 = ({
 
   // Option C — Milestones for inline chips
   const { data: availableMilestones = [] } = useProjectMilestones(projectId);
+  const { lastLiveEventAt } = useDashboard();
 
   const runs = useMemo(() => metrics?.runs || [], [metrics?.runs]);
   const sortedRuns = useMemo(
@@ -270,20 +290,37 @@ const Dashboard4 = ({
 
               {(project || latestRun) && (
                 <div className={`dashboard4-banner ${isDark ? 'dashboard4-banner--dark' : ''}`}>
-                  <span className="dashboard4-project-name">{project?.name}</span>
-                  {latestRun ? (
-                    <>
-                      <span className="dashboard4-separator">—</span>
-                      <span className="dashboard4-run-name">{latestRun.name}</span>
-                      <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
-                    </>
-                  ) : (
-                    <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
-                      {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
-                    </span>
-                  )}
+                  <div className="dashboard4-banner-left">
+                    <span className="dashboard4-project-name">{project?.name}</span>
+                    {latestRun ? (
+                      <>
+                        <span className="dashboard4-separator">—</span>
+                        <span className="dashboard4-run-name">{latestRun.name}</span>
+                        <span className="dashboard4-badge">{t('dashboard4.inProgress')}</span>
+                      </>
+                    ) : (
+                      <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
+                        {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
+                      </span>
+                    )}
+                  </div>
+                  <ReleaseReadinessScore
+                    projectId={projectId}
+                    preprodMilestones={selectedPreprodMilestones}
+                    prodMilestones={selectedProdMilestones}
+                    isDark={isDark}
+                  />
                 </div>
               )}
+
+              <SmartAlerts
+                metrics={metrics}
+                anomalies={anomalies}
+                onDismiss={handleDismissAlert}
+                dismissed={dismissedAlerts}
+              />
+
+              <ActivityFeed anomalies={anomalies} lastLiveEventAt={lastLiveEventAt} />
 
               {/* Boutons d'action */}
               <div className="dashboard4-actions">

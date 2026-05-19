@@ -12,6 +12,7 @@
  */
 
 import React, { useRef, useCallback } from 'react';
+import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import {
   TrendingUp,
   TrendingDown,
@@ -97,6 +98,39 @@ function getDeltaBg(deltaValue: number, invert: boolean): string {
   return deltaValue > 0 ? 'rgba(34,197,94,0.12)' : deltaValue < 0 ? 'rgba(239,68,68,0.12)' : 'rgba(148,163,184,0.1)';
 }
 
+/* ── Animated Value sub-component ─────────────────────────────── */
+
+interface KPIValueProps {
+  value: string | number;
+  unit: string;
+  color: string;
+  trend?: KpiTrend;
+  trendValue?: string;
+}
+
+function KPIValue({ value, unit, color, trend, trendValue }: KPIValueProps) {
+  const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
+  const isNumeric = !isNaN(numericValue);
+  const animated = useAnimatedNumber(isNumeric ? numericValue : 0, { enabled: isNumeric });
+
+  return (
+    <div className="kpi-card__value-wrap">
+      <span className="kpi-card__value" style={{ color }}>
+        {isNumeric ? animated : value}
+        <span className="kpi-card__unit">{unit}</span>
+      </span>
+      {trend && (
+        <span className="kpi-card__trend" style={{ color: trendConfig[trend].color }}>
+          {trendConfig[trend].icon}
+          {trendValue && <span>{trendValue}</span>}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ── Main KPICard component ───────────────────────────────────── */
+
 export default function KPICard({
   title,
   value,
@@ -176,18 +210,7 @@ export default function KPICard({
         </div>
 
         {/* Value */}
-        <div className="kpi-card__value-wrap">
-          <span className="kpi-card__value" style={{ color: cfg.border }}>
-            {value}
-            <span className="kpi-card__unit">{unit}</span>
-          </span>
-          {trend && (
-            <span className="kpi-card__trend" style={{ color: trendConfig[trend].color }}>
-              {trendConfig[trend].icon}
-              {trendValue && <span>{trendValue}</span>}
-            </span>
-          )}
-        </div>
+        <KPIValue value={value} unit={unit} color={cfg.border} trend={trend} trendValue={trendValue} />
 
         {/* Delta badge */}
         {delta && (

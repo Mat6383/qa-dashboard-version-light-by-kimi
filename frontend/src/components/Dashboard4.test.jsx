@@ -20,6 +20,26 @@ vi.mock('../hooks/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 
+vi.mock('../hooks/useDashboard', () => ({
+  useDashboard: () => ({ lastLiveEventAt: null }),
+}));
+
+vi.mock('../hooks/queries/useReadiness', () => ({
+  useReadiness: () => ({
+    data: {
+      project_id: 1,
+      score: 92,
+      status: 'ready',
+      factors: [{ name: 'passRate', status: 'good', value: 95.5, impact: 35 }],
+    },
+    isLoading: false,
+  }),
+}));
+
+vi.mock('../hooks/queries/useSyncHistory', () => ({
+  useSyncHistory: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock('html2canvas', () => ({
   __esModule: true,
   default: vi.fn(() => Promise.resolve({ toDataURL: () => 'data:image/png;base64,xxx' })),

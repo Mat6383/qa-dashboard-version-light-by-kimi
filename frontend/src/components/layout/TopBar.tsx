@@ -55,6 +55,7 @@ export default function TopBar({
   setUseBusinessTerms,
   liveConnected,
   liveError,
+  lastLiveEventAt,
   autoRefresh,
   setAutoRefresh,
   onRefresh,
@@ -186,43 +187,26 @@ export default function TopBar({
           </label>
         </div>
 
-        {/* Indicateur Live */}
-        {liveConnected && (
-          <div
-            className="live-indicator"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginRight: '8px',
-              color: 'var(--text-success)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-            }}
-            title={t('layout.liveIndicator')}
-          >
-            <Radio size={14} className="live-pulse" />
-            <span>LIVE</span>
-          </div>
-        )}
-        {liveError && !liveConnected && (
-          <div
-            className="live-indicator"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginRight: '8px',
-              color: 'var(--text-danger)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-            }}
-            title={liveError || t('layout.offlineIndicator')}
-          >
-            <Radio size={14} />
-            <span>OFFLINE</span>
-          </div>
-        )}
+        {/* Toggle Live Mode */}
+        <button
+          className={`btn-toggle live-mode-toggle ${autoRefresh ? 'active' : ''} ${liveConnected ? 'live-connected' : ''} ${liveError ? 'live-error' : ''}`}
+          onClick={() => setAutoRefresh(!autoRefresh)}
+          title={
+            liveConnected
+              ? t('layout.liveIndicator')
+              : liveError
+              ? liveError
+              : autoRefresh
+              ? t('layout.liveConnecting')
+              : t('layout.liveModeOff')
+          }
+          type="button"
+        >
+          <Radio size={14} className={liveConnected ? 'live-pulse' : ''} />
+          <span className="header-toggle-label">
+            {liveConnected ? 'LIVE' : liveError ? 'ERR' : autoRefresh ? '...' : 'LIVE OFF'}
+          </span>
+        </button>
 
         {/* Sélecteur de langue */}
         <button
@@ -233,19 +217,6 @@ export default function TopBar({
         >
           <Globe size={16} />
           {i18n.language === 'fr' ? 'FR' : 'EN'}
-        </button>
-
-        {/* Toggle auto-refresh */}
-        <button
-          className={`btn-toggle ${autoRefresh ? 'active' : ''}`}
-          onClick={() => setAutoRefresh(!autoRefresh)}
-          title="Auto-refresh 1m"
-          type="button"
-        >
-          <RefreshCw size={16} className={autoRefresh ? 'spinning' : ''} />
-          <span className="header-toggle-label">
-            {autoRefresh ? t('layout.autoRefreshOn') : t('layout.autoRefreshOff')}
-          </span>
         </button>
 
         {/* Refresh manuel */}

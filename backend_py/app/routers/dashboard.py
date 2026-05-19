@@ -12,6 +12,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.deps import DBMain
+from app.services.anomaly import anomaly_service
+from app.services.readiness import calculate_readiness
 from app.services.testmo import testmo_service
 from app.utils.api_helpers import SAFE_INTERNAL_ERROR
 from app.utils.logger import get_logger
@@ -139,6 +141,48 @@ async def get_quality_rates(
         )
     )
     return rates
+
+
+@router.get("/{project_id}/readiness")
+async def get_readiness(
+    project_id: int,
+    db: DBMain,
+    preprod_milestones_raw: str = Query(default="", alias="preprodMilestones"),
+    prod_milestones_raw: str = Query(default="", alias="prodMilestones"),
+):
+    """Release Readiness Score — composite metric (0-100)."""
+    try:
+        preprod = _parse_csv_ints(preprod_milestones_raw)
+        prod = _parse_csv_ints(prod_milestones_raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    milestone_ids = list(set(preprod + prod)) if (preprod or prod) else None
+
+    metrics = await _safe_testmo_call(
+        testmo_service.get_project_metrics(project_id, milestone_ids=milestone_ids)
+    )
+
+    quality_rates = None
+    try:
+        quality_rates = await testmo_service.get_escape_and_detection_rates(
+            project_id, preprod_milestones=preprod, prod_milestones=prod
+        )
+    except Exception:
+        logger.warning("Failed to fetch quality rates for readiness", exc_info=True)
+
+    anomalies = await anomaly_service.detect(project_id)
+
+    result = calculate_readiness(metrics, quality_rates, anomalies)
+    return {
+        "project_id": project_id,
+        "score": result.score,
+        "status": result.status,
+        "factors": [
+            {"name": f.name, "impact": f.impact, "status": f.status, "value": f.value}
+            for f in result.factors
+        ],
+    }
 
 
 @router.get("/{project_id}/annual-trends")
