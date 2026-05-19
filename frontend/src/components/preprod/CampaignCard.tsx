@@ -20,16 +20,16 @@ export default function CampaignCard({ run, useBusiness, isDark }: CampaignCardP
   const cardStyle: React.CSSProperties = {
     backgroundColor: run.isExploratory
       ? isDark
-        ? 'rgba(139, 92, 246, 0.18)'
+        ? 'rgba(139, 92, 246, 0.14)'
         : 'rgba(139, 92, 246, 0.05)'
-      : 'var(--surface-default)',
-    border: run.isExploratory ? '1px solid var(--color-secondary)' : '1px solid var(--border-color)',
+      : undefined, // let CSS handle normal card backgrounds for proper dark-theme hierarchy
+    border: run.isExploratory ? '1px solid var(--color-secondary)' : undefined,
     borderLeft: run.isExploratory ? '5px solid var(--color-secondary)' : undefined,
     boxShadow: run.isExploratory
       ? isDark
-        ? '0 4px 16px rgba(139, 92, 246, 0.2)'
+        ? '0 4px 16px rgba(139, 92, 246, 0.25)'
         : '0 4px 12px rgba(139, 92, 246, 0.1)'
-      : 'var(--shadow-card)',
+      : undefined, // let CSS handle shadows
   };
 
   return (

@@ -118,6 +118,13 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Dark mode — distinct container surface for elevation hierarchy */
+.dark-theme .pp-campaigns {
+  background: var(--surface-muted);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-elevated);
+}
+
 .pp-campaigns-header {
   margin: 0 0 1rem 0;
   display: flex;
@@ -126,6 +133,11 @@
   color: var(--text-color);
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.dark-theme .pp-campaigns-header {
+  color: var(--text-default);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .pp-campaigns-grid {
@@ -162,25 +174,27 @@
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
 }
 
-/* Dark mode — meilleur contraste et élévation */
+/* Dark mode — strong elevation hierarchy: cards lighter than container */
 .dark-theme .pp-campaign-card {
-  background: var(--surface-elevated);
+  background: var(--surface-default);
   border-color: var(--border-subtle);
+  box-shadow: var(--shadow-card);
 }
 
 .dark-theme .pp-campaign-card:hover {
   background: var(--surface-hover);
   border-color: var(--border-color);
+  box-shadow: var(--shadow-elevated);
 }
 
 .dark-theme .pp-campaign-card--exploratory {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(167, 139, 250, 0.4);
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(167, 139, 250, 0.45);
 }
 
 .dark-theme .pp-campaign-card--exploratory:hover {
-  background: rgba(139, 92, 246, 0.14);
-  border-color: rgba(167, 139, 250, 0.6);
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(167, 139, 250, 0.7);
 }
 
 .pp-campaign-header {
@@ -252,6 +266,11 @@
   border: 1px solid var(--border-color);
 }
 
+.dark-theme .pp-progress-bar {
+  background: var(--surface-active);
+  border-color: var(--border-subtle);
+}
+
 .pp-progress-fill {
   height: 100%;
   border-radius: 3px;
@@ -268,6 +287,12 @@
   font-style: italic;
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-md);
+}
+
+.dark-theme .pp-show-more {
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  background: var(--surface-elevated);
 }
 
 /* Toggle switch */

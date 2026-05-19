@@ -223,13 +223,13 @@ button.btn-icon,
    ================================================== */
 .app.dark-theme,
 .dark-theme {
-  /* Surfaces — deep blacks with subtle elevation */
-  --surface-page: #0a0a0a;
-  --surface-default: #111111;
-  --surface-elevated: #161b22;
-  --surface-muted: #0d1117;
-  --surface-hover: #1c2128;
-  --surface-active: #21262d;
+  /* Surfaces — GitHub Dark inspired elevation via lightness */
+  --surface-page: #0d1117;
+  --surface-default: #161b22;
+  --surface-elevated: #1c2128;
+  --surface-muted: #111820;
+  --surface-hover: #21262d;
+  --surface-active: #30363d;
   --surface-inverse: #f6f8fa;
 
   /* Text — cool off-whites for reduced halation */
@@ -271,9 +271,9 @@ button.btn-icon,
   --action-auth-bg: #fb923c;
   --action-auth-text: #0a0a0a;
 
-  /* Borders — subtle separations */
-  --border-color: #30363d;
-  --border-subtle: #3d444d;
+  /* Borders — visible but subtle separations */
+  --border-color: #3d444d;
+  --border-subtle: #484f58;
   --divider-color: #21262d;
   --focus-ring: rgba(34, 211, 238, 0.35);
 
