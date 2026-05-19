@@ -81,7 +81,10 @@ export interface ExportMilestones {
 export function handleError(operation: string, error: AxiosError | Error): Error {
   const axiosError = error as AxiosError<{ error?: string }>;
   const errorMessage = axiosError.response?.data?.error || error.message;
-  console.error(`[API Service] ${operation} failed:`, errorMessage);
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.error(`[API Service] ${operation} failed:`, errorMessage);
+  }
   return new Error(`${operation}: ${errorMessage}`);
 }
 

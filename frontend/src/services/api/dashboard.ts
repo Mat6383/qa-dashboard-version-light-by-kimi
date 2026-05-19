@@ -129,6 +129,34 @@ export async function getAnnualTrends(projectId: number): Promise<unknown> {
   });
 }
 
+export interface HistoricalTrendsResponse {
+  project_id: number;
+  granularity: string;
+  snapshots: Array<{
+    date: string;
+    pass_rate: number | null;
+    completion_rate: number | null;
+    escape_rate: number | null;
+    detection_rate: number | null;
+    blocked_rate: number | null;
+    total_tests: number | null;
+  }>;
+}
+
+export async function getTrends(
+  projectId: number,
+  granularity: string,
+  from: string,
+  to: string
+): Promise<HistoricalTrendsResponse> {
+  return apiCall('Get Trends', async () => {
+    const response = await apiClient.get(`/dashboard/${projectId}/trends`, {
+      params: { granularity, from, to },
+    });
+    return response.data;
+  });
+}
+
 export async function clearCache(): Promise<unknown> {
   return apiCall('Clear Cache', async () => {
     const response = await apiClient.post('/cache/clear');

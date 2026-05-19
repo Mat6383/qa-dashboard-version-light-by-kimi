@@ -186,6 +186,39 @@
 }
 
 /* ==================================================
+   Accessibility — Reduced motion & tap targets
+   ================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Minimum comfortable tap target (44×44) for icon buttons */
+button,
+[role='button'],
+.btn-icon {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+button.btn-icon,
+[role='button'].btn-icon,
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================================================
    Dark-theme token overrides — GitHub Dark
    ================================================== */
 .app.dark-theme,

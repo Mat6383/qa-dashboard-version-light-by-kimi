@@ -1,10 +1,9 @@
-import {
-    Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-    Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType,
-    PageBreak
-} from 'docx';
+/**
+ * Générateur de rapport DOCX ISTQB — lazy-load de la librairie docx
+ * pour éviter d'alourdir le bundle initial.
+ */
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers (pas de dépendance externe) ────────────────────────────────────
 
 const COLORS = {
     green:  '10B981',
@@ -37,15 +36,29 @@ function statusColor(ok) {
     return ok ? COLORS.green : COLORS.red;
 }
 
-function bold(text, color?) {
+// ─── Lazy-loaded docx helpers ───────────────────────────────────────────────
+
+let docxModule: any = null;
+
+async function loadDocx() {
+    if (!docxModule) {
+        docxModule = await import('docx');
+    }
+    return docxModule;
+}
+
+async function bold(text, color?) {
+    const { TextRun } = await loadDocx();
     return new TextRun({ text, bold: true, color: color || COLORS.black });
 }
 
-function italic(text, color?) {
+async function italic(text, color?) {
+    const { TextRun } = await loadDocx();
     return new TextRun({ text, italics: true, color: color || COLORS.gray });
 }
 
-function h1(text) {
+async function h1(text) {
+    const { Paragraph, TextRun, HeadingLevel, BorderStyle } = await loadDocx();
     return new Paragraph({
         children: [
             new TextRun({ text, bold: true, size: 26, color: COLORS.darkGray }),
@@ -58,7 +71,8 @@ function h1(text) {
     });
 }
 
-function h2(text) {
+async function h2(text) {
+    const { Paragraph, TextRun, HeadingLevel } = await loadDocx();
     return new Paragraph({
         children: [new TextRun({ text, bold: true, size: 22, color: COLORS.darkGray })],
         heading: HeadingLevel.HEADING_2,
@@ -66,11 +80,12 @@ function h2(text) {
     });
 }
 
-function bullet(label, value, valueColor?) {
+async function bullet(label, value, valueColor?) {
+    const { Paragraph, TextRun } = await loadDocx();
     return new Paragraph({
         children: [
             new TextRun({ text: '• ', color: COLORS.blue }),
-            bold(label + ' : '),
+            await bold(label + ' : '),
             new TextRun({ text: value, color: valueColor || COLORS.black }),
         ],
         spacing: { before: 80, after: 80 },
@@ -78,24 +93,28 @@ function bullet(label, value, valueColor?) {
     });
 }
 
-function placeholder(text) {
+async function placeholder(text) {
+    const { Paragraph } = await loadDocx();
     return new Paragraph({
-        children: [italic(`[ ${text} ]`, COLORS.gray)],
+        children: [await italic(`[ ${text} ]`, COLORS.gray)],
         spacing: { before: 80, after: 80 },
         indent: { left: 360 }
     });
 }
 
-function emptyLine() {
+async function emptyLine() {
+    const { Paragraph } = await loadDocx();
     return new Paragraph({ text: '', spacing: { before: 100, after: 100 } });
 }
 
-function pageBreak() {
+async function pageBreak() {
+    const { Paragraph, PageBreak } = await loadDocx();
     return new Paragraph({ children: [new PageBreak()] });
 }
 
 // Tableau 2 colonnes simple
-function twoColTable(rows) {
+async function twoColTable(rows) {
+    const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, BorderStyle, ShadingType } = await loadDocx();
     return new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: {
@@ -106,7 +125,7 @@ function twoColTable(rows) {
             insideHorizontal:{ style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
             insideVertical:{ style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
         },
-        rows: rows.map(([label, value, valueColor, isHeader], idx) => {
+        rows: await Promise.all(rows.map(async ([label, value, valueColor, isHeader], idx) => {
             const bg = isHeader ? COLORS.blue : (idx % 2 === 0 ? COLORS.white : COLORS.lightGray);
             const fgLabel = isHeader ? COLORS.white : COLORS.darkGray;
             const fgValue = isHeader ? COLORS.white : (valueColor || COLORS.black);
@@ -127,12 +146,12 @@ function twoColTable(rows) {
                         children: [new Paragraph({
                             children: [new TextRun({ text: value, bold: isHeader, color: fgValue })],
                             spacing: { before: 80, after: 80 },
-                            alignment: AlignmentType.CENTER,
+                            alignment: (await loadDocx()).AlignmentType.CENTER,
                         })]
                     }),
                 ]
             });
-        })
+        }))
     });
 }
 
@@ -147,6 +166,8 @@ export const generateQuickClosureDoc = async ({
     endDate,
     bugs
 }) => {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, PageBreak } = await loadDocx();
+
     const rates    = currentMetrics.qualityRates || { detectionRate: 0, bugsInTest: 0, bugsInProd: 0, totalBugs: 0, escapeRate: 0 };
     const raw      = currentMetrics.raw || { total: 0, passed: 0, failed: 0, untested: 0, blocked: 0, skipped: 0, completed: 0, retest: 0, wip: 0 };
     const execRate = currentMetrics.completionRate || 0;
@@ -171,7 +192,7 @@ export const generateQuickClosureDoc = async ({
     const projectName = project?.name || 'Projet';
     const today = new Date().toLocaleDateString('fr-FR');
 
-    const children = [];
+    const children: any[] = [];
 
     // ═══════════════════════════════════════════════════════
     // PAGE DE GARDE
@@ -190,7 +211,7 @@ export const generateQuickClosureDoc = async ({
             spacing: { before: 0, after: 600 }
         }),
         new Paragraph({ text: '', spacing: { before: 200, after: 200 } }),
-        twoColTable([
+        await twoColTable([
             ['Champ', 'Valeur', null, true],
             ['Projet', projectName],
             ['Jalons / Campagne', milestoneName],
@@ -200,24 +221,24 @@ export const generateQuickClosureDoc = async ({
             ['Auteur', 'QA Lead – Neo-Logix'],
             ['Référentiel', 'ISTQB Foundation Level v4.0'],
         ]),
-        pageBreak()
+        await pageBreak()
     );
 
     // ═══════════════════════════════════════════════════════
     // SECTION 1 — PÉRIMÈTRE DES TESTS
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('1. Périmètre des Tests'));
+    children.push(await h1('1. Périmètre des Tests'));
 
-    children.push(h2('1.1 Ce qui a été testé'));
+    children.push(await h2('1.1 Ce qui a été testé'));
     children.push(
-        bullet('Jalons couverts', milestoneName),
-        bullet('Nombre de runs / sessions inclus', `${currentMetrics.runsCount || runs.length}`),
-        bullet('Environnement de test', environment || 'Non spécifié'),
+        await bullet('Jalons couverts', milestoneName),
+        await bullet('Nombre de runs / sessions inclus', `${currentMetrics.runsCount || runs.length}`),
+        await bullet('Environnement de test', environment || 'Non spécifié'),
     );
 
     if (runs.length > 0) {
-        children.push(emptyLine());
+        children.push(await emptyLine());
         const runRows = [
             ['Run / Session', 'Total', 'Exécutés', 'Succès', 'Échecs', 'Taux exec.', true]
         ];
@@ -241,7 +262,7 @@ export const generateQuickClosureDoc = async ({
                 insideHorizontal:{ style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
                 insideVertical:{ style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
             },
-            rows: runRows.map(([col1, col2, col3, col4, col5, col6, isHeader], idx) => {
+            rows: await Promise.all(runRows.map(async ([col1, col2, col3, col4, col5, col6, isHeader], idx) => {
                 const bg = isHeader ? COLORS.blue : (idx % 2 === 0 ? COLORS.white : COLORS.lightGray);
                 const fg = isHeader ? COLORS.white : COLORS.darkGray;
                 return new TableRow({
@@ -254,27 +275,27 @@ export const generateQuickClosureDoc = async ({
                         })]
                     }))
                 });
-            })
+            }))
         }));
     }
 
-    children.push(emptyLine(), h2('1.2 Ce qui n\'a pas été testé'));
+    children.push(await emptyLine(), await h2('1.2 Ce qui n\'a pas été testé'));
     children.push(
-        bullet('Tests non exécutés', `${raw.untested || 0} cas`),
-        placeholder('Préciser les fonctionnalités exclues du périmètre et la justification (hors scope, risque accepté, manque de temps, etc.)'),
+        await bullet('Tests non exécutés', `${raw.untested || 0} cas`),
+        await placeholder('Préciser les fonctionnalités exclues du périmètre et la justification (hors scope, risque accepté, manque de temps, etc.)'),
     );
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 2 — RÉSULTATS D'EXÉCUTION
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('2. Résultats d\'Exécution'));
+    children.push(await h1('2. Résultats d\'Exécution'));
 
-    children.push(h2('2.1 Volumes de tests'));
+    children.push(await h2('2.1 Volumes de tests'));
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Indicateur', 'Valeur', null, true],
             ['Total cas de test prévus', `${raw.total || 0}`],
             ['Cas exécutés',            `${raw.completed || 0}`],
@@ -287,9 +308,9 @@ export const generateQuickClosureDoc = async ({
         ])
     );
 
-    children.push(emptyLine(), h2('2.2 Indicateurs ISTQB'));
+    children.push(await emptyLine(), await h2('2.2 Indicateurs ISTQB'));
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Indicateur', 'Valeur obtenue', null, true],
             ['Taux d\'Exécution',       `${execRate}%`,   execRate  >= SLA.completionRate ? COLORS.green : COLORS.red],
             ['Taux de Succès',          `${passRate}%`,   passRate  >= SLA.passRate       ? COLORS.green : COLORS.red],
@@ -303,21 +324,21 @@ export const generateQuickClosureDoc = async ({
         ])
     );
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 3 — ÉVALUATION DES CRITÈRES DE SORTIE
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('3. Évaluation des Critères de Sortie'));
+    children.push(await h1('3. Évaluation des Critères de Sortie'));
 
     children.push(new Paragraph({
-        children: [italic('Seuils définis selon la politique SLA en vigueur (ISTQB – Exit Criteria).')],
+        children: [await italic('Seuils définis selon la politique SLA en vigueur (ISTQB – Exit Criteria).')],
         spacing: { before: 80, after: 200 }
     }));
 
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Critère de Sortie', 'Résultat', null, true],
             [
                 `Taux d'Exécution ≥ ${SLA.completionRate}%  (obtenu : ${execRate}%)`,
@@ -347,29 +368,29 @@ export const generateQuickClosureDoc = async ({
         ])
     );
 
-    children.push(emptyLine());
+    children.push(await emptyLine());
 
     if (!allCriteriaMet) {
         children.push(
             new Paragraph({
                 children: [
-                    bold('Critères non atteints – Justification / Risque accepté :'),
+                    await bold('Critères non atteints – Justification / Risque accepté :'),
                 ],
                 spacing: { before: 160, after: 80 }
             }),
-            placeholder('Décrire la décision consciente d\'accepter le risque résiduel (raison planning/budget/métier) et qui l\'a validée.')
+            await placeholder('Décrire la décision consciente d\'accepter le risque résiduel (raison planning/budget/métier) et qui l\'a validée.')
         );
     }
 
-    children.push(emptyLine());
+    children.push(await emptyLine());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 4 — ÉTAT DES ANOMALIES
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('4. État des Anomalies'));
+    children.push(await h1('4. État des Anomalies'));
 
-    children.push(h2('4.1 Anomalies critiques / majeures ouvertes'));
+    children.push(await h2('4.1 Anomalies critiques / majeures ouvertes'));
 
     if (validBugs.length > 0) {
         children.push(new Table({
@@ -419,9 +440,9 @@ export const generateQuickClosureDoc = async ({
         }));
     }
 
-    children.push(emptyLine(), h2('4.2 Synthèse des anomalies'));
+    children.push(await emptyLine(), await h2('4.2 Synthèse des anomalies'));
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Indicateur', 'Valeur', null, true],
             ['Bugs détectés en test (DDP)',          `${rates.bugsInTest || 0}`],
             ['Bugs détectés en production (ER)',     `${rates.bugsInProd || 0}`, (rates.bugsInProd || 0) === 0 ? COLORS.green : COLORS.red],
@@ -431,24 +452,24 @@ export const generateQuickClosureDoc = async ({
         ])
     );
     children.push(
-        emptyLine(),
-        placeholder('Préciser les anomalies résolues, leur nature et les corrections apportées avant mise en production.'),
+        await emptyLine(),
+        await placeholder('Préciser les anomalies résolues, leur nature et les corrections apportées avant mise en production.'),
     );
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 5 — RISQUES RÉSIDUELS
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('5. Risques Résiduels'));
+    children.push(await h1('5. Risques Résiduels'));
 
     children.push(new Paragraph({
-        children: [italic('Identifier les zones de risque non couvertes ou partiellement testées.')],
+        children: [await italic('Identifier les zones de risque non couvertes ou partiellement testées.')],
         spacing: { before: 80, after: 200 }
     }));
 
-    children.push(twoColTable([
+    children.push(await twoColTable([
         ['Zone de risque', 'Niveau / Commentaire', null, true],
         ['Fonctionnalités non testées', ''],
         ['Régressions potentielles',   ''],
@@ -457,85 +478,85 @@ export const generateQuickClosureDoc = async ({
     ]));
 
     children.push(
-        emptyLine(),
-        placeholder('Décrire chaque risque résiduel identifié, son niveau (Faible / Moyen / Élevé) et les mesures de mitigation proposées.'),
+        await emptyLine(),
+        await placeholder('Décrire chaque risque résiduel identifié, son niveau (Faible / Moyen / Élevé) et les mesures de mitigation proposées.')
     );
 
-    children.push(emptyLine());
+    children.push(await emptyLine());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 6 — DÉCISION GO / NO-GO
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('6. Décision de Mise en Production (Go / No-Go)'));
+    children.push(await h1('6. Décision de Mise en Production (Go / No-Go)'));
 
     children.push(new Paragraph({
         children: [
-            bold('Recommandation automatique basée sur les critères de sortie : '),
+            await bold('Recommandation automatique basée sur les critères de sortie : '),
             new TextRun({ text: goNoGo, bold: true, size: 28, color: goNoGoColor }),
         ],
         spacing: { before: 160, after: 200 }
     }));
 
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Critère de sortie global', `${allCriteriaMet ? 'Tous les critères sont atteints.' : 'Un ou plusieurs critères ne sont pas atteints.'}`, allCriteriaMet ? COLORS.green : COLORS.red, true],
         ])
     );
 
     children.push(
-        emptyLine(),
-        new Paragraph({ children: [bold('Décision finale validée par le QA Lead :')], spacing: { before: 160, after: 80 } }),
-        placeholder('GO / GO avec réserves / NO-GO — Préciser la décision officielle et le nom du responsable.'),
-        emptyLine(),
-        new Paragraph({ children: [bold('Justification :')], spacing: { before: 120, after: 80 } }),
-        placeholder('Décrire le contexte de la décision : planning, budget, risque accepté, contraintes métier, etc.'),
+        await emptyLine(),
+        new Paragraph({ children: [await bold('Décision finale validée par le QA Lead :')], spacing: { before: 160, after: 80 } }),
+        await placeholder('GO / GO avec réserves / NO-GO — Préciser la décision officielle et le nom du responsable.'),
+        await emptyLine(),
+        new Paragraph({ children: [await bold('Justification :')], spacing: { before: 120, after: 80 } }),
+        await placeholder('Décrire le contexte de la décision : planning, budget, risque accepté, contraintes métier, etc.'),
     );
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 7 — RETOUR D'EXPÉRIENCE (REX)
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('7. Retour d\'Expérience (REX – Lessons Learned)'));
+    children.push(await h1('7. Retour d\'Expérience (REX – Lessons Learned)'));
 
     children.push(new Paragraph({
-        children: [italic('ISTQB : l\'analyse post-test vise à améliorer le processus pour les campagnes futures.')],
+        children: [await italic('ISTQB : l\'analyse post-test vise à améliorer le processus pour les campagnes futures.')],
         spacing: { before: 80, after: 200 }
     }));
 
-    children.push(h2('7.1 Ce qui a bien fonctionné'));
-    children.push(placeholder('Lister les pratiques, outils ou décisions qui ont contribué positivement à la campagne (ex : automatisation, bonne couverture, réactivité équipe dev, etc.).'));
+    children.push(await h2('7.1 Ce qui a bien fonctionné'));
+    children.push(await placeholder('Lister les pratiques, outils ou décisions qui ont contribué positivement à la campagne (ex : automatisation, bonne couverture, réactivité équipe dev, etc.).'));
 
-    children.push(emptyLine(), h2('7.2 Ce qui n\'a pas fonctionné'));
-    children.push(placeholder('Lister les points d\'amélioration : blocages récurrents, manque de données de test, couverture insuffisante, délais non tenus, communication, etc.'));
+    children.push(await emptyLine(), await h2('7.2 Ce qui n\'a pas fonctionné'));
+    children.push(await placeholder('Lister les points d\'amélioration : blocages récurrents, manque de données de test, couverture insuffisante, délais non tenus, communication, etc.'));
 
-    children.push(emptyLine(), h2('7.3 Actions d\'amélioration proposées'));
+    children.push(await emptyLine(), await h2('7.3 Actions d\'amélioration proposées'));
     children.push(
-        twoColTable([
+        await twoColTable([
             ['Action d\'amélioration', 'Responsable / Échéance', null, true],
             ['', ''],
             ['', ''],
             ['', ''],
         ])
     );
-    children.push(placeholder('Compléter le tableau avec les actions issues du REX.'));
+    children.push(await placeholder('Compléter le tableau avec les actions issues du REX.'));
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 8 — ARCHIVAGE DU TESTWARE
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('8. Archivage du Testware'));
+    children.push(await h1('8. Archivage du Testware'));
 
     children.push(new Paragraph({
-        children: [italic('ISTQB : tous les artefacts de test doivent être archivés, versionnés et accessibles pour la maintenance et les audits.')],
+        children: [await italic('ISTQB : tous les artefacts de test doivent être archivés, versionnés et accessibles pour la maintenance et les audits.')],
         spacing: { before: 80, after: 200 }
     }));
 
-    children.push(twoColTable([
+    children.push(await twoColTable([
         ['Artefact', 'Statut / Localisation', null, true],
         ['Plan de test',                    ''],
         ['Cas de test (Testmo)',             `Projet : ${projectName} – Jalon : ${milestoneName}`],
@@ -548,19 +569,19 @@ export const generateQuickClosureDoc = async ({
     ]));
 
     children.push(
-        emptyLine(),
-        placeholder('Confirmer que les artefacts sont correctement versionnés et accessibles à l\'équipe.')
+        await emptyLine(),
+        await placeholder('Confirmer que les artefacts sont correctement versionnés et accessibles à l\'équipe.')
     );
 
-    children.push(emptyLine());
+    children.push(await emptyLine());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 9 — RECOMMANDATIONS
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('9. Recommandations pour la Prochaine Campagne'));
+    children.push(await h1('9. Recommandations pour la Prochaine Campagne'));
 
-    children.push(twoColTable([
+    children.push(await twoColTable([
         ['Domaine', 'Recommandation', null, true],
         ['Stratégie de test',          ''],
         ['Critères d\'entrée / sortie', ''],
@@ -571,21 +592,21 @@ export const generateQuickClosureDoc = async ({
     ]));
 
     children.push(
-        emptyLine(),
-        placeholder('Compléter chaque ligne avec une recommandation actionnable pour la prochaine release.')
+        await emptyLine(),
+        await placeholder('Compléter chaque ligne avec une recommandation actionnable pour la prochaine release.')
     );
 
-    children.push(pageBreak());
+    children.push(await pageBreak());
 
     // ═══════════════════════════════════════════════════════
     // SECTION 10 — EFFICIENCE LEAN
     // ═══════════════════════════════════════════════════════
 
-    children.push(h1('10. Efficience (LEAN)'));
+    children.push(await h1('10. Efficience (LEAN)'));
 
     children.push(
-        bullet('Efficience globale des tests', `${efficiency}%`, efficiency >= 80 ? COLORS.green : COLORS.orange),
-        emptyLine()
+        await bullet('Efficience globale des tests', `${efficiency}%`, efficiency >= 80 ? COLORS.green : COLORS.orange),
+        await emptyLine()
     );
 
     if (selectedPastRuns && selectedPastRuns.length > 0) {
@@ -595,9 +616,9 @@ export const generateQuickClosureDoc = async ({
         const totalBugs    = totBugsTest + totBugsProd;
         const ddpConsolidated = totalBugs > 0 ? Math.round((totBugsTest / totalBugs) * 100) : 100;
 
-        children.push(h2('10.1 Consolidation des campagnes historiques'));
+        children.push(await h2('10.1 Consolidation des campagnes historiques'));
         children.push(
-            twoColTable([
+            await twoColTable([
                 ['Indicateur consolidé', 'Valeur', null, true],
                 ['Versions fusionnées',         runsNames],
                 ['Total bugs détectés en test',  `${totBugsTest}`],
@@ -607,7 +628,7 @@ export const generateQuickClosureDoc = async ({
         );
     } else {
         children.push(new Paragraph({
-            children: [italic('Aucune campagne historique sélectionnée pour consolidation.')],
+            children: [await italic('Aucune campagne historique sélectionnée pour consolidation.')],
             spacing: { before: 80, after: 80 },
             indent: { left: 360 }
         }));
@@ -618,14 +639,14 @@ export const generateQuickClosureDoc = async ({
     // ═══════════════════════════════════════════════════════
 
     children.push(
-        emptyLine(),
+        await emptyLine(),
         new Paragraph({
             children: [new TextRun({ text: '─'.repeat(80), color: COLORS.gray })],
             spacing: { before: 400, after: 200 }
         }),
         new Paragraph({
             children: [
-                italic(`Document généré le ${today} par le QA Dashboard Neo-Logix  •  Norme ISTQB Foundation Level v4.0  •  Projet : ${projectName}  •  Campagne : ${milestoneName}`)
+                await italic(`Document généré le ${today} par le QA Dashboard Neo-Logix  •  Norme ISTQB Foundation Level v4.0  •  Projet : ${projectName}  •  Campagne : ${milestoneName}`)
             ],
             alignment: AlignmentType.CENTER,
             spacing: { before: 80, after: 80 }

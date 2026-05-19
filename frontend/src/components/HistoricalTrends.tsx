@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Loader2, AlertCircle, Calendar } from 'lucide-react';
 import {
@@ -13,32 +13,31 @@ import {
   Filler,
 } from 'chart.js';
 import { buildHistoricalChartData, buildChartOptions } from '../lib/charts';
-import { useApiRequest } from '../hooks/useApiRequest';
+import { useTrends } from '../hooks/queries/useTrends';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function HistoricalTrends({ projectId, isDark }) {
   const [range, setRange] = useState('30'); // jours
   const [granularity, setGranularity] = useState('day');
-  const { data: response, loading, error, execute } = useApiRequest<any>();
 
-  useEffect(() => {
-    if (!projectId) return;
-    const to = new Date().toISOString().slice(0, 10);
-    const from = new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    execute(`/dashboard/${projectId}/trends`, {
-      params: { granularity, from, to },
-    });
-  }, [projectId, range, granularity]);
+  const to = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const from = useMemo(
+    () => new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    [range]
+  );
+
+  const { data: response, isLoading: loading, error: queryError } = useTrends(projectId, granularity, from, to);
 
   const data = useMemo(() => response?.snapshots || [], [response]);
   const chartData = useMemo(() => buildHistoricalChartData(data), [data]);
-
   const options = useMemo(() => buildChartOptions('line', isDark), [isDark]);
 
   const cardBg = 'var(--surface-muted)';
   const border = 'var(--border-color)';
   const text = 'var(--text-color)';
+
+  const error = queryError instanceof Error ? queryError.message : null;
 
   return (
     <div style={{ padding: '24px' }}>

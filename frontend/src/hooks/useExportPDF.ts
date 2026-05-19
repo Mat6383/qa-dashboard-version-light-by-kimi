@@ -6,13 +6,14 @@
  * Dashboard4 (vue globale), TestClosureModal (rapport de clôture),
  * et l'Option C "Pro Suite" (export par carte).
  *
+ * Les librairies lourdes sont chargées dynamiquement pour éviter
+ * d'impact le bundle initial (lazy-load au niveau feature).
+ *
  * @author Matou - Neo-Logix QA Lead
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import { useState, useCallback } from 'react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import { useToast } from './useToast';
 
 export interface ExportPDFOptions {
@@ -37,6 +38,12 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
       setIsExporting(true);
 
       try {
+        // Lazy-load des librairies d'export lourdes
+        const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+          import('html2canvas'),
+          import('jspdf'),
+        ]);
+
         const originalDisplay = opts.preCapture ? element.style.display : undefined;
         if (opts.preCapture) {
           element.style.display = 'block';
@@ -98,7 +105,10 @@ export function useExportPDF(defaultOptions: ExportPDFOptions = {}) {
 
         pdf.save(filename);
       } catch (error) {
-        console.error("Erreur lors de l'export:", error);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error("Erreur lors de l'export:", error);
+        }
         showToast("Erreur lors de la génération de l'export", 'error');
         throw error;
       } finally {

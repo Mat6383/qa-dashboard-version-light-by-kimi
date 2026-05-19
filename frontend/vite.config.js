@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: 'hidden',
       // Optimisation LEAN
       chunkSizeWarningLimit: 1000,
       minify: 'terser',
@@ -43,7 +43,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (['react', 'react-dom', 'react-router-dom'].some((m) => id.includes(m))) return 'vendor-react';
               if (['chart.js', 'react-chartjs-2'].some((m) => id.includes(m))) return 'vendor-charts';
-              if (['html2canvas', 'jspdf', 'docx'].some((m) => id.includes(m))) return 'vendor-export';
               if (id.includes('lucide-react')) return 'vendor-ui';
             }
           },
