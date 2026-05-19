@@ -89,7 +89,7 @@ export default function NotificationSettings({ isDark }) {
         slackTemplate: templates.slackTemplate || null,
         teamsTemplate: templates.teamsTemplate || null,
       });
-      showToast(t('notifications.templatesSaved') || 'Templates sauvegardés', 'success');
+      showToast(t('notifications.templatesSaved', { defaultValue: 'Templates sauvegardés' }), 'success');
     } catch (err) {
       showToast(t('notifications.saveError'), 'error');
     }

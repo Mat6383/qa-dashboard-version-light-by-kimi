@@ -300,7 +300,7 @@ const Dashboard4 = ({
                       </>
                     ) : (
                       <span className="dashboard4-badge" style={{ marginLeft: '0.5rem', backgroundColor: 'var(--text-muted)' }}>
-                        {t('dashboard4.noActiveRun') || 'Aucun run actif pour les cycles sélectionnés'}
+                        {t('dashboard4.noActiveRun', { defaultValue: 'Aucun run actif pour les cycles sélectionnés' })}
                       </span>
                     )}
                   </div>

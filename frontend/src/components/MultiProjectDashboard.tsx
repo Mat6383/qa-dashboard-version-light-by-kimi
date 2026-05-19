@@ -5,17 +5,17 @@ import { getMetricColor } from '../lib/colors';
 import '../styles/MultiProjectDashboard.css';
 
 function getPassRateColor(value) {
-  if (value === null) return '';
+  if (value == null) return '';
   return getMetricColor('passRate', value);
 }
 
 function getBlockedRateColor(value) {
-  if (value === null) return '';
+  if (value == null) return '';
   return getMetricColor('blockedRate', value);
 }
 
 function getCompletionRateColor(value) {
-  if (value === null) return '';
+  if (value == null) return '';
   return getMetricColor('completionRate', value);
 }
 
@@ -74,16 +74,16 @@ export default function MultiProjectDashboard({ isDark: _isDark }) {
                 <tr key={s.projectId}>
                   <td className="mpd-project-name">{s.projectName}</td>
                   <td className="tabular-nums" style={{ color: getPassRateColor(s.passRate), fontWeight: 700 }}>
-                    {s.passRate !== null ? `${s.passRate.toFixed(1)}%` : '—'}
+                    {s.passRate != null ? `${s.passRate.toFixed(1)}%` : '—'}
                   </td>
                   <td className="tabular-nums" style={{ color: getCompletionRateColor(s.completionRate), fontWeight: 700 }}>
-                    {s.completionRate !== null ? `${s.completionRate.toFixed(1)}%` : '—'}
+                    {s.completionRate != null ? `${s.completionRate.toFixed(1)}%` : '—'}
                   </td>
                   <td className="tabular-nums" style={{ color: getBlockedRateColor(s.blockedRate), fontWeight: 700 }}>
-                    {s.blockedRate !== null ? `${s.blockedRate.toFixed(1)}%` : '—'}
+                    {s.blockedRate != null ? `${s.blockedRate.toFixed(1)}%` : '—'}
                   </td>
-                  <td className="tabular-nums">{s.escapeRate !== null ? `${s.escapeRate.toFixed(1)}%` : '—'}</td>
-                  <td className="tabular-nums">{s.detectionRate !== null ? `${s.detectionRate.toFixed(1)}%` : '—'}</td>
+                  <td className="tabular-nums">{s.escapeRate != null ? `${s.escapeRate.toFixed(1)}%` : '—'}</td>
+                  <td className="tabular-nums">{s.detectionRate != null ? `${s.detectionRate.toFixed(1)}%` : '—'}</td>
                   <td>
                     {s.slaStatus?.ok ? (
                       <span className="mpd-sla-ok">

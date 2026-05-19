@@ -23,6 +23,7 @@
     "send": "Envoyer",
     "test": "Tester",
     "saving": "Sauvegarde...",
+    "reset": "Réinitialiser",
     "language": "Langue",
     "french": "Français",
     "english": "English",
@@ -417,6 +418,14 @@
     "statusTitle": "Statut",
     "priorityTitle": "Priorité"
   },
+  "webhooks": {
+    "title": "Webhooks",
+    "add": "Ajouter",
+    "allMetrics": "Toutes les métriques",
+    "allSeverities": "Toutes les sévérités",
+    "urlPlaceholder": "URL du webhook",
+    "secretPlaceholder": "Secret"
+  },
   "tools": {
     "title": "Outils",
     "syncGitlabToTestmo": "Sync GitLab → Testmo",
@@ -436,7 +445,8 @@
     "inProgress": "En cours",
     "testClosure": "Clôture de Test",
     "quickClosure": "Quick Clôture DOCX",
-    "reportGenerator": "Rapport HTML / PPTX"
+    "reportGenerator": "Rapport HTML / PPTX",
+    "noActiveRun": "Aucun run actif pour les cycles sélectionnés"
   },
   "nav": {
     "global": "Global",

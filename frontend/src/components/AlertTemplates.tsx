@@ -121,7 +121,7 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
           style={{ backgroundColor: 'var(--text-success)', color: '#fff', border: 'none' }}
         >
           <Save size={16} />
-          {savePending ? (t('common.saving') || 'Sauvegarde...') : (t('common.save') || 'Sauvegarder')}
+          {savePending ? t('common.saving', { defaultValue: 'Sauvegarde...' }) : t('common.save', { defaultValue: 'Sauvegarder' })}
         </button>
         <button
           className="btn-toggle"
@@ -129,7 +129,7 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
           type="button"
         >
           <RotateCcw size={16} />
-          {t('common.reset') || 'Réinitialiser'}
+          {t('common.reset', { defaultValue: 'Réinitialiser' })}
         </button>
       </div>
     </div>

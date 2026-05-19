@@ -91,7 +91,7 @@ export default function WebhookSubscriptions({ isDark, subscriptions, onCreate, 
             value={form.filters?.metric || ''}
             onChange={(e) => setForm({ ...form, filters: { ...form.filters, metric: e.target.value } })}
           >
-            <option value="">{t('webhooks.allMetrics') || 'Toutes les métriques'}</option>
+            <option value="">{t('webhooks.allMetrics', { defaultValue: 'Toutes les métriques' })}</option>
             {METRICS.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -103,7 +103,7 @@ export default function WebhookSubscriptions({ isDark, subscriptions, onCreate, 
             value={form.filters?.severity || ''}
             onChange={(e) => setForm({ ...form, filters: { ...form.filters, severity: e.target.value } })}
           >
-            <option value="">{t('webhooks.allSeverities') || 'Toutes les sévérités'}</option>
+            <option value="">{t('webhooks.allSeverities', { defaultValue: 'Toutes les sévérités' })}</option>
             {SEVERITIES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -128,7 +128,7 @@ export default function WebhookSubscriptions({ isDark, subscriptions, onCreate, 
     <div>
       <div style={{ marginBottom: '16px' }}>
         <button className="btn-toggle" onClick={() => startEdit()} type="button">
-          <Plus size={16} /> {t('webhooks.add') || 'Ajouter'}
+          <Plus size={16} /> {t('webhooks.add', { defaultValue: 'Ajouter' })}
         </button>
       </div>
 

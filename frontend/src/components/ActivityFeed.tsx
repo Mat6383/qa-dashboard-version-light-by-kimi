@@ -44,7 +44,7 @@ export default function ActivityFeed({ anomalies = [], lastLiveEventAt }: Activi
         type: 'live',
         icon: <Radio size={14} />,
         color: 'var(--text-success)',
-        title: t('activity.liveUpdate') || 'Mise à jour temps réel',
+        title: t('activity.liveUpdate', { defaultValue: 'Mise à jour temps réel' }),
         time: formatTimeAgo(lastLiveEventAt, i18n.language),
       });
     }
@@ -80,7 +80,7 @@ export default function ActivityFeed({ anomalies = [], lastLiveEventAt }: Activi
     return (
       <div className="activity-feed activity-feed--empty">
         <Activity size={16} color="var(--text-muted)" />
-        <span>{t('activity.noActivity') || 'Aucune activité récente'}</span>
+        <span>{t('activity.noActivity', { defaultValue: 'Aucune activité récente' })}</span>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function ActivityFeed({ anomalies = [], lastLiveEventAt }: Activi
     <div className="activity-feed">
       <div className="activity-feed__header">
         <Activity size={14} />
-        <span>{t('activity.title') || 'Activité récente'}</span>
+        <span>{t('activity.title', { defaultValue: 'Activité récente' })}</span>
       </div>
       <div className="activity-feed__list">
         {items.map((item) => (

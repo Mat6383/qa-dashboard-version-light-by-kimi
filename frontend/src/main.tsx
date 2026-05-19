@@ -35,7 +35,6 @@ import { PreferencesProvider } from './contexts/PreferencesContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { TRPCProvider } from './trpc/provider';
-import './i18n';
 import './styles/tokens.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -54,26 +53,30 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-// Montage de l'application
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <TRPCProvider>
-            <ThemeProvider>
-              <PreferencesProvider>
-                <DashboardProvider>
-                  <ToastProvider>
-                    <App />
-                  </ToastProvider>
-                </DashboardProvider>
-              </PreferencesProvider>
-            </ThemeProvider>
-          </TRPCProvider>
-        </BrowserRouter>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </StrictMode>
-);
+// Initialisation i18n asynchrone puis montage de l'app
+import('./i18n').then(({ initI18n }) => {
+  initI18n().then(() => {
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <StrictMode>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <TRPCProvider>
+                <ThemeProvider>
+                  <PreferencesProvider>
+                    <DashboardProvider>
+                      <ToastProvider>
+                        <App />
+                      </ToastProvider>
+                    </DashboardProvider>
+                  </PreferencesProvider>
+                </ThemeProvider>
+              </TRPCProvider>
+            </BrowserRouter>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </StrictMode>
+    );
+  });
+});
