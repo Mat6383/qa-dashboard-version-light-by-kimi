@@ -12,7 +12,10 @@ import {
   LogIn,
   LogOut,
   User,
+  Bell,
+  BellOff,
 } from 'lucide-react';
+import { usePreferences } from '../../hooks/usePreferences';
 
 export default function MobileDrawerContent({
   projects,
@@ -46,6 +49,7 @@ export default function MobileDrawerContent({
   backendStatus,
 }) {
   const { t, i18n } = useTranslation();
+  const { showCriticalAlerts, setShowCriticalAlerts } = usePreferences();
 
   return (
     <div className="mobile-drawer-controls">
@@ -69,6 +73,17 @@ export default function MobileDrawerContent({
       >
         <LayoutTemplate size={16} />
         {compactMode ? t('layout.compactModeOn') : t('layout.compactModeOff')}
+      </button>
+
+      {/* Toggle Critical Alerts */}
+      <button
+        className={`btn-toggle ${showCriticalAlerts ? 'active' : ''}`}
+        onClick={() => setShowCriticalAlerts(!showCriticalAlerts)}
+        type="button"
+        style={{ width: '100%', justifyContent: 'center' }}
+      >
+        {showCriticalAlerts ? <Bell size={16} /> : <BellOff size={16} />}
+        {showCriticalAlerts ? t('layout.criticalAlertsOn') : t('layout.criticalAlertsOff')}
       </button>
 
       {/* Toggle Dark Theme */}

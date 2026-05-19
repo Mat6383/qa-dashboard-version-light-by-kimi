@@ -121,12 +121,25 @@
     "webhookNotConfigured": "Webhook {{channel}} non configuré",
     "testSent": "Test {{channel}} envoyé",
     "testFailed": "Test {{channel}} échoué",
+    "tabs": {
+      "channels": "Paramètres",
+      "templates": "Templates",
+      "webhooks": "Webhooks"
+    },
     "emailSla": "Email SLA",
     "emailAddress": "Adresse email",
     "enableEmailAlerts": "Activer les alertes SLA par email",
     "webhookUrl": "Webhook URL",
     "enableSlackAlerts": "Activer les alertes SLA sur Slack",
-    "enableTeamsAlerts": "Activer les alertes SLA sur Teams"
+    "enableTeamsAlerts": "Activer les alertes SLA sur Teams",
+    "emailTemplate": "Template Email",
+    "slackTemplate": "Template Slack",
+    "teamsTemplate": "Template Teams",
+    "templatePlaceholder": "Écrivez votre template en Markdown...",
+    "preview": "Aperçu",
+    "noPreview": "Aucun aperçu",
+    "availableVariables": "Variables disponibles",
+    "templatesSaved": "Templates sauvegardés"
   },
   "featureFlags": {
     "title": "Feature Flags",
