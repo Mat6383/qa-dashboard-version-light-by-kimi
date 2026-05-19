@@ -77,13 +77,13 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
         style={textareaStyle}
         value={local[key]}
         onChange={(e) => setLocal({ ...local, [key]: e.target.value })}
-        placeholder={t('notifications.templatePlaceholder') || 'Écrivez votre template en Markdown...'}
+        placeholder={t('notifications.templatePlaceholder', { defaultValue: 'Écrivez votre template en Markdown...' })}
       />
       <div style={{ marginTop: '12px' }}>
         <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-          <Eye size={14} /> {t('notifications.preview') || 'Aperçu'}
+          <Eye size={14} /> {t('notifications.preview', { defaultValue: 'Aperçu' })}
         </strong>
-        <div style={previewStyle}>{replaceVars(local[key]) || (t('notifications.noPreview') || 'Aucun aperçu')}</div>
+        <div style={previewStyle}>{replaceVars(local[key]) || t('notifications.noPreview', { defaultValue: 'Aucun aperçu' })}</div>
       </div>
     </div>
   );
@@ -91,7 +91,7 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
   return (
     <div>
       <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t('notifications.availableVariables') || 'Variables disponibles'}:</span>
+        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t('notifications.availableVariables', { defaultValue: 'Variables disponibles' })}:</span>
         {VARIABLES.map((v) => (
           <code
             key={v}
@@ -108,9 +108,9 @@ export default function AlertTemplates({ isDark, templates, onSave, savePending 
         ))}
       </div>
 
-      {renderSection(t('notifications.emailTemplate') || 'Template Email', 'emailTemplate')}
-      {renderSection(t('notifications.slackTemplate') || 'Template Slack', 'slackTemplate')}
-      {renderSection(t('notifications.teamsTemplate') || 'Template Teams', 'teamsTemplate')}
+      {renderSection(t('notifications.emailTemplate', { defaultValue: 'Template Email' }), 'emailTemplate')}
+      {renderSection(t('notifications.slackTemplate', { defaultValue: 'Template Slack' }), 'slackTemplate')}
+      {renderSection(t('notifications.teamsTemplate', { defaultValue: 'Template Teams' }), 'teamsTemplate')}
 
       <div style={{ display: 'flex', gap: '12px' }}>
         <button

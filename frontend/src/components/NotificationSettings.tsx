@@ -134,13 +134,13 @@ export default function NotificationSettings({ isDark }) {
 
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
         <button style={tabStyle(TAB_CHANNELS)} onClick={() => setActiveTab(TAB_CHANNELS)} type="button">
-          <Settings size={16} /> {t('notifications.tabs.channels') || 'Paramètres'}
+          <Settings size={16} /> {t('notifications.tabs.channels', { defaultValue: 'Paramètres' })}
         </button>
         <button style={tabStyle(TAB_TEMPLATES)} onClick={() => setActiveTab(TAB_TEMPLATES)} type="button">
-          <FileText size={16} /> {t('notifications.tabs.templates') || 'Templates'}
+          <FileText size={16} /> {t('notifications.tabs.templates', { defaultValue: 'Templates' })}
         </button>
         <button style={tabStyle(TAB_WEBHOOKS)} onClick={() => setActiveTab(TAB_WEBHOOKS)} type="button">
-          <Webhook size={16} /> {t('notifications.tabs.webhooks') || 'Webhooks'}
+          <Webhook size={16} /> {t('notifications.tabs.webhooks', { defaultValue: 'Webhooks' })}
         </button>
       </div>
 
