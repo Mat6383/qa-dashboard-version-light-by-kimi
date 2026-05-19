@@ -19,6 +19,10 @@ export function PreferencesProvider({ children }) {
     const saved = localStorage.getItem('testmo_showProductionSection');
     return saved !== null ? saved === 'true' : true;
   });
+  const [showCriticalAlerts, setShowCriticalAlerts] = useState(() => {
+    const saved = localStorage.getItem('testmo_showCriticalAlerts');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   useEffect(() => {
     try {
@@ -26,10 +30,11 @@ export function PreferencesProvider({ children }) {
       localStorage.setItem('testmo_selectedPreprodMilestones', JSON.stringify(selectedPreprodMilestones));
       localStorage.setItem('testmo_selectedProdMilestones', JSON.stringify(selectedProdMilestones));
       localStorage.setItem('testmo_showProductionSection', String(showProductionSection));
+      localStorage.setItem('testmo_showCriticalAlerts', String(showCriticalAlerts));
     } catch (err) {
       console.warn('localStorage quota exceeded:', err);
     }
-  }, [useBusinessTerms, selectedPreprodMilestones, selectedProdMilestones, showProductionSection]);
+  }, [useBusinessTerms, selectedPreprodMilestones, selectedProdMilestones, showProductionSection, showCriticalAlerts]);
 
   // Sync cross-onglets via événement storage
   useEffect(() => {
@@ -54,6 +59,9 @@ export function PreferencesProvider({ children }) {
       if (e.key === 'testmo_showProductionSection') {
         setShowProductionSection(e.newValue !== 'false');
       }
+      if (e.key === 'testmo_showCriticalAlerts') {
+        setShowCriticalAlerts(e.newValue !== 'false');
+      }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -71,8 +79,10 @@ export function PreferencesProvider({ children }) {
       setSelectedProdMilestones,
       showProductionSection,
       setShowProductionSection,
+      showCriticalAlerts,
+      setShowCriticalAlerts,
     }),
-    [useBusinessTerms, autoRefresh, selectedPreprodMilestones, selectedProdMilestones, showProductionSection]
+    [useBusinessTerms, autoRefresh, selectedPreprodMilestones, selectedProdMilestones, showProductionSection, showCriticalAlerts]
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

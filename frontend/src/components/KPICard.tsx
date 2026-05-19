@@ -13,6 +13,7 @@
 
 import React, { useRef, useCallback } from 'react';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
+import { usePreferences } from '../hooks/usePreferences';
 import {
   TrendingUp,
   TrendingDown,
@@ -150,6 +151,7 @@ export default function KPICard({
   comparisonPills,
   onExport,
 }: KPICardProps) {
+  const { showCriticalAlerts } = usePreferences();
   const cfg = statusConfig[status];
   const isClickable = !!onClick;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -262,7 +264,7 @@ export default function KPICard({
         )}
 
         {/* Alert */}
-        {alert && (
+        {alert && showCriticalAlerts && (
           <div
             className="kpi-card__alert"
             style={{

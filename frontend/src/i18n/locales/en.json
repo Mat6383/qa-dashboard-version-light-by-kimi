@@ -43,6 +43,8 @@
     "compactModeOff": "Compact OFF",
     "darkTheme": "Dark theme",
     "businessTerms": "Business Vocabulary",
+    "criticalAlertsOn": "Alerts ON",
+    "criticalAlertsOff": "Alerts OFF",
     "autoRefreshOn": "Auto ON",
     "autoRefreshOff": "Auto OFF",
     "liveIndicator": "Real-time connection active",

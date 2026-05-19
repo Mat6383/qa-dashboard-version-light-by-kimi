@@ -15,8 +15,11 @@ import {
   Globe,
   LayoutTemplate,
   Settings,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import ExportMenu from './ExportMenu';
+import { usePreferences } from '../../hooks/usePreferences';
 
 function BackendStatus({ status, t }) {
   const config = {
@@ -70,6 +73,7 @@ export default function TopBar({
   backendStatus,
 }) {
   const { t, i18n } = useTranslation();
+  const { showCriticalAlerts, setShowCriticalAlerts } = usePreferences();
 
   return (
     <header className="app-header" role="banner">
@@ -122,6 +126,20 @@ export default function TopBar({
           <LayoutTemplate size={16} />
           <span className="header-toggle-label">
             {compactMode ? t('layout.compactModeOn') : t('layout.compactModeOff')}
+          </span>
+        </button>
+
+        {/* Toggle Critical Alerts */}
+        <button
+          className={`btn-toggle ${showCriticalAlerts ? 'active' : ''}`}
+          onClick={() => setShowCriticalAlerts(!showCriticalAlerts)}
+          title={showCriticalAlerts ? t('layout.criticalAlertsOn') : t('layout.criticalAlertsOff')}
+          type="button"
+          data-testid="critical-alerts-toggle"
+        >
+          {showCriticalAlerts ? <Bell size={16} /> : <BellOff size={16} />}
+          <span className="header-toggle-label">
+            {showCriticalAlerts ? t('layout.criticalAlertsOn') : t('layout.criticalAlertsOff')}
           </span>
         </button>
 
